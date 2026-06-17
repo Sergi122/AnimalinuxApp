@@ -1,0 +1,16 @@
+[project]
+name = "animalinux"
+version = "0.1.0"
+description = "Mascotas animadas en el escritorio para Hyprland (Wayland), estilo AnimaEngine"
+requires-python = ">=3.10"
+dependencies = ["Pillow"]
+
+[project.scripts]
+animalinux = "animalinux.app:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["animalinux"]

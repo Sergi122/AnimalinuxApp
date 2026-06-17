@@ -1,0 +1,644 @@
+"""
+Tema profesional para AnimaLinux — prioridad USER (800) para vencer Adwaita.
+"""
+import gi
+gi.require_version("Gtk", "4.0")
+from gi.repository import Gtk, Gdk
+
+# Paleta
+BG      = "#1e1e2e"   # fondo general — azul noche muy oscuro
+PANEL   = "#181825"   # paneles laterales — casi negro
+WIDGET  = "#313244"   # fondo de widgets (botones, entradas)
+WIDGET2 = "#45475a"   # hover / resaltado leve
+ACCENT  = "#7c6fe0"   # morado/violeta
+ACCENT2 = "#9b8bf0"   # hover del acento
+TEXT    = "#cdd6f4"   # texto principal — blanco azulado
+TEXT2   = "#a6adc8"   # texto secundario
+BORDER  = "#45475a"   # borde estándar
+RED     = "#f38ba8"   # destructivo
+GREEN   = "#a6e3a1"   # confirmación
+
+_CSS = f"""
+/* ═══════════════════════════════════════════════
+   RESET GLOBAL — limpia gradientes de Adwaita
+   ═══════════════════════════════════════════════ */
+* {{
+  -gtk-icon-shadow: none;
+  text-shadow: none;
+}}
+
+/* ── ventana raíz ── */
+window,
+.background {{
+  background-color: {BG};
+  background-image: none;
+  color: {TEXT};
+}}
+/* ventanas de mascota: fondo completamente transparente */
+window.animalinux-mascot,
+window.animalinux-mascot * {{
+  background-color: transparent;
+  background-image: none;
+  box-shadow: none;
+}}
+dialog, messagedialog {{
+  background-color: {PANEL};
+  background-image: none;
+  color: {TEXT};
+}}
+
+/* ── contenedores transparentes ── */
+box, grid, paned, viewport, scrolledwindow,
+overlay, stack, revealer {{
+  background-color: transparent;
+  background-image: none;
+  color: {TEXT};
+}}
+
+/* ── TODOS los labels heredan el color ── */
+label {{
+  color: {TEXT};
+  background-color: transparent;
+  background-image: none;
+}}
+.caption, .caption > label {{
+  color: {TEXT2};
+  font-size: 11px;
+}}
+.dim-label {{
+  color: {TEXT2};
+  font-size: 12px;
+}}
+.status-label {{
+  color: {ACCENT2};
+  font-size: 12px;
+  font-family: monospace;
+  font-weight: bold;
+}}
+.monospace {{
+  font-family: monospace;
+  color: {GREEN};
+  font-size: 12px;
+}}
+
+/* ── headerbar ── */
+headerbar {{
+  background-color: {PANEL};
+  background-image: none;
+  box-shadow: none;
+  border-bottom: 2px solid {ACCENT};
+  color: {TEXT};
+  min-height: 36px;
+  padding: 0 8px;
+}}
+headerbar > * {{
+  color: {TEXT};
+}}
+headerbar label, headerbar .title {{
+  color: {TEXT};
+  font-weight: bold;
+}}
+windowcontrols button {{
+  background-color: {WIDGET};
+  background-image: none;
+  box-shadow: none;
+  color: {TEXT};
+  border: 1px solid {BORDER};
+  border-radius: 50%;
+  min-width: 16px;
+  min-height: 16px;
+  padding: 2px;
+}}
+windowcontrols button label {{
+  color: {TEXT};
+}}
+
+/* ═══════════════════════════════════════════════
+   BOTONES — reset completo + estilos propios
+   ═══════════════════════════════════════════════ */
+button {{
+  background-color: {WIDGET};
+  background-image: none;
+  box-shadow: none;
+  color: {TEXT};
+  border: 1px solid {BORDER};
+  border-radius: 6px;
+  padding: 5px 12px;
+  min-height: 28px;
+  font-size: 12px;
+  transition: background-color 120ms, border-color 120ms;
+}}
+button > label,
+button label {{
+  color: {TEXT};
+  font-size: 12px;
+  font-weight: normal;
+}}
+button:hover {{
+  background-color: {WIDGET2};
+  background-image: none;
+  border-color: #6c7086;
+  color: #ffffff;
+}}
+button:hover > label,
+button:hover label {{
+  color: #ffffff;
+}}
+button:active {{
+  background-color: {ACCENT};
+  background-image: none;
+  border-color: {ACCENT2};
+  color: #ffffff;
+}}
+button:active > label,
+button:active label {{
+  color: #ffffff;
+}}
+button:disabled {{
+  background-color: {PANEL};
+  background-image: none;
+  color: #585b70;
+  border-color: #313244;
+  opacity: 0.6;
+}}
+button:disabled > label,
+button:disabled label {{
+  color: #585b70;
+}}
+
+/* acción principal */
+button.suggested-action {{
+  background-color: {ACCENT};
+  background-image: none;
+  box-shadow: none;
+  color: #ffffff;
+  border-color: {ACCENT2};
+  font-weight: bold;
+}}
+button.suggested-action > label,
+button.suggested-action label {{
+  color: #ffffff;
+  font-weight: bold;
+}}
+button.suggested-action:hover {{
+  background-color: {ACCENT2};
+  background-image: none;
+  border-color: #b4a4ff;
+  color: #ffffff;
+}}
+button.suggested-action:hover > label,
+button.suggested-action:hover label {{
+  color: #ffffff;
+}}
+
+/* acción destructiva */
+button.destructive-action {{
+  background-color: #5c2230;
+  background-image: none;
+  box-shadow: none;
+  color: {RED};
+  border-color: {RED};
+  font-weight: bold;
+}}
+button.destructive-action > label,
+button.destructive-action label {{
+  color: {RED};
+  font-weight: bold;
+}}
+button.destructive-action:hover {{
+  background-color: #7c2e40;
+  background-image: none;
+  color: #ffffff;
+}}
+button.destructive-action:hover > label,
+button.destructive-action:hover label {{
+  color: #ffffff;
+}}
+
+/* ── toggle buttons ── */
+togglebutton {{
+  background-color: {WIDGET};
+  background-image: none;
+  box-shadow: none;
+  color: {TEXT};
+  border: 1px solid {BORDER};
+  border-radius: 6px;
+  padding: 5px 12px;
+  min-height: 28px;
+  font-size: 12px;
+}}
+togglebutton > label,
+togglebutton label {{
+  color: {TEXT};
+  font-size: 12px;
+}}
+togglebutton:hover {{
+  background-color: {WIDGET2};
+  background-image: none;
+  color: #ffffff;
+}}
+togglebutton:hover > label,
+togglebutton:hover label {{
+  color: #ffffff;
+}}
+togglebutton:checked {{
+  background-color: {ACCENT};
+  background-image: none;
+  color: #ffffff;
+  border-color: {ACCENT2};
+  font-weight: bold;
+}}
+togglebutton:checked > label,
+togglebutton:checked label {{
+  color: #ffffff;
+  font-weight: bold;
+}}
+togglebutton:checked:hover {{
+  background-color: {ACCENT2};
+  background-image: none;
+  color: #ffffff;
+}}
+togglebutton:checked:hover > label,
+togglebutton:checked:hover label {{
+  color: #ffffff;
+}}
+
+/* ── entradas de texto ── */
+entry,
+spinbutton {{
+  background-color: {PANEL};
+  background-image: none;
+  box-shadow: none;
+  color: {TEXT};
+  border: 1px solid {BORDER};
+  border-radius: 6px;
+  padding: 4px 8px;
+  min-height: 26px;
+  font-size: 12px;
+}}
+entry > text,
+spinbutton > text {{
+  color: {TEXT};
+  background-color: transparent;
+}}
+entry:focus,
+spinbutton:focus {{
+  border-color: {ACCENT};
+  box-shadow: none;
+}}
+entry placeholder {{
+  color: #585b70;
+}}
+spinbutton button {{
+  background-color: {WIDGET};
+  background-image: none;
+  box-shadow: none;
+  color: {TEXT};
+  border: none;
+  border-left: 1px solid {BORDER};
+  border-radius: 0;
+  min-height: 13px;
+  padding: 1px 5px;
+}}
+spinbutton button > label,
+spinbutton button label {{
+  color: {TEXT};
+}}
+spinbutton button:hover {{
+  background-color: {WIDGET2};
+  background-image: none;
+  color: #ffffff;
+}}
+spinbutton button:hover > label,
+spinbutton button:hover label {{
+  color: #ffffff;
+}}
+
+/* ── dropdown ── */
+dropdown,
+combobox {{
+  background-color: {WIDGET};
+  background-image: none;
+  box-shadow: none;
+  color: {TEXT};
+  border: 1px solid {BORDER};
+  border-radius: 6px;
+  min-height: 28px;
+}}
+dropdown > button,
+combobox > button {{
+  background-color: transparent;
+  background-image: none;
+  box-shadow: none;
+  color: {TEXT};
+  border: none;
+  padding: 4px 10px;
+  min-height: 28px;
+}}
+dropdown > button > label,
+dropdown > button label,
+combobox > button > label,
+combobox > button label {{
+  color: {TEXT};
+  font-size: 12px;
+}}
+dropdown > button:hover,
+combobox > button:hover {{
+  background-color: {WIDGET2};
+  background-image: none;
+  color: #ffffff;
+}}
+dropdown > button:hover > label,
+dropdown > button:hover label,
+combobox > button:hover > label,
+combobox > button:hover label {{
+  color: #ffffff;
+}}
+
+/* popover del dropdown */
+popover {{
+  background-color: {WIDGET};
+  background-image: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  border: 1px solid {BORDER};
+  border-radius: 8px;
+}}
+popover > contents {{
+  background-color: {WIDGET};
+  background-image: none;
+  padding: 4px;
+}}
+popover label {{
+  color: {TEXT};
+}}
+
+/* lista en popover */
+listview {{
+  background-color: transparent;
+  background-image: none;
+  color: {TEXT};
+}}
+listview > row {{
+  background-color: transparent;
+  background-image: none;
+  padding: 6px 12px;
+  border-radius: 5px;
+  color: {TEXT};
+}}
+listview > row > label,
+listview > row label {{
+  color: {TEXT};
+}}
+listview > row:hover {{
+  background-color: {WIDGET2};
+  background-image: none;
+  color: #ffffff;
+}}
+listview > row:hover > label,
+listview > row:hover label {{
+  color: #ffffff;
+}}
+listview > row:selected {{
+  background-color: {ACCENT};
+  background-image: none;
+  color: #ffffff;
+}}
+listview > row:selected > label,
+listview > row:selected label {{
+  color: #ffffff;
+  font-weight: bold;
+}}
+
+/* ── scale ── */
+scale trough {{
+  background-color: {PANEL};
+  background-image: none;
+  border: 1px solid {BORDER};
+  border-radius: 4px;
+  min-height: 5px;
+}}
+scale highlight {{
+  background-color: {ACCENT};
+  background-image: none;
+  border-radius: 4px;
+}}
+scale slider {{
+  background-color: {ACCENT2};
+  background-image: none;
+  box-shadow: none;
+  border: 2px solid {ACCENT};
+  border-radius: 50%;
+  min-width: 15px;
+  min-height: 15px;
+}}
+scale slider:hover {{
+  background-color: #c4b5fd;
+  background-image: none;
+  border-color: {ACCENT2};
+}}
+
+/* ── scrollbars ── */
+scrollbar {{
+  background-color: transparent;
+  background-image: none;
+  margin: 0;
+}}
+scrollbar slider {{
+  background-color: {WIDGET2};
+  background-image: none;
+  border-radius: 4px;
+  min-width: 6px;
+  min-height: 6px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}}
+scrollbar slider:hover {{
+  background-color: {ACCENT};
+  background-image: none;
+}}
+
+/* ── listbox (pestaña Con vida / Normal en control) ── */
+listbox {{
+  background-color: {PANEL};
+  background-image: none;
+  border-radius: 8px;
+  border: 1px solid {BORDER};
+}}
+listbox > row {{
+  background-color: transparent;
+  background-image: none;
+  color: {TEXT};
+  padding: 4px;
+  border-bottom: 1px solid {BORDER};
+}}
+listbox > row > * {{
+  color: {TEXT};
+}}
+listbox > row label {{
+  color: {TEXT};
+}}
+listbox > row:hover {{
+  background-color: {WIDGET};
+  background-image: none;
+}}
+listbox > row:selected {{
+  background-color: {ACCENT};
+  background-image: none;
+}}
+listbox > row:selected label {{
+  color: #ffffff;
+}}
+/* notebook (pestañas) */
+notebook > header {{
+  background-color: {PANEL};
+  background-image: none;
+  border-bottom: 2px solid {BORDER};
+}}
+notebook > header > tabs > tab {{
+  background-color: {WIDGET};
+  background-image: none;
+  color: {TEXT};
+  border-radius: 5px 5px 0 0;
+  padding: 6px 14px;
+  border: 1px solid {BORDER};
+  border-bottom: none;
+}}
+notebook > header > tabs > tab:checked {{
+  background-color: {ACCENT};
+  background-image: none;
+  color: #ffffff;
+  border-color: {ACCENT};
+}}
+notebook > header > tabs > tab label {{
+  color: {TEXT};
+}}
+notebook > header > tabs > tab:checked label {{
+  color: #ffffff;
+  font-weight: bold;
+}}
+notebook > stack {{
+  background-color: {BG};
+  background-image: none;
+}}
+/* switch */
+switch {{
+  background-color: {WIDGET2};
+  background-image: none;
+  border-radius: 14px;
+  min-width: 46px;
+  min-height: 24px;
+}}
+switch:checked {{
+  background-color: {ACCENT};
+  background-image: none;
+}}
+switch slider {{
+  background-color: #ffffff;
+  background-image: none;
+  border-radius: 50%;
+  min-width: 20px;
+  min-height: 20px;
+  margin: 2px;
+}}
+
+/* ── frame ── */
+frame {{
+  border: 1px solid {BORDER};
+  border-radius: 6px;
+  background-color: transparent;
+  background-image: none;
+}}
+frame > label {{
+  color: {ACCENT2};
+  font-weight: bold;
+  padding: 0 5px;
+}}
+
+/* ── separador ── */
+separator {{
+  background-color: {BORDER};
+  background-image: none;
+  min-width: 1px;
+  min-height: 1px;
+  margin: 3px 0;
+}}
+
+/* ── tarjeta (capa activa) ── */
+.card {{
+  background-color: #1e1b38;
+  background-image: none;
+  border: 2px solid {ACCENT};
+  border-radius: 6px;
+  padding: 2px;
+}}
+
+/* ── colorbutton ── */
+colorbutton {{
+  border: 2px solid {BORDER};
+  border-radius: 6px;
+  min-height: 28px;
+  min-width: 60px;
+  padding: 2px;
+}}
+colorbutton:hover {{
+  border-color: {ACCENT};
+}}
+
+/* ── thumbnail de frame ── */
+button.frame-thumb {{
+  background-color: {WIDGET};
+  background-image: none;
+  box-shadow: none;
+  border: 1px solid {BORDER};
+  border-radius: 5px;
+  padding: 2px;
+}}
+button.frame-thumb > label,
+button.frame-thumb label {{
+  color: {TEXT};
+  font-size: 11px;
+}}
+button.frame-thumb:hover {{
+  background-color: {WIDGET2};
+  background-image: none;
+  border-color: #6c7086;
+}}
+button.frame-thumb:hover > label,
+button.frame-thumb:hover label {{
+  color: #ffffff;
+}}
+button.frame-thumb.suggested-action {{
+  background-color: #2d2b5e;
+  background-image: none;
+  border: 2px solid {ACCENT};
+}}
+button.frame-thumb.suggested-action > label,
+button.frame-thumb.suggested-action label {{
+  color: #ffffff;
+  font-weight: bold;
+}}
+"""
+
+_provider: Gtk.CssProvider | None = None
+
+
+def _get_provider() -> Gtk.CssProvider:
+    global _provider
+    if _provider is None:
+        _provider = Gtk.CssProvider()
+        _provider.load_from_data(_CSS.encode("utf-8"))
+    return _provider
+
+
+def apply(widget_or_window):
+    """Aplica el tema con prioridad USER (800) — por encima de todo Adwaita."""
+    try:
+        display = Gdk.Display.get_default()
+        if display:
+            Gtk.StyleContext.add_provider_for_display(
+                display,
+                _get_provider(),
+                Gtk.STYLE_PROVIDER_PRIORITY_USER,
+            )
+    except Exception:
+        pass

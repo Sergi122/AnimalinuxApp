@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=AnimaLinux
+Comment=Mascotas animadas en el escritorio para Hyprland/Wayland
+Exec=animalinux --show
+Icon=animalinux
+Terminal=false
+Type=Application
+Categories=Graphics;2DGraphics;
+Keywords=mascota;desktop pet;animación;pixel art;
+StartupNotify=false

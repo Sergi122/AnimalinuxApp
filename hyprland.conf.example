@@ -1,0 +1,12 @@
+# --- AnimaLinux (mascotas animadas en el escritorio) ---
+# Pega esto en tu ~/.config/hypr/hyprland.conf
+
+# Arrancar el servicio al iniciar sesión (restaura tus mascotas)
+# Usa la ruta completa por si ~/.local/bin no está en el PATH del autostart.
+exec-once = ~/.local/bin/animalinux --daemon
+
+# (Opcional) sin animación de aparición para las mascotas, se ven más limpias
+layerrule = noanim, animalinux-mascot
+
+# (Opcional) atajo para abrir la ventana de configuración sin la bandeja
+bind = SUPER, M, exec, ~/.local/bin/animalinux --show
