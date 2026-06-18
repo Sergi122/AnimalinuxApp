@@ -21,7 +21,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from . import importer
+from .core import image_processor as importer
 
 KNOWN_POSES = ["default", "idle", "walk", "greet", "jump", "angry", "grab"]
 IMG_EXT = (".png", ".webp", ".gif", ".jpg", ".jpeg", ".apng")

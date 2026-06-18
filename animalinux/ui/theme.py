@@ -617,6 +617,68 @@ button.frame-thumb.suggested-action label {{
   color: #ffffff;
   font-weight: bold;
 }}
+
+/* ═══════════════════════════════════════════════
+   CARDS de mascota (ventana de control, UI v2)
+   acento #7B61FF · fondo #1a1a2e · card #16213e
+   ═══════════════════════════════════════════════ */
+.mascot-card {{
+  background-color: #16213e;
+  background-image: none;
+  border: 1px solid #243352;
+  border-radius: 12px;
+  padding: 10px;
+}}
+.mascot-card:hover {{
+  border-color: #7B61FF;
+}}
+.mascot-card.card-life {{
+  border-left: 3px solid #7B61FF;
+}}
+.card-title {{
+  font-weight: bold;
+  font-size: 1.05em;
+  color: #ffffff;
+}}
+entry.card-title {{
+  background-color: transparent;
+  background-image: none;
+  border: 1px solid transparent;
+  padding: 2px 4px;
+  min-height: 0;
+}}
+entry.card-title:focus {{
+  background-color: {WIDGET};
+  border: 1px solid #7B61FF;
+}}
+.card-meta {{
+  color: {TEXT2};
+  font-size: 0.9em;
+}}
+.card-preview {{
+  background-color: #0e1730;
+  border: 1px solid #243352;
+  border-radius: 8px;
+}}
+button.accent {{
+  background-color: #7B61FF;
+  background-image: none;
+  border: none;
+  color: #ffffff;
+}}
+button.accent:hover {{
+  background-color: #9079ff;
+  background-image: none;
+}}
+button.accent > label,
+button.accent label {{
+  color: #ffffff;
+}}
+.section-head {{
+  font-weight: bold;
+  font-size: 1.1em;
+  color: #ffffff;
+}}
 """
 
 _provider: Gtk.CssProvider | None = None

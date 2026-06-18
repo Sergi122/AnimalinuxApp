@@ -22,7 +22,7 @@ Los frames .png viven en  DATA_DIR/animations/<id>/frame_0000.png ...
 """
 import json
 import uuid
-from . import paths
+from .. import paths
 
 
 class Library:

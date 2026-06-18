@@ -63,24 +63,7 @@ PALETTE = [
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
-def _to_cairo(data: bytes, w: int, h: int) -> bytearray:
-    if _NP:
-        arr = np.frombuffer(data, dtype=np.uint8).reshape(h, w, 4)
-        af  = arr[:, :, 3:4].astype(np.float32) / 255.0
-        pre = (arr[:, :, :3].astype(np.float32) * af).astype(np.uint8)
-        out = np.empty((h, w, 4), dtype=np.uint8)
-        out[:, :, 0] = pre[:, :, 2]
-        out[:, :, 1] = pre[:, :, 1]
-        out[:, :, 2] = pre[:, :, 0]
-        out[:, :, 3] = arr[:, :, 3]
-        return bytearray(out.tobytes())
-    out = bytearray(len(data))
-    for i in range(w * h):
-        r, g, b, a = data[i*4], data[i*4+1], data[i*4+2], data[i*4+3]
-        f = a / 255
-        out[i*4], out[i*4+1], out[i*4+2], out[i*4+3] = (
-            int(b*f), int(g*f), int(r*f), a)
-    return out
+from .editor_utils import premultiply_bgra as _to_cairo  # noqa: E402
 
 
 def _interp(x0, y0, x1, y1):
@@ -163,6 +146,7 @@ class PixelCanvas(Gtk.DrawingArea):
 
         mo = Gtk.EventControllerMotion()
         mo.connect("motion", self._on_motion)
+        mo.connect("leave", self._on_leave)
         self.add_controller(mo)
 
         sc = Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.VERTICAL)
@@ -626,6 +610,13 @@ class PixelCanvas(Gtk.DrawingArea):
             if self.on_cursor_moved and 0 <= cx < self.cw and 0 <= cy < self.ch:
                 self.on_cursor_moved(cx, cy, self.get_pixel(self._cur, cx, cy))
 
+    def _on_leave(self, ctrl):
+        # ocultar el cursor de pincel al salir del lienzo (evita el recuadro
+        # "fantasma" que queda dibujado encima)
+        if self._cursor_px != (-1, -1):
+            self._cursor_px = (-1, -1)
+            self.queue_draw()
+
     def _on_scroll(self, ctrl, dx, dy):
         mods = ctrl.get_current_event_state()
         if mods & Gdk.ModifierType.CONTROL_MASK:
@@ -654,10 +645,11 @@ class PixelCanvas(Gtk.DrawingArea):
         else:           cr.paint()
 
     def _draw_checker(self, cr, w, h):
+        # checker sutil: dos grises muy próximos (menos ruido visual al dibujar)
         sq = 8
         for y in range(0, h, sq):
             for x in range(0, w, sq):
-                v = 0.85 if (x//sq + y//sq) % 2 == 0 else 0.65
+                v = 0.82 if (x//sq + y//sq) % 2 == 0 else 0.74
                 cr.set_source_rgb(v, v, v)
                 cr.rectangle(x, y, min(sq,w-x), min(sq,h-y)); cr.fill()
 
@@ -785,7 +777,7 @@ class PixelEditor(Gtk.Window):
         self.canvas.on_frame_changed = self._rebuild_strip
         self.canvas.on_cursor_moved  = self._on_cursor
 
-        from . import theme
+        from ..ui import theme
         theme.apply(self)
 
         self.set_default_size(1100, 740)
@@ -1233,7 +1225,7 @@ class PixelEditor(Gtk.Window):
 
     # ── tutorial ──────────────────────────────────────────────────────────────
     def _show_tutorial(self, force=False):
-        from . import settings as _s
+        from .. import settings as _s
         if not force and _s.get("tutorial_pixel_shown", False):
             return
         dlg = Gtk.Dialog(title="Editor de Píxeles — Guía rápida",
@@ -1303,7 +1295,7 @@ class PixelEditor(Gtk.Window):
         pose = self.pose_entry.get_text().strip() or "default"
         fps  = int(self.fps_spin.get_value())
         cw, ch = self.canvas.cw, self.canvas.ch
-        from . import importer
+        from ..core import image_processor as importer
 
         if self.anim_id is None:
             name = (self.name_entry.get_text().strip() if self.name_entry
@@ -1338,7 +1330,7 @@ class PixelEditor(Gtk.Window):
 
     def _suggest_next_pose(self):
         if not self.anim_id: return
-        from . import tips
+        from .. import tips
         anim = self.app.library.animations.get(self.anim_id, {})
         nxt  = tips.next_missing(anim.get("poses",[]))
         if nxt:
@@ -1347,7 +1339,7 @@ class PixelEditor(Gtk.Window):
             self.save_status.set_text("¡Todas las poses creadas!")
 
     def _show_tip(self, pose):
-        from . import tips
+        from .. import tips
         info = tips.tip_for(pose)
         md   = Gtk.AlertDialog()
         md.set_message(f"Siguiente: {info['titulo']}  (~{info['frames']} cuadros)")
