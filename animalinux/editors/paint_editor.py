@@ -1249,7 +1249,19 @@ class PaintCanvas(Gtk.DrawingArea):
                         "locked":       layer.locked,
                         "alpha_locked": layer.alpha_locked,
                         "img":          f"f{fi}/l{li}.png",
+                        "type":         "raster",
                     }
+                    # capas vectoriales: guardar también las trayectorias para
+                    # poder seguir editándolas como vectores al reabrir.
+                    if isinstance(layer, VectorLayer):
+                        lmeta["type"]  = "vector"
+                        lmeta["paths"] = [
+                            {"points": [list(p) for p in pa["points"]],
+                             "color":  list(pa["color"]),
+                             "width":  pa["width"],
+                             "closed": pa.get("closed", False)}
+                            for pa in layer.paths
+                        ]
                     frame_info["layers"].append(lmeta)
                     buf = io.BytesIO()
                     layer.image.save(buf, "PNG")
@@ -1272,7 +1284,17 @@ class PaintCanvas(Gtk.DrawingArea):
                 for fi, finfo in enumerate(meta["frames"]):
                     layers = []
                     for li, lm in enumerate(finfo["layers"]):
-                        layer = Layer(cw, ch, lm["name"])
+                        if lm.get("type") == "vector":
+                            layer = VectorLayer(cw, ch, lm["name"])
+                            layer.paths = [
+                                {"points": [tuple(p) for p in pa["points"]],
+                                 "color":  tuple(pa["color"]),
+                                 "width":  pa["width"],
+                                 "closed": pa.get("closed", False)}
+                                for pa in lm.get("paths", [])
+                            ]
+                        else:
+                            layer = Layer(cw, ch, lm["name"])
                         layer.visible      = lm.get("visible", True)
                         layer.opacity      = lm.get("opacity", 255)
                         layer.blend_mode   = lm.get("blend_mode", "Normal")
