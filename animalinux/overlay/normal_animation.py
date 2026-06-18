@@ -110,6 +110,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self._index = 0
         self._anim_id = None
         self._behavior_id = None
+        self._tick_id = None
         self._paused = False
         self._dragging = False
         self._grabbing = False   # True mientras sigue el cursor (modo grab)
@@ -497,6 +498,20 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
             self._set_position(self._x, self._y)
         self._schedule_anim()
         GLib.idle_add(self._update_input_region)
+        # Mantener vivo el frame clock en modo CONTINUO. Sin esto, GTK solo
+        # pide frames al compositor "bajo demanda" (tras un queue_draw); cuando
+        # otra ventana pasa a pantalla completa, esa petición perezosa deja de
+        # atenderse y la mascota se queda congelada aunque siga visible y la
+        # lógica (timers) siga avanzando. Un tick callback persistente fuerza a
+        # GTK a pedir un frame cada vsync, así la animación nunca se para.
+        if self._tick_id is None:
+            self._tick_id = self.add_tick_callback(self._keep_clock_alive)
+
+    def _keep_clock_alive(self, widget, clock):
+        # No hace falta lógica aquí: basta con existir para que el frame clock
+        # siga en modo continuo y repinte las invalidaciones pendientes
+        # (texturas nuevas y reposicionamientos) en el acto.
+        return GLib.SOURCE_CONTINUE
 
     def _update_screen_size(self):
         try:
@@ -577,4 +592,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
             GLib.source_remove(self._anim_id)
         if self._behavior_id:
             GLib.source_remove(self._behavior_id)
+        if self._tick_id is not None:
+            self.remove_tick_callback(self._tick_id)
+            self._tick_id = None
         self.destroy()
