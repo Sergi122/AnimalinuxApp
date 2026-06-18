@@ -729,6 +729,16 @@ button.tool-btn.active {{
   background-image: none;
   border-color: #9079ff;
 }}
+/* botón de cerrar (X): rojo al pasar el ratón */
+button.close-btn:hover {{
+  background-color: #e05260;
+  background-image: none;
+  border-color: #f06a78;
+}}
+button.close-btn:hover label,
+button.close-btn:hover > label {{
+  color: #ffffff;
+}}
 /* línea de tiempo / tira de fotogramas */
 .timeline {{
   background-color: #101023;

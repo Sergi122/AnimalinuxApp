@@ -1642,6 +1642,11 @@ class PaintEditor(Gtk.Window):
         help_btn.connect("clicked", lambda _: self._show_tutorial(force=True))
         bar.append(help_btn)
 
+        close_btn = icon_button("close", "Cerrar el editor (Ctrl+W)")
+        close_btn.add_css_class("close-btn")
+        close_btn.connect("clicked", lambda _: self._confirm_close())
+        bar.append(close_btn)
+
         return bar
 
     def _build_tool_options_bar(self):
@@ -2123,6 +2128,7 @@ class PaintEditor(Gtk.Window):
             if key in ("n","N"): self.canvas.add_frame(); self._rebuild_strip(); return True
             if key in ("c","C"): self.canvas.copy_frame(); return True
             if key in ("v","V"): self.canvas.paste_frame(); self._rebuild_strip(); self.layer_panel.rebuild(); return True
+            if key in ("w","W"): self._confirm_close(); return True
         else:
             if key in ("b","B"): self._select_tool("brush");         return True
             if key in ("e","E"): self._select_tool("eraser");        return True
@@ -2164,8 +2170,9 @@ class PaintEditor(Gtk.Window):
         self.canvas.import_image(gf.get_path()); self._rebuild_strip()
 
     # ── guardar / abrir proyecto (.alproj) ───────────────────────────────────
-    def _save_project_dialog(self):
+    def _save_project_dialog(self, on_done=None):
         from .. import projects as _proj
+        self._save_done_cb = on_done
         dlg = Gtk.FileDialog()
         dlg.set_title("Guardar proyecto (.alproj)")
         f = Gtk.FileFilter(); f.set_name("Proyecto AnimaLinux (*.alproj)")
@@ -2180,16 +2187,20 @@ class PaintEditor(Gtk.Window):
         dlg.save(self, None, self._on_save_proj_done)
 
     def _on_save_proj_done(self, dlg, result):
+        cb = getattr(self, "_save_done_cb", None)
+        self._save_done_cb = None
         try:
             gf = dlg.save_finish(result)
         except GLib.Error:
-            return
+            return   # cancelado: NO cerrar aunque viniera de "Guardar y cerrar"
         path = gf.get_path()
         if not path.endswith(".alproj"):
             path += ".alproj"
         try:
             self.canvas.save_project(path)
             self.save_status.set_text(f"Proyecto guardado: {Path(path).name}")
+            if cb:
+                cb()
         except Exception as e:
             self.save_status.set_text(f"Error al guardar: {e}")
 
@@ -2236,6 +2247,16 @@ class PaintEditor(Gtk.Window):
         txt.set_margin_top(14); txt.set_margin_bottom(14)
         buf = txt.get_buffer()
         GUIDE = (
+            "🎨  EDITOR DE PINTURA — animación con capas, estilo Clip Studio.\n"
+            "Dibuja cada fotograma con pinceles y capas, y guárdalo como pose\n"
+            "para que tu mascota lo use.\n\n"
+            "🚀  FLUJO RECOMENDADO\n"
+            "────────────────────────────────────────\n"
+            "  1. Dibuja el primer fotograma (usa capas para separar partes).\n"
+            "  2. ➕ añade fotogramas y modifica el dibujo en cada uno.\n"
+            "  3. ▶ reproduce para ver la animación.\n"
+            "  4. Escribe el nombre de la pose y «Guardar pose».\n"
+            "  5. Guarda un proyecto .alproj para seguir editando luego.\n\n"
             "🖌️  HERRAMIENTAS  (panel izquierdo)\n"
             "────────────────────────────────────────\n"
             "  B  Pincel         E  Borrador\n"
@@ -2243,34 +2264,45 @@ class PaintEditor(Gtk.Window):
             "  L  Línea          I  Cuentagotas\n"
             "  S  Selección      M  Mover\n"
             "  W  Varita mágica  V  Pluma vectorial\n"
-            "  X  Cambiar FG ↔ BG\n\n"
+            "  U  Difuminar      X  Cambiar FG ↔ BG\n\n"
             "🔧  OPCIONES DE PINCEL  (barra superior)\n"
             "────────────────────────────────────────\n"
             "  Tipo de pincel — Radio — Suavidad — Opacidad\n"
-            "  [ ]  reducir / aumentar radio del pincel\n\n"
+            "  [ ]  reducir / aumentar radio del pincel\n"
+            "  Simetría ↔ ↕ ✦ para dibujar en espejo\n"
+            "  Estabilizador y suavizado → trazos más limpios\n\n"
             "🎞️  TIMELINE  (parte inferior)\n"
             "────────────────────────────────────────\n"
             "  ➕ Frame   → añade un nuevo fotograma\n"
             "  ⎘ Dupl.   → duplica el frame actual\n"
             "  ⎘ Copiar / Pegar → Ctrl+C / Ctrl+V\n"
             "  Haz clic en un frame para ir a él\n"
-            "  ▶ (arriba) reproduce la animación\n\n"
+            "  👁 Papel cebolla → ver frames vecinos en rojo/azul\n"
+            "  ▶ (arriba) reproduce la animación  (Espacio)\n\n"
             "🗂️  CAPAS  (panel derecho)\n"
             "────────────────────────────────────────\n"
             "  +  nueva capa      ⎘  duplicar\n"
             "  👁  ocultar/mostrar    🔒  bloquear\n"
             "  α  bloquear alpha (pinta solo píxeles existentes)\n"
+            "  Cada capa tiene opacidad y modo de fusión\n"
             "  Arrastra ▲▼ para reordenar\n\n"
-            "💾  GUARDAR\n"
+            "💾  GUARDAR  (¡importante para no perder tu trabajo!)\n"
             "────────────────────────────────────────\n"
-            "  Escribe el nombre de la pose en el campo\n"
-            "  inferior (ej: default, walk, idle…)\n"
-            "  → botón \"💾 Guardar pose\"  o  Ctrl+S\n\n"
+            "  • POSE para la mascota: escribe el nombre de la pose en\n"
+            "    el campo inferior (default, walk, idle, greet, jump…) y\n"
+            "    pulsa «💾 Guardar pose» o Ctrl+S. Aplana las capas.\n"
+            "  • PROYECTO para seguir editando: Ctrl+Shift+S guarda un\n"
+            "    .alproj con TODAS las capas intactas en\n"
+            "    ~/Documents/AnimaLinux/projects. Ábrelo con 📂 cuando\n"
+            "    quieras continuar exactamente donde lo dejaste.\n\n"
             "↩️  DESHACER / REHACER\n"
             "  Ctrl+Z   Ctrl+Y   (hasta 30 niveles)\n\n"
             "🔍  ZOOM Y NAVEGACIÓN\n"
             "  Ctrl+Scroll → zoom  |  Espacio+arrastrar → pan\n"
-            "  Ctrl+0 → ajustar zoom al lienzo\n"
+            "  Ctrl+0 → ajustar zoom al lienzo\n\n"
+            "❌  CERRAR\n"
+            "  Botón ✕ (arriba a la derecha) o Ctrl+W.\n"
+            "  Te preguntará si quieres guardar antes de salir.\n"
         )
         buf.set_text(GUIDE)
         sc.set_child(txt)
@@ -2290,6 +2322,31 @@ class PaintEditor(Gtk.Window):
         footer.append(ok)
         box.append(footer)
         dlg.present()
+
+    # ── cerrar ────────────────────────────────────────────────────────────────
+    def _confirm_close(self):
+        """Confirma antes de cerrar para no perder el trabajo sin guardar."""
+        dlg = Gtk.AlertDialog()
+        dlg.set_message("¿Cerrar el editor de pintura?")
+        dlg.set_detail("Para continuar más tarde con tus CAPAS intactas, guarda "
+                       "un proyecto .alproj (Ctrl+Shift+S). «Guardar pose» exporta "
+                       "la imagen aplanada a la mascota. Si no guardas, se pierden "
+                       "los cambios.")
+        dlg.set_buttons(["Cancelar", "Guardar proyecto…", "Cerrar sin guardar"])
+        dlg.set_cancel_button(0)
+        dlg.set_default_button(1)
+        dlg.choose(self, None, self._confirm_close_done)
+
+    def _confirm_close_done(self, dlg, result):
+        try:
+            idx = dlg.choose_finish(result)
+        except Exception:  # noqa: BLE001  (cancelado con Esc)
+            return
+        if idx == 1:
+            # guardar proyecto .alproj y cerrar cuando termine el diálogo
+            self._save_project_dialog(on_done=self.close)
+        elif idx == 2:
+            self.close()
 
     # ── guardar pose ──────────────────────────────────────────────────────────
     def _save_pose(self):

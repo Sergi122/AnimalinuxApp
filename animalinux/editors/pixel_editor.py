@@ -879,6 +879,11 @@ class PixelEditor(Gtk.Window):
         help_btn.connect("clicked", lambda _: self._show_tutorial(force=True))
         bar.append(help_btn)
 
+        close_btn = icon_button("close", "Cerrar el editor (Ctrl+W)")
+        close_btn.add_css_class("close-btn")
+        close_btn.connect("clicked", lambda _: self._confirm_close())
+        bar.append(close_btn)
+
         return bar
 
     def _build_left_panel(self):
@@ -1174,6 +1179,7 @@ class PixelEditor(Gtk.Window):
             if key in ("n","N"): self.canvas.add_frame(); self._rebuild_strip(); return True
             if key in ("c","C"): self.canvas.copy_frame(); return True
             if key in ("v","V"): self.canvas.paste_frame(); self._rebuild_strip(); return True
+            if key in ("w","W"): self._confirm_close(); return True
         else:
             if key in ("b","B"): self._select_tool("pencil");       return True
             if key in ("e","E"): self._select_tool("eraser");       return True
@@ -1255,6 +1261,16 @@ class PixelEditor(Gtk.Window):
         txt.set_margin_top(14); txt.set_margin_bottom(14)
         buf = txt.get_buffer()
         GUIDE = (
+            "✏️  EDITOR DE PÍXELES — pixel art animado, estilo Aseprite.\n"
+            "Dibuja punto a punto cada fotograma y guárdalo como pose para\n"
+            "que tu mascota lo use.\n\n"
+            "🚀  FLUJO RECOMENDADO\n"
+            "────────────────────────────────────────\n"
+            "  1. Elige el tamaño del lienzo (16², 32², 64²…).\n"
+            "  2. Dibuja el primer fotograma con la paleta y el lápiz.\n"
+            "  3. ➕ añade fotogramas; usa el 👁 papel cebolla como guía.\n"
+            "  4. ▶ reproduce para revisar el movimiento.\n"
+            "  5. Escribe el nombre de la pose y «Guardar pose».\n\n"
             "✏️  HERRAMIENTAS  (panel izquierdo)\n"
             "────────────────────────────────────────\n"
             "  B  Lápiz          E  Borrador\n"
@@ -1271,19 +1287,26 @@ class PixelEditor(Gtk.Window):
             "  El color 2 se usa en Dithering\n\n"
             "🔁  SIMETRÍA  (toolbar)\n"
             "────────────────────────────────────────\n"
-            "  ↔ Horizontal  ↕ Vertical  ✦ Ambas\n\n"
+            "  ↔ Horizontal  ↕ Vertical  ✦ Ambas\n"
+            "  Ideal para cuerpos y caras simétricas.\n\n"
             "🎞️  FRAMES  (panel derecho)\n"
             "────────────────────────────────────────\n"
             "  ➕ Nuevo frame    ⎘ Duplicar\n"
             "  👁 Papel cebolla  Ctrl+C/V copiar/pegar\n"
-            "  ▶ reproducir animación\n\n"
-            "💾  GUARDAR\n"
+            "  Clic en un frame para ir a él\n"
+            "  ▶ reproducir animación  (Espacio)\n\n"
+            "💾  GUARDAR  (¡no pierdas tu trabajo!)\n"
             "────────────────────────────────────────\n"
             "  Escribe el nombre de la pose abajo\n"
-            "  (ej: default, walk, idle…)\n"
-            "  → \"💾 Guardar pose\"  o  Ctrl+S\n\n"
+            "  (ej: default, walk, idle, greet, jump…)\n"
+            "  → «💾 Guardar pose» o Ctrl+S.\n"
+            "  Guarda cada pose antes de cerrar para poder seguir\n"
+            "  ampliando la animación más tarde.\n\n"
             "🔍  ZOOM\n"
-            "  +/-  o  Ctrl+Scroll  |  botón medio = pan\n"
+            "  +/-  o  Ctrl+Scroll  |  botón medio = pan\n\n"
+            "❌  CERRAR\n"
+            "  Botón ✕ (arriba a la derecha) o Ctrl+W.\n"
+            "  Te preguntará si quieres guardar antes de salir.\n"
         )
         buf.set_text(GUIDE)
         sc.set_child(txt)
@@ -1303,6 +1326,29 @@ class PixelEditor(Gtk.Window):
         footer.append(ok)
         box.append(footer)
         dlg.present()
+
+    # ── cerrar ────────────────────────────────────────────────────────────────
+    def _confirm_close(self):
+        """Confirma antes de cerrar para no perder el trabajo sin guardar."""
+        dlg = Gtk.AlertDialog()
+        dlg.set_message("¿Cerrar el editor de píxeles?")
+        dlg.set_detail("Si no has guardado la pose (botón 💾 o Ctrl+S) se "
+                       "perderán los cambios. Guarda primero si quieres "
+                       "continuar el trabajo más tarde.")
+        dlg.set_buttons(["Cancelar", "Guardar y cerrar", "Cerrar sin guardar"])
+        dlg.set_cancel_button(0)
+        dlg.set_default_button(1)
+        dlg.choose(self, None, self._confirm_close_done)
+
+    def _confirm_close_done(self, dlg, result):
+        try:
+            idx = dlg.choose_finish(result)
+        except Exception:  # noqa: BLE001  (cancelado con Esc)
+            return
+        if idx == 1:
+            self._save_pose(); self.close()
+        elif idx == 2:
+            self.close()
 
     # ── guardar pose ──────────────────────────────────────────────────────────
     def _save_pose(self):
