@@ -292,12 +292,27 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
     def _on_drag_end(self, gesture, ox, oy):
         self._dragging = False
         if self.mode == "life" and self._state != "grab":
-            # Al soltar, la mascota se queda EXACTAMENTE donde la dejaste y cae
-            # recto al suelo (X no cambia). Sin impulso horizontal → nunca sale
-            # volando ni "se teletransporta".
-            self._toss_vx = 0.0
-            self._toss_vy = 0.0
-            self._state = "falling"
+            vx = getattr(self, "_drag_vx", 0.0)   # px/seg (medido en drag-update)
+            vy = getattr(self, "_drag_vy", 0.0)
+            # si el último movimiento fue hace rato, soltaste PARADO → sin impulso
+            last = getattr(self, "_last_drag", None)
+            if last is not None:
+                age = (GLib.get_monotonic_time() - last[0]) / 1_000_000.0
+                if age > 0.08:
+                    vx = vy = 0.0
+            speed = (vx * vx + vy * vy) ** 0.5
+            if speed > 250:
+                # LANZAR: impulso horizontal → arco parabólico. px/seg → px/tick
+                # con factor pequeño y ACOTADO (máx 14 px/tick) para que sea un
+                # lanzamiento creíble y NUNCA un salto/teletransporte.
+                self._toss_vx = max(-14.0, min(14.0, vx * 0.012))
+                self._toss_vy = max(-18.0, min(2.0,  vy * 0.012))
+                self._state = "toss"
+            else:
+                # soltar parado → cae recto al suelo, X no cambia
+                self._toss_vx = 0.0
+                self._toss_vy = 0.0
+                self._state = "falling"
             self._pose = "jump" if self._has_pose("jump") else "default"
         if self.on_moved:
             self.on_moved(self.anim["id"], self._x, self._y)
