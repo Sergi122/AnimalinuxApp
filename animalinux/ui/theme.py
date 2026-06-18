@@ -5,13 +5,13 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk
 
-# Paleta
-BG      = "#1e1e2e"   # fondo general — azul noche muy oscuro
-PANEL   = "#181825"   # paneles laterales — casi negro
-WIDGET  = "#313244"   # fondo de widgets (botones, entradas)
-WIDGET2 = "#45475a"   # hover / resaltado leve
-ACCENT  = "#7c6fe0"   # morado/violeta
-ACCENT2 = "#9b8bf0"   # hover del acento
+# Paleta (UI v2 — acento #7B61FF, fondo #1a1a2e)
+BG      = "#1a1a2e"   # fondo general — azul noche muy oscuro
+PANEL   = "#16213e"   # paneles laterales / cards — azul profundo
+WIDGET  = "#243352"   # fondo de widgets (botones, entradas)
+WIDGET2 = "#33476b"   # hover / resaltado leve
+ACCENT  = "#7B61FF"   # morado/violeta (acento principal del spec)
+ACCENT2 = "#9079ff"   # hover del acento
 TEXT    = "#cdd6f4"   # texto principal — blanco azulado
 TEXT2   = "#a6adc8"   # texto secundario
 BORDER  = "#45475a"   # borde estándar

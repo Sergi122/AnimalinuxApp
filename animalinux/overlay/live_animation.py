@@ -162,21 +162,19 @@ class LiveAnimationMixin:
         if self._greet_cd > 0:
             self._greet_cd -= 1
 
-        # ── modo agarre del ratón (sigue el cursor; al soltar se lanza) ──
+        # ── modo agarre del ratón (sigue el cursor; al soltar cae suave) ──
         if self._state == "grab":
             self._grab_ttl -= 1
             # el sprite ya sigue al cursor vía _on_grab_motion; aquí sólo cuenta
             if self._grab_ttl <= 0:
                 self._grab_ttl = 0
                 self._anger = 0
-                # restaura la ventana en la posición ACTUAL (donde el cursor lo
-                # dejó) y lanza desde ahí → sin teletransporte
+                # suelta el cursor y CAE SUAVE desde donde quedó (sin lanzarla
+                # lejos → sin teletransporte). X no cambia.
                 self._end_grab_restore()
-                vx = random.choice([-1, 1]) * random.randint(20, 38)
-                self._toss_vx = vx
-                self._toss_vy = random.randint(-20, -10)
-                self._facing_left = vx < 0
-                self._state = "toss"
+                self._toss_vx = 0.0
+                self._toss_vy = 0.0
+                self._state = "falling"
                 self._pose = "jump" if self._has_pose("jump") else "default"
                 self._index = 0
             return True
