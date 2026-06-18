@@ -1,0 +1,139 @@
+"""
+Gestor de mascotas (CRUD del escritorio).
+
+Extrae de app.py toda la lógica de crear / mostrar / ocultar / reescalar /
+recargar mascotas y de generar sus poses. AnimaApp mantiene la API pública
+(set_mascot_*, reload_mascot, register_pose…) delegando aquí, así el resto de
+módulos no cambia.
+
+El manager NO crea bucles GTK ni bandeja: solo gestiona las ventanas overlay
+(MascotWindow) y los datos de la librería.
+"""
+from gi.repository import GLib
+
+from ..overlay import MascotWindow
+
+
+class MascotManager:
+    def __init__(self, app):
+        self.app = app
+        self.library = app.library
+        self.mascots = {}          # anim_id -> MascotWindow
+
+    # ---------- ciclo de vida de las ventanas ----------
+    def spawn(self, anim):
+        if anim["id"] in self.mascots:
+            return
+        frames_dir = self.library.frames_dir(anim["id"])
+        win = MascotWindow(self.app, anim, frames_dir, on_moved=self.on_moved)
+        self.mascots[anim["id"]] = win
+        win.start()
+
+    def on_moved(self, anim_id, x, y):
+        self.library.update(anim_id, x=x, y=y)
+
+    def set_visible(self, anim_id, visible):
+        if visible:
+            anim = self.library.animations.get(anim_id)
+            if anim:
+                self.spawn(anim)
+        else:
+            win = self.mascots.pop(anim_id, None)
+            if win:
+                win.destroy_window()
+
+    def set_fps(self, anim_id, fps):
+        win = self.mascots.get(anim_id)
+        if win:
+            win.set_fps(fps)
+
+    def set_scale(self, anim_id, scale):
+        win = self.mascots.get(anim_id)
+        if win:
+            win.set_scale(scale)
+
+    def set_mode(self, anim_id, mode):
+        # al pasar a "Vida", si solo hay la pose default, generar las poses
+        if mode == "life":
+            anim = self.library.animations.get(anim_id, {})
+            if anim.get("poses", ["default"]) == ["default"]:
+                self.generate_life_poses(anim_id)
+                win = self.mascots.get(anim_id)
+                if win and win.mode != "life":
+                    win.set_mode("life")
+                return
+        win = self.mascots.get(anim_id)
+        if win:
+            win.set_mode(mode)
+
+    def reload(self, anim_id):
+        """Recrea la ventana para que cargue las nuevas poses."""
+        if anim_id in self.mascots:
+            self.set_visible(anim_id, False)
+            anim = self.library.animations.get(anim_id)
+            if anim:
+                self.spawn(anim)
+
+    def pause_all(self, active):
+        for win in self.mascots.values():
+            win.set_paused(active)
+
+    def check_proximity(self):
+        """Saludo entre mascotas que se cruzan (modo Vida)."""
+        life = [w for w in self.mascots.values() if w.mode == "life"]
+        for i in range(len(life)):
+            for j in range(i + 1, len(life)):
+                if abs(life[i].center_x() - life[j].center_x()) < 90:
+                    life[i].trigger_greet()
+                    life[j].trigger_greet()
+        return True
+
+    def destroy_all(self):
+        for win in list(self.mascots.values()):
+            win.destroy_window()
+        self.mascots.clear()
+
+    # ---------- generación de poses ----------
+    def generate_life_poses(self, anim_id):
+        """Hilo principal: genera y recarga la mascota."""
+        made = self.generate_pose_files(anim_id)
+        self.reload(anim_id)
+        return made
+
+    def generate_pose_files(self, anim_id):
+        """Solo disco/datos (seguro en un hilo). NO toca ventanas GTK."""
+        from . import pose_generator, image_processor
+        fd = self.library.frames_dir(anim_id)
+        base = fd / "frame_0000.png"
+        if not base.exists():
+            return []
+        made = pose_generator.generate_poses(str(base), fd)
+        for pose in made:
+            image_processor.ensure_flipped(fd / pose)
+        self.library.update(anim_id, poses=["default"] + made)
+        return made
+
+    def generate_puppet_poses(self, anim_id, rig):
+        from .. import puppet
+        from . import image_processor
+        fd = self.library.frames_dir(anim_id)
+        base = fd / "frame_0000.png"
+        if not base.exists():
+            return []
+        made = puppet.generate_poses_from_rig(str(base), rig, fd)
+        for pose in made:
+            image_processor.ensure_flipped(fd / pose)
+        self.library.update(anim_id, poses=["default"] + made, rig=rig)
+        self.reload(anim_id)
+        return made
+
+    def register_pose(self, anim_id, pose, fps=None):
+        anim = self.library.animations.get(anim_id, {})
+        poses = anim.get("poses", ["default"])
+        if pose not in poses:
+            poses = poses + [pose]
+        kw = {"poses": poses}
+        if fps:
+            kw["fps"] = fps
+        self.library.update(anim_id, **kw)
+        self.reload(anim_id)

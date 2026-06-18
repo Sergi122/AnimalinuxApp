@@ -16,7 +16,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from . import importer
+from .core import image_processor as importer
 
 
 def default_frame(source="base"):

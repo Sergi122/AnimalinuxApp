@@ -9,8 +9,8 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GLib, Gdk, Gio
 
-from . import importer
-from .i18n import t
+from ..core import image_processor as importer
+from ..i18n import t
 
 BG_METHODS = [
     ("IA (recorte limpio)", "ai"),
@@ -628,7 +628,7 @@ class ControlWindow(Gtk.ApplicationWindow):
         return False
 
     def _show_folder_result(self, aid, poses_encontradas, problemas):
-        from . import folderimport as fi
+        from .. import folderimport as fi
         dlg = Gtk.Dialog(title="Mascota importada", transient_for=self, modal=True)
         dlg.set_default_size(460, 420)
         box = dlg.get_content_area()
@@ -720,7 +720,7 @@ class ControlWindow(Gtk.ApplicationWindow):
 
     # ── Diálogo de proyectos ─────────────────────────────────────────────────
     def _show_projects_dialog(self):
-        from . import projects as _proj
+        from .. import projects as _proj
         dlg = Gtk.Dialog(title=t("projects_title"), transient_for=self, modal=True)
         dlg.set_default_size(520, 480)
         box = dlg.get_content_area()
@@ -792,7 +792,7 @@ class ControlWindow(Gtk.ApplicationWindow):
 
     # ── Diálogo de configuración / idioma ────────────────────────────────────
     def _show_settings_dialog(self):
-        from . import i18n as _i18n
+        from .. import i18n as _i18n
         dlg = Gtk.Dialog(title=t("settings_title"), transient_for=self, modal=True)
         dlg.set_default_size(360, 200)
         box = dlg.get_content_area()
