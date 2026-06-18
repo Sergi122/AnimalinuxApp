@@ -50,6 +50,24 @@ def _apply_transparency(display):
         "  background-color: transparent;"
         "  background-image: none;"
         "}"
+        # barra de control sobre el sprite (gana en especificidad a la regla *)
+        "window.animalinux-mascot .animalinux-ctrlbar {"
+        "  background-color: rgba(26,26,46,0.85);"
+        "  border-radius: 8px;"
+        "  padding: 2px;"
+        "  margin: 2px;"
+        "}"
+        "window.animalinux-mascot .animalinux-ctrlbtn {"
+        "  background-color: rgba(123,97,255,0.85);"
+        "  color: #ffffff;"
+        "  border-radius: 6px;"
+        "  min-width: 20px;"
+        "  min-height: 20px;"
+        "  padding: 2px;"
+        "}"
+        "window.animalinux-mascot .animalinux-ctrlbtn:hover {"
+        "  background-color: rgba(123,97,255,1.0);"
+        "}"
     )
     if hasattr(provider, "load_from_string"):
         provider.load_from_string(css)
@@ -65,6 +83,7 @@ def _apply_transparency(display):
 class MascotWindow(Gtk.Window):
     def __init__(self, app, anim, frames_dir, on_moved):
         super().__init__(application=app)
+        self._app = app
         self.anim = anim
         self.on_moved = on_moved
         self._frames_dir = str(frames_dir)
@@ -128,13 +147,24 @@ class MascotWindow(Gtk.Window):
         self.picture.set_can_shrink(True)
         self.picture.set_content_fit(Gtk.ContentFit.FILL)
         self.picture.set_size_request(w, h)
-        # posicionamiento absoluto dentro de la ventana fullscreen
-        self.picture.set_halign(Gtk.Align.START)
-        self.picture.set_valign(Gtk.Align.START)
         first = self._frames_for("default")
         if first:
             self.picture.set_paintable(first[0])
-        self.set_child(self.picture)
+
+        # ── barra de control (Administrar / Cerrar) sobre el sprite ──────────
+        # Va dentro de un Gtk.Overlay POR ENCIMA del picture: así los botones
+        # tienen su propio manejo de eventos y el gesto de arrastre del sprite
+        # NO se los traga (antes los clics se perdían al mover la mascota).
+        # Se revelan al pasar el cursor por encima de la mascota.
+        self._overlay = Gtk.Overlay()
+        self._overlay.set_halign(Gtk.Align.START)
+        self._overlay.set_valign(Gtk.Align.START)
+        self._overlay.set_child(self.picture)
+        self._overlay.add_overlay(self._build_ctrl_bar())
+
+        # el overlay (sprite + barra) se mueve dentro de la ventana fullscreen
+        # vía sus márgenes (la ventana nunca se mueve ni se redimensiona)
+        self.set_child(self._overlay)
 
         # posición inicial del sprite (márgenes de la picture)
         self._set_position(anim.get("x", 100), anim.get("y", 100))
@@ -143,24 +173,33 @@ class MascotWindow(Gtk.Window):
 
         _apply_transparency(self.get_display() or Gdk.Display.get_default())
 
-        # arrastrar (botón izquierdo Y derecho)
+        # arrastrar (botón izquierdo Y derecho).
+        # IMPORTANTE: los gestos van en la VENTANA (fullscreen, estática), no en
+        # el picture: el sprite se mueve cambiando los márgenes, así que medir el
+        # offset sobre el propio picture (que se desplaza bajo el cursor) creaba
+        # un bucle de realimentación → la mascota "saltaba". En coordenadas de la
+        # ventana el offset es estable y el arrastre sigue al cursor 1:1.
         drag = Gtk.GestureDrag()
         drag.connect("drag-begin", self._on_drag_begin)
         drag.connect("drag-update", self._on_drag_update)
         drag.connect("drag-end", self._on_drag_end)
-        self.picture.add_controller(drag)
+        self.add_controller(drag)
 
         drag_right = Gtk.GestureDrag()
         drag_right.set_button(3)
         drag_right.connect("drag-begin", self._on_drag_begin)
         drag_right.connect("drag-update", self._on_drag_update)
         drag_right.connect("drag-end", self._on_drag_end)
-        self.picture.add_controller(drag_right)
+        self.add_controller(drag_right)
 
         # cursor encima -> saludar (en la picture, solo pixels opacos)
         motion = Gtk.EventControllerMotion()
         motion.connect("enter", self._on_cursor_enter)
         self.picture.add_controller(motion)
+
+        # cursor encima -> revelar la barra de control (Administrar / Cerrar)
+        if getattr(self, "_overlay_hover", None) is not None:
+            self.picture.add_controller(self._overlay_hover)
 
         # tocarla (click) -> reaccionar / enojarse
         click = Gtk.GestureClick()
@@ -183,14 +222,68 @@ class MascotWindow(Gtk.Window):
         self._greet_cd  = 0      # cooldown anti-bucle de saludos
 
 
+    # ---------- barra de control sobre el sprite ----------
+    def _build_ctrl_bar(self):
+        """Pequeña barra con «Administrar» y «Cerrar», anclada arriba-derecha
+        del sprite. Oculta por defecto; se revela al pasar el cursor encima."""
+        bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        bar.add_css_class("animalinux-ctrlbar")
+
+        manage = Gtk.Button(label="⚙")
+        manage.set_tooltip_text("Administrar mascotas")
+        manage.add_css_class("animalinux-ctrlbtn")
+        manage.connect("clicked", self._on_manage_clicked)
+        bar.append(manage)
+
+        close = Gtk.Button(label="✕")
+        close.set_tooltip_text("Quitar del escritorio")
+        close.add_css_class("animalinux-ctrlbtn")
+        close.connect("clicked", self._on_close_clicked)
+        bar.append(close)
+
+        # Revealer para mostrar/ocultar suavemente al hacer hover
+        self._ctrl_revealer = Gtk.Revealer()
+        self._ctrl_revealer.set_transition_type(
+            Gtk.RevealerTransitionType.CROSSFADE)
+        self._ctrl_revealer.set_transition_duration(120)
+        self._ctrl_revealer.set_reveal_child(False)
+        self._ctrl_revealer.set_child(bar)
+        self._ctrl_revealer.set_halign(Gtk.Align.END)
+        self._ctrl_revealer.set_valign(Gtk.Align.START)
+
+        # hover sobre el área del sprite revela/oculta la barra
+        hover = Gtk.EventControllerMotion()
+        hover.connect("enter", lambda *_: self._ctrl_revealer.set_reveal_child(True))
+        hover.connect("leave", lambda *_: self._ctrl_revealer.set_reveal_child(False))
+        self._overlay_hover = hover  # se añade al picture en __init__ tardío
+        return self._ctrl_revealer
+
+    def _on_manage_clicked(self, _btn):
+        # abre (o trae al frente) la ventana de configuración
+        try:
+            self._app.show_control()
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _on_close_clicked(self, _btn):
+        # quita la mascota del escritorio y lo persiste para que no reaparezca
+        aid = self.anim["id"]
+        try:
+            self._app.library.update(aid, on_desktop=False)
+            if self._app.control is not None:
+                self._app.control.refresh()
+        except Exception:  # noqa: BLE001
+            pass
+        self._app.set_mascot_visible(aid, False)
+
     # ---------- posición ----------
     def _set_position(self, x, y):
         # el sprite se mueve dentro de la ventana fullscreen vía márgenes de la
         # picture (la ventana en sí nunca se mueve ni se redimensiona)
         self._x = max(0, int(x))
         self._y = max(0, int(y))
-        self.picture.set_margin_start(self._x)
-        self.picture.set_margin_top(self._y)
+        self._overlay.set_margin_start(self._x)
+        self._overlay.set_margin_top(self._y)
         self._update_input_region()
 
     def _update_input_region(self):
@@ -650,6 +743,8 @@ class MascotWindow(Gtk.Window):
         self._cat_w = w
         self._cat_h = h
         self.picture.set_size_request(w, h)
+        self.picture.queue_resize()
+        self._overlay.queue_resize()
         self.queue_resize()
         if self.mode == "life":
             self._floor_y = max(0, self._screen_h - h)

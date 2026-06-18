@@ -364,6 +364,7 @@ class PaintCanvas(Gtk.DrawingArea):
 
         mo = Gtk.EventControllerMotion()
         mo.connect("motion", self._on_motion)
+        mo.connect("leave", self._on_leave)
         self.add_controller(mo)
 
         sc = Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.VERTICAL)
@@ -884,6 +885,12 @@ class PaintCanvas(Gtk.DrawingArea):
             comp  = self._composite(self._cur)
             color = comp.getpixel((int(cx), int(cy)))
             self.on_cursor_moved(cx, cy, color)
+        self.queue_draw()
+
+    def _on_leave(self, ctrl):
+        # al salir del canvas, oculta el cursor de pincel para que no quede
+        # un círculo "fantasma" dibujado encima del lienzo
+        self._cursor_sx = self._cursor_sy = -1.0
         self.queue_draw()
 
     def _on_scroll(self, ctrl, dx, dy):

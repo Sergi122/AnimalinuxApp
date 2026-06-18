@@ -257,10 +257,17 @@ class ControlWindow(Gtk.ApplicationWindow):
 
         act_r = Gtk.Box(spacing=4)
         life_btn = Gtk.Button(label="→ Con vida")
-        life_btn.set_tooltip_text(
-            "Convierte esta animación a modo con vida (genera poses)")
         life_btn.connect("clicked",
                          lambda _, aid=anim["id"]: self._to_life(aid))
+        if anim.get("source_animated"):
+            # No tiene sentido generar poses procedurales deformando un GIF
+            # animado / vídeo: ya trae su propia animación.
+            life_btn.set_sensitive(False)
+            life_btn.set_tooltip_text(
+                "Solo disponible para imágenes estáticas o packs de sprites")
+        else:
+            life_btn.set_tooltip_text(
+                "Convierte esta animación a modo con vida (genera poses)")
         exp_btn = Gtk.Button(label="📦")
         exp_btn.set_tooltip_text("Exportar pack")
         exp_btn.connect("clicked",
@@ -321,8 +328,13 @@ class ControlWindow(Gtk.ApplicationWindow):
         col.append(sw)
 
         gen = Gtk.Button(label="⚙️ Generar poses")
-        gen.set_tooltip_text("Auto-genera poses a partir del frame base")
         gen.connect("clicked", lambda _, aid=anim["id"]: self._on_gen_life(aid))
+        if anim.get("source_animated"):
+            gen.set_sensitive(False)
+            gen.set_tooltip_text(
+                "Solo disponible para imágenes estáticas o packs de sprites")
+        else:
+            gen.set_tooltip_text("Auto-genera poses a partir del frame base")
         col.append(gen)
 
         exp = Gtk.Button(label="📦 Exportar")
@@ -439,7 +451,10 @@ class ControlWindow(Gtk.ApplicationWindow):
 
     def _import_done(self, aid, name, fc, w, h, fps, live=False):
         self.app.library.add(aid, name, fc, w, h)
-        self.app.library.update(aid, fps=fps)
+        # Marca si el origen era animado (GIF/WebP/APNG/vídeo con >1 frame).
+        # Los spritesheets entran por otra ruta y NO se marcan → siguen
+        # permitiendo «Generar poses». Las imágenes estáticas dan fc == 1.
+        self.app.library.update(aid, fps=fps, source_animated=(fc > 1))
         if live:
             self.app.library.update(aid, mode="life")
             self.status.set_text(
