@@ -273,6 +273,9 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self._drag_origin = (self._x, self._y)
         self._toss_vx = 0.0
         self._toss_vy = 0.0
+        # cancela un temblor/saludo pendiente para que no actúe al soltar
+        self._react_ttl = 0
+        self._greet_ttl = 0
         self._last_drag = (GLib.get_monotonic_time(), 0.0, 0.0)
 
     def _on_drag_update(self, gesture, ox, oy):

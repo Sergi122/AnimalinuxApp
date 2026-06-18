@@ -200,12 +200,18 @@ class LiveAnimationMixin:
         if self._state == "toss":
             scale = self.anim.get("scale", 1.0)
             w = int(self.anim.get("width", 100) * scale)
-            # mover X con fricción
+            right = max(0, self._screen_w - w)
+            # mover X con fricción; rebote en bordes SIN snap (la mascota puede
+            # estar pasada el borde si la lanzaste desde ahí → solo invierte vx)
             nx = self._x + self._toss_vx
             if nx <= 0:
-                nx = 0;                 self._toss_vx = -self._toss_vx * 0.55
-            elif nx >= self._screen_w - w:
-                nx = self._screen_w - w; self._toss_vx = -self._toss_vx * 0.55
+                nx = 0
+                self._toss_vx = abs(self._toss_vx) * 0.55
+            elif nx >= right:
+                nx = min(nx, self._x)          # nunca saltar a la derecha
+                if self._x <= right:
+                    nx = right
+                self._toss_vx = -abs(self._toss_vx) * 0.55
             self._facing_left = self._toss_vx < 0
             self._toss_vx *= 0.88
             # mover Y con gravedad
@@ -233,14 +239,14 @@ class LiveAnimationMixin:
             return True
 
         # ── reacción al tocarla: tiembla unos ticks ────────────────────────
+        # El temblor es RELATIVO a la posición actual (±2 px). Antes usaba un
+        # _jitter_base ABSOLUTO fijado al tocarla: si la mascota se movía después
+        # (arrastre/caminar), el temblor la teletransportaba a la X vieja.
         if self._react_ttl > 0:
             self._react_ttl -= 1
-            jx = self._jitter_base + random.randint(-3, 3)
-            self._set_position(jx, self._y)
-            if self._react_ttl == 0:
-                self._set_position(self._jitter_base, self._y)
-                if self._pose in ("angry", "greet"):
-                    self._pick_behavior()
+            self._set_position(self._x + random.randint(-2, 2), self._y)
+            if self._react_ttl == 0 and self._pose in ("angry", "greet"):
+                self._pick_behavior()
             return True
 
         if self._greet_ttl > 0:
@@ -265,10 +271,17 @@ class LiveAnimationMixin:
         if self._state == "walk":
             scale = self.anim.get("scale", 1.0)
             w = int(self.anim.get("width", 100) * scale)
-            nx = self._x + self._dir * self._speed
-            if nx <= 0:
-                nx, self._dir, self._facing_left = 0, 1, False
-            elif nx >= self._screen_w - w:
-                nx, self._dir, self._facing_left = self._screen_w - w, -1, True
-            self._set_position(nx, self._floor_y)
+            right = max(0, self._screen_w - w)
+            if self._x > right:
+                # quedó pasada el borde derecho (p.ej. la arrastraste ahí):
+                # vuelve ANDANDO paso a paso, sin saltar al borde (teleport)
+                self._dir, self._facing_left = -1, True
+                nx = self._x - self._speed
+            else:
+                nx = self._x + self._dir * self._speed
+                if nx <= 0:
+                    nx, self._dir, self._facing_left = 0, 1, False
+                elif nx >= right:
+                    nx, self._dir, self._facing_left = right, -1, True
+            self._set_position(max(0, nx), self._floor_y)
         return True
