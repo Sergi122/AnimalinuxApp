@@ -15,9 +15,9 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gio, GLib  # noqa: E402
 
-from .library import Library  # noqa: E402
-from .overlay import MascotWindow  # noqa: E402
-from .control import ControlWindow  # noqa: E402
+from .core.library import Library  # noqa: E402
+from .core.mascot_manager import MascotManager  # noqa: E402
+from .ui.control import ControlWindow  # noqa: E402
 from .hypr import HyprMonitor  # noqa: E402
 from . import pack as packmod  # noqa: E402
 
@@ -31,7 +31,8 @@ class AnimaApp(Gtk.Application):
             flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE,
         )
         self.library = Library()
-        self.mascots = {}          # anim_id -> MascotWindow
+        self.manager = MascotManager(self)
+        self.mascots = self.manager.mascots   # alias compartido (mismo dict)
         self.control = None
         self._started = False
         self._tray_proc = None
@@ -60,28 +61,20 @@ class AnimaApp(Gtk.Application):
     def _start_daemon(self):
         self._started = True
         self.hold()
-        from . import theme, i18n
+        from .ui import theme
+        from . import i18n
         i18n.init()        # detecta / carga idioma
         theme.apply(None)  # tema oscuro global
         # restaurar mascotas que estaban en el escritorio
         for anim in self.library.active():
-            self._spawn_mascot(anim)
+            self.manager.spawn(anim)
         # pausa por pantalla completa
         self._hypr = HyprMonitor(self._on_fullscreen)
         self._hypr.start()
         # bandeja (proceso aparte para no mezclar GTK3 con GTK4)
         self._launch_tray()
         # saludo entre mascotas que se cruzan (modo Vida)
-        self._prox_id = GLib.timeout_add(800, self._check_proximity)
-
-    def _check_proximity(self):
-        life = [w for w in self.mascots.values() if w.mode == "life"]
-        for i in range(len(life)):
-            for j in range(i + 1, len(life)):
-                if abs(life[i].center_x() - life[j].center_x()) < 90:
-                    life[i].trigger_greet()
-                    life[j].trigger_greet()
-        return True
+        self._prox_id = GLib.timeout_add(800, self.manager.check_proximity)
 
     def _launch_tray(self):
         try:
@@ -98,84 +91,32 @@ class AnimaApp(Gtk.Application):
             pass  # sin bandeja; se puede abrir con `animalinux --show`
 
     # ------------------------------------------------------------------
-    def _spawn_mascot(self, anim):
-        if anim["id"] in self.mascots:
-            return
-        frames_dir = self.library.frames_dir(anim["id"])
-        win = MascotWindow(self, anim, frames_dir, on_moved=self._on_moved)
-        self.mascots[anim["id"]] = win
-        win.start()
-
-    def _on_moved(self, anim_id, x, y):
-        self.library.update(anim_id, x=x, y=y)
-
     def _on_fullscreen(self, active):
-        for win in self.mascots.values():
-            win.set_paused(active)
+        self.manager.pause_all(active)
         return False
 
     # ------------------------------------------------------------------
-    # llamadas desde la ventana de configuración
+    # llamadas desde la ventana de configuración → delegan en MascotManager
     def set_mascot_visible(self, anim_id, visible):
-        if visible:
-            anim = self.library.animations.get(anim_id)
-            if anim:
-                self._spawn_mascot(anim)
-        else:
-            win = self.mascots.pop(anim_id, None)
-            if win:
-                win.destroy_window()
+        self.manager.set_visible(anim_id, visible)
 
     def set_mascot_fps(self, anim_id, fps):
-        win = self.mascots.get(anim_id)
-        if win:
-            win.set_fps(fps)
+        self.manager.set_fps(anim_id, fps)
 
     def set_mascot_scale(self, anim_id, scale):
-        win = self.mascots.get(anim_id)
-        if win:
-            win.set_scale(scale)
+        self.manager.set_scale(anim_id, scale)
 
     def set_mascot_mode(self, anim_id, mode):
-        # al pasar a "Vida", si solo hay la pose default, generar las poses
-        if mode == "life":
-            anim = self.library.animations.get(anim_id, {})
-            if anim.get("poses", ["default"]) == ["default"]:
-                self.generate_life_poses(anim_id)
-                win = self.mascots.get(anim_id)
-                if win and win.mode != "life":
-                    win.set_mode("life")
-                return
-        win = self.mascots.get(anim_id)
-        if win:
-            win.set_mode(mode)
+        self.manager.set_mode(anim_id, mode)
 
     def generate_life_poses(self, anim_id):
-        """Para el hilo principal: genera y recarga la mascota."""
-        made = self._generate_pose_files(anim_id)
-        self.reload_mascot(anim_id)
-        return made
+        return self.manager.generate_life_poses(anim_id)
 
     def _generate_pose_files(self, anim_id):
-        """Solo disco/datos (seguro en un hilo). NO toca ventanas GTK."""
-        from . import procedural, importer
-        fd = self.library.frames_dir(anim_id)
-        base = fd / "frame_0000.png"
-        if not base.exists():
-            return []
-        made = procedural.generate_poses(str(base), fd)
-        for pose in made:
-            importer.ensure_flipped(fd / pose)
-        self.library.update(anim_id, poses=["default"] + made)
-        return made
+        return self.manager.generate_pose_files(anim_id)
 
     def reload_mascot(self, anim_id):
-        """Hilo principal: recrea la ventana para que cargue las nuevas poses."""
-        if anim_id in self.mascots:
-            self.set_mascot_visible(anim_id, False)
-            anim = self.library.animations.get(anim_id)
-            if anim:
-                self._spawn_mascot(anim)
+        self.manager.reload(anim_id)
 
     # ---------- packs (.alpack) ----------
     def import_pack(self, path):
@@ -199,30 +140,20 @@ class AnimaApp(Gtk.Application):
         RigEditor(self, anim_id).present()
 
     def generate_puppet_poses(self, anim_id, rig):
-        from . import puppet, importer
-        fd = self.library.frames_dir(anim_id)
-        base = fd / "frame_0000.png"
-        if not base.exists():
-            return []
-        made = puppet.generate_poses_from_rig(str(base), rig, fd)
-        for pose in made:
-            importer.ensure_flipped(fd / pose)
-        self.library.update(anim_id, poses=["default"] + made, rig=rig)
-        self.reload_mascot(anim_id)
-        return made
+        return self.manager.generate_puppet_poses(anim_id, rig)
 
     # ---------- editores de dibujo ----------
     def show_pixel_editor(self, anim_id=None, guided=False):
-        from .pixeleditor import PixelEditor
+        from .editors.pixel_editor import PixelEditor
         PixelEditor(self, anim_id=anim_id, guided=guided).present()
 
     def show_paint_editor(self, anim_id=None, guided=False):
-        from .painteditor import PaintEditor
+        from .editors.paint_editor import PaintEditor
         PaintEditor(self, anim_id=anim_id, guided=guided).present()
 
     def show_paint_editor_project(self, project_path: str):
         """Abre el editor de pintura y carga un proyecto .alproj."""
-        from .painteditor import PaintEditor
+        from .editors.paint_editor import PaintEditor
         ed = PaintEditor(self, anim_id=None)
         ed.present()
         GLib.idle_add(lambda: ed.canvas.load_project(project_path) and (
@@ -241,15 +172,7 @@ class AnimaApp(Gtk.Application):
         FrameEditor(self, anim_id, guided=guided).present()
 
     def register_pose(self, anim_id, pose, fps=None):
-        anim = self.library.animations.get(anim_id, {})
-        poses = anim.get("poses", ["default"])
-        if pose not in poses:
-            poses = poses + [pose]
-        kw = {"poses": poses}
-        if fps:
-            kw["fps"] = fps
-        self.library.update(anim_id, **kw)
-        self.reload_mascot(anim_id)
+        self.manager.register_pose(anim_id, pose, fps)
 
     def show_control(self):
         if self.control is None:
@@ -263,9 +186,7 @@ class AnimaApp(Gtk.Application):
         return False
 
     def quit_all(self):
-        for win in list(self.mascots.values()):
-            win.destroy_window()
-        self.mascots.clear()
+        self.manager.destroy_all()
         if self._prox_id:
             GLib.source_remove(self._prox_id)
             self._prox_id = None
