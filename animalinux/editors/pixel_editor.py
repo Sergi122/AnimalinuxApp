@@ -645,10 +645,11 @@ class PixelCanvas(Gtk.DrawingArea):
         else:           cr.paint()
 
     def _draw_checker(self, cr, w, h):
+        # checker sutil: dos grises muy próximos (menos ruido visual al dibujar)
         sq = 8
         for y in range(0, h, sq):
             for x in range(0, w, sq):
-                v = 0.85 if (x//sq + y//sq) % 2 == 0 else 0.65
+                v = 0.82 if (x//sq + y//sq) % 2 == 0 else 0.74
                 cr.set_source_rgb(v, v, v)
                 cr.rectangle(x, y, min(sq,w-x), min(sq,h-y)); cr.fill()
 
