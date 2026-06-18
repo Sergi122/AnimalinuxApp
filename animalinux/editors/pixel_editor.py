@@ -25,6 +25,8 @@ try:
 except ImportError:
     _NP = False
 
+from .icons import icon_image, icon_button  # noqa: E402
+
 # ── constantes ───────────────────────────────────────────────────────────────
 ZOOM_STEPS  = [1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 32]
 MAX_UNDO    = 40
@@ -820,34 +822,32 @@ class PixelEditor(Gtk.Window):
         self.add_controller(key)
 
     def _build_toolbar(self):
-        bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
-        bar.add_css_class("toolbar")
-        bar.set_margin_top(5); bar.set_margin_bottom(5)
-        bar.set_margin_start(8); bar.set_margin_end(8)
+        bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=3)
+        bar.add_css_class("editor-toolbar")
 
         # zoom
-        zm_out = Gtk.Button(label="−"); zm_out.set_tooltip_text("Zoom − (−)")
+        zm_out = icon_button("zoom_out", "Alejar (−)")
         zm_out.connect("clicked", lambda _: (self.canvas.zoom_out(), self._upd_zoom()))
         bar.append(zm_out)
         self.zoom_lbl = Gtk.Label(label=f"{self.canvas.zoom}×")
-        self.zoom_lbl.set_size_request(36,-1); bar.append(self.zoom_lbl)
-        zm_in = Gtk.Button(label="+"); zm_in.set_tooltip_text("Zoom + (+)")
+        self.zoom_lbl.set_size_request(40,-1)
+        self.zoom_lbl.add_css_class("monospace"); bar.append(self.zoom_lbl)
+        zm_in = icon_button("zoom_in", "Acercar (+)")
         zm_in.connect("clicked", lambda _: (self.canvas.zoom_in(), self._upd_zoom()))
         bar.append(zm_in)
-        fit_b = Gtk.Button(label="⊡"); fit_b.set_tooltip_text("Ajustar")
+        fit_b = icon_button("fit", "Ajustar a la vista")
         fit_b.connect("clicked", self._zoom_fit); bar.append(fit_b)
         bar.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))
 
         # FPS / play
-        bar.append(Gtk.Label(label="FPS:"))
+        bar.append(Gtk.Label(label="FPS"))
         self.fps_spin = Gtk.SpinButton(
             adjustment=Gtk.Adjustment(value=12, lower=1, upper=60, step_increment=1))
         self.fps_spin.set_size_request(55,-1); bar.append(self.fps_spin)
-        self.play_btn = Gtk.ToggleButton(label="▶")
-        self.play_btn.set_tooltip_text("Reproducir (Espacio)")
+        self.play_btn = icon_button("play", "Reproducir (Espacio)", toggle=True)
         self.play_btn.connect("toggled", self._on_play_toggle); bar.append(self.play_btn)
 
-        onion = Gtk.ToggleButton(label="👁 Cebolla")
+        onion = icon_button("onion", "Papel cebolla", toggle=True)
         onion.connect("toggled",
             lambda b: setattr(self.canvas,"onion",b.get_active())
             or self.canvas.queue_draw())
@@ -855,26 +855,27 @@ class PixelEditor(Gtk.Window):
         bar.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))
 
         # simetría
-        bar.append(Gtk.Label(label="Sim:"))
         self._sym_btns = {}
-        for lbl, val in [("✕","none"),("↔","h"),("↕","v"),("✦","hv")]:
-            b = Gtk.ToggleButton(label=lbl)
+        for ic, val, tip in [("sym_none","none","Sin simetría"),
+                             ("sym_h","h","Simetría horizontal"),
+                             ("sym_v","v","Simetría vertical"),
+                             ("sym_hv","hv","Simetría H+V")]:
+            b = icon_button(ic, tip, toggle=True)
             b.connect("toggled", self._on_sym_toggle, val)
             self._sym_btns[val] = b; bar.append(b)
         self._sym_btns["none"].set_active(True)
         bar.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))
 
         # importar / undo / redo
-        imp = Gtk.Button(label="📂 Importar")
+        imp = icon_button("import", "Importar imagen al lienzo")
         imp.connect("clicked", self._on_import); bar.append(imp)
-        undo = Gtk.Button(label="↩"); undo.set_tooltip_text("Deshacer (Z)")
+        undo = icon_button("undo", "Deshacer (Z / Ctrl+Z)")
         undo.connect("clicked", lambda _: self.canvas.undo()); bar.append(undo)
-        redo = Gtk.Button(label="↪"); redo.set_tooltip_text("Rehacer (Y)")
+        redo = icon_button("redo", "Rehacer (Y / Ctrl+Y)")
         redo.connect("clicked", lambda _: self.canvas.redo()); bar.append(redo)
 
-        bar.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))
-        help_btn = Gtk.Button(label="❓")
-        help_btn.set_tooltip_text("Guía rápida del editor")
+        spacer = Gtk.Box(); spacer.set_hexpand(True); bar.append(spacer)
+        help_btn = icon_button("help", "Guía rápida del editor")
         help_btn.connect("clicked", lambda _: self._show_tutorial(force=True))
         bar.append(help_btn)
 
@@ -882,36 +883,42 @@ class PixelEditor(Gtk.Window):
 
     def _build_left_panel(self):
         panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
-        panel.set_margin_start(8); panel.set_margin_end(4); panel.set_margin_top(8)
-        panel.set_size_request(118, -1)
+        panel.add_css_class("editor-panel")
+        panel.set_margin_start(8); panel.set_margin_end(6); panel.set_margin_top(6)
+        panel.set_size_request(104, -1)
 
-        panel.append(Gtk.Label(label="Herramienta"))
+        head = Gtk.Label(label="HERRAMIENTAS", xalign=0)
+        head.add_css_class("panel-head"); panel.append(head)
         tools = [
-            ("✏️ Lápiz (B)",       "pencil"),
-            ("⬜ Borrador (E)",     "eraser"),
-            ("🪣 Relleno (F)",      "fill"),
-            ("🔄 Reemplazar (R)",   "replace"),
-            ("▭ Outline (O)",      "outline"),
-            ("▬ Rect. rellena",    "rect_fill"),
-            ("○ Elipse (C)",       "ellipse"),
-            ("● Elipse rellena (V)","ellipse_fill"),
-            ("📏 Línea (L)",        "line"),
-            ("✦ Dithering (D)",    "dither"),
-            ("🪄 Varita (W)",       "wand"),
-            ("▭ Selección (S)",    "select"),
-            ("✥ Mover (M)",         "move"),
-            ("💧 Cuentagotas (I)",  "pick"),
+            ("pencil",       "Lápiz (B)"),
+            ("eraser",       "Borrador (E)"),
+            ("fill",         "Relleno (F)"),
+            ("replace",      "Reemplazar color (R)"),
+            ("line",         "Línea (L)"),
+            ("outline",      "Rectángulo contorno (O)"),
+            ("rect_fill",    "Rectángulo relleno"),
+            ("ellipse",      "Elipse contorno (C)"),
+            ("ellipse_fill", "Elipse rellena (V)"),
+            ("dither",       "Tramado (D)"),
+            ("wand",         "Varita mágica (W)"),
+            ("select",       "Selección (S)"),
+            ("move",         "Mover (M)"),
+            ("pick",         "Cuentagotas (I)"),
         ]
         self._tool_btns = {}
-        for label, tid in tools:
-            btn = Gtk.ToggleButton(label=label)
-            btn.set_size_request(112,-1)
+        tg = Gtk.Grid(); tg.set_row_spacing(3); tg.set_column_spacing(3)
+        tg.set_halign(Gtk.Align.CENTER)
+        for i, (tid, tip) in enumerate(tools):
+            btn = icon_button(tid, tip, size=20, toggle=True)
             if tid == "pencil": btn.set_active(True)
             btn.connect("toggled", self._on_tool_toggle, tid)
-            self._tool_btns[tid] = btn; panel.append(btn)
+            self._tool_btns[tid] = btn
+            tg.attach(btn, i % 2, i // 2, 1, 1)
+        panel.append(tg)
 
         panel.append(Gtk.Separator())
-        panel.append(Gtk.Label(label="Color 1"))
+        ch = Gtk.Label(label="COLOR", xalign=0); ch.add_css_class("panel-head")
+        panel.append(ch)
 
         self._color_preview = Gtk.DrawingArea()
         self._color_preview.set_size_request(100,24)
@@ -978,36 +985,40 @@ class PixelEditor(Gtk.Window):
 
     def _build_right_panel(self):
         panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        panel.set_margin_start(4); panel.set_margin_end(8); panel.set_margin_top(8)
-        panel.set_size_request(80,-1)
+        panel.add_css_class("editor-panel"); panel.add_css_class("right")
+        panel.set_margin_start(6); panel.set_margin_end(8); panel.set_margin_top(6)
+        panel.set_size_request(96,-1)
 
-        panel.append(Gtk.Label(label="Fotogramas"))
+        head = Gtk.Label(label="LÍNEA DE TIEMPO", xalign=0)
+        head.add_css_class("panel-head"); panel.append(head)
+
+        # fila de acciones sobre los fotogramas (con iconos)
+        actions = Gtk.Box(spacing=2); actions.set_halign(Gtk.Align.CENTER)
+        for ic, tip, cb, refresh in [
+            ("add", "Nuevo fotograma (Ctrl+N)", self.canvas.add_frame, True),
+            ("duplicate", "Duplicar (Ctrl+D)", self.canvas.duplicate_frame, True),
+            ("copy", "Copiar (Ctrl+C)", self.canvas.copy_frame, False),
+            ("paste", "Pegar (Ctrl+V)", self.canvas.paste_frame, True),
+            ("trash", "Borrar (Supr)", self.canvas.delete_frame, True),
+        ]:
+            b = icon_button(ic, tip)
+            b.connect("clicked",
+                      lambda _, f=cb, r=refresh: (f(), self._rebuild_strip() if r else None))
+            actions.append(b)
+        panel.append(actions)
+
         sc = Gtk.ScrolledWindow(); sc.set_vexpand(True)
+        sc.add_css_class("timeline")
         sc.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.strip_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
+        self.strip_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        self.strip_box.set_margin_top(4); self.strip_box.set_margin_bottom(4)
         sc.set_child(self.strip_box); panel.append(sc)
 
-        for label, tip, cb in [
-            ("+ Nuevo","Ctrl+N",self.canvas.add_frame),
-            ("⎘ Dupl.","Ctrl+D",self.canvas.duplicate_frame),
-            ("🗑 Borrar","Delete",self.canvas.delete_frame),
-        ]:
-            b = Gtk.Button(label=label); b.set_tooltip_text(tip)
-            if "Borrar" in label: b.add_css_class("destructive-action")
-            b.connect("clicked", lambda _,f=cb: f()); panel.append(b)
-
         panel.append(Gtk.Separator())
-
-        cp = Gtk.Button(label="⎘ Copiar"); cp.set_tooltip_text("Ctrl+C — copiar frame actual")
-        cp.connect("clicked", lambda _: self.canvas.copy_frame()); panel.append(cp)
-
-        pst = Gtk.Button(label="⎘ Pegar"); pst.set_tooltip_text("Ctrl+V — pegar frame copiado")
-        pst.connect("clicked", lambda _: (self.canvas.paste_frame(), self._rebuild_strip()))
-        panel.append(pst)
-
-        panel.append(Gtk.Separator())
-
-        gif_b = Gtk.Button(label="🎬 GIF")
+        gif_b = Gtk.Button(); gif_b.add_css_class("suggested-action")
+        gb = Gtk.Box(spacing=5); gb.set_halign(Gtk.Align.CENTER)
+        gb.append(icon_image("gif", 16)); gb.append(Gtk.Label(label="Exportar GIF"))
+        gif_b.set_child(gb)
         gif_b.set_tooltip_text("Exportar animación como GIF")
         gif_b.connect("clicked", lambda _: self._export_gif_dialog()); panel.append(gif_b)
 
@@ -1016,8 +1027,9 @@ class PixelEditor(Gtk.Window):
 
     def _build_status_bar(self):
         bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        bar.add_css_class("editor-statusbar")
         bar.set_margin_start(8); bar.set_margin_end(8)
-        bar.set_margin_top(2); bar.set_margin_bottom(5)
+        bar.set_margin_top(3); bar.set_margin_bottom(3)
 
         self.cursor_lbl = Gtk.Label(label="X:— Y:—")
         self.cursor_lbl.set_size_request(100,-1)
@@ -1042,8 +1054,9 @@ class PixelEditor(Gtk.Window):
         self.save_status = Gtk.Label(label=""); self.save_status.add_css_class("dim-label")
         bar.append(self.save_status)
 
-        save_btn = Gtk.Button(label="💾 Guardar pose")
-        save_btn.add_css_class("suggested-action")
+        save_btn = Gtk.Button(); save_btn.add_css_class("suggested-action")
+        sb = Gtk.Box(spacing=5); sb.append(icon_image("save", 16))
+        sb.append(Gtk.Label(label="Guardar pose")); save_btn.set_child(sb)
         save_btn.connect("clicked", lambda _: self._save_pose())
         bar.append(save_btn)
         return bar
@@ -1059,10 +1072,11 @@ class PixelEditor(Gtk.Window):
             pic = Gtk.Picture(); pic.set_size_request(THUMB,THUMB)
             pic.set_content_fit(Gtk.ContentFit.CONTAIN)
             pic.set_paintable(self.canvas.thumbnail(i))
-            lbl = Gtk.Label(label=str(i+1)); lbl.add_css_class("caption")
+            lbl = Gtk.Label(label=str(i+1))
             vb.append(pic); vb.append(lbl)
             btn = Gtk.Button(); btn.set_child(vb)
-            if i == self.canvas._cur: btn.add_css_class("suggested-action")
+            btn.add_css_class("frame-cell")
+            if i == self.canvas._cur: btn.add_css_class("current")
             btn.connect("clicked", lambda _,idx=i: (self.canvas.go_to(idx),
                                                     self._rebuild_strip()))
             self.strip_box.append(btn)

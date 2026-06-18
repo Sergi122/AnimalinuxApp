@@ -679,6 +679,82 @@ button.accent label {{
   font-size: 1.1em;
   color: #ffffff;
 }}
+
+/* ═══════════════════════════════════════════════
+   EDITORES — chrome profesional tipo Clip Studio Paint
+   ═══════════════════════════════════════════════ */
+.editor-toolbar {{
+  background-color: #14142a;
+  background-image: none;
+  border-bottom: 1px solid #2a2a45;
+  padding: 4px 6px;
+}}
+.editor-panel {{
+  background-color: #14142a;
+  background-image: none;
+  border-right: 1px solid #2a2a45;
+}}
+.editor-panel.right {{
+  border-right: none;
+  border-left: 1px solid #2a2a45;
+}}
+.editor-statusbar {{
+  background-color: #14142a;
+  background-image: none;
+  border-top: 1px solid #2a2a45;
+  color: {TEXT2};
+}}
+.panel-head {{
+  color: #8b8fa7;
+  font-size: 0.75em;
+  font-weight: bold;
+  margin: 6px 2px 2px 2px;
+}}
+/* botones de herramienta: cuadrados, planos, acento al estar activos */
+button.tool-btn {{
+  background-color: transparent;
+  background-image: none;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 5px;
+  min-width: 18px;
+  min-height: 18px;
+}}
+button.tool-btn:hover {{
+  background-color: #243352;
+}}
+button.tool-btn:checked,
+button.tool-btn.active {{
+  background-color: #7B61FF;
+  background-image: none;
+  border-color: #9079ff;
+}}
+/* línea de tiempo / tira de fotogramas */
+.timeline {{
+  background-color: #101023;
+  background-image: none;
+}}
+button.frame-cell {{
+  background-color: #1b1b34;
+  background-image: none;
+  border: 1px solid #2a2a45;
+  border-radius: 7px;
+  padding: 3px;
+}}
+button.frame-cell:hover {{
+  border-color: #7B61FF;
+}}
+button.frame-cell.current {{
+  border: 2px solid #7B61FF;
+  background-color: #241f45;
+}}
+button.frame-cell label {{
+  color: {TEXT2};
+  font-size: 0.78em;
+}}
+button.frame-cell.current label {{
+  color: #ffffff;
+}}
 """
 
 _provider: Gtk.CssProvider | None = None
