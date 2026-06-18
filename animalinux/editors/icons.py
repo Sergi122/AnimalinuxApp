@@ -88,6 +88,7 @@ _PATHS = {
     "stabilizer": '<path d="M9 11V6.5a2 2 0 0 1 4 0V11M13 9a2 2 0 0 1 4 0v5a6 6 0 0 1-6 6 6 6 0 0 1-4.2-1.7L4 16l1.5-1.5L9 16"/>',
     "reset":    '<path d="M5 12a7 7 0 1 1 2 4.9"/><path d="M4 17v-5h5"/>',
     "folder_open": '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a1 1 0 0 1 1 1v2H3z"/><path d="M3 10h19l-2 8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/>',
+    "close":    '<path d="M6 6l12 12M18 6L6 18"/>',
 }
 
 _cache = {}

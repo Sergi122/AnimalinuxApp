@@ -43,6 +43,11 @@ class ControlWindow(Gtk.ApplicationWindow):
         cfg_btn.set_tooltip_text(t("lang_label"))
         cfg_btn.connect("clicked", lambda _: self._show_settings_dialog())
         topbar.append(cfg_btn)
+        close_btn = Gtk.Button(label="✕")
+        close_btn.set_tooltip_text("Cerrar esta ventana (las mascotas siguen activas)")
+        close_btn.add_css_class("close-btn")
+        close_btn.connect("clicked", lambda _: self.close())
+        topbar.append(close_btn)
         root.append(topbar)
 
         # pestañas
