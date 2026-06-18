@@ -28,7 +28,7 @@ import shutil
 import zipfile
 from pathlib import Path
 
-from . import importer
+from .core import image_processor as importer
 
 POSE_NAMES = ["default", "walk", "idle", "greet", "jump"]
 MAGIC = "animalinux-pack"

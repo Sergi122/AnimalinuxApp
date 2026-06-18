@@ -54,26 +54,7 @@ RANDOM_BRUSHES = {"texture", "watercolor", "sponge", "chalk"}
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
-def _pil_to_cairo(im: Image.Image) -> bytearray:
-    w, h = im.size
-    if _NP:
-        arr = np.array(im, dtype=np.uint8)
-        af  = arr[:, :, 3:4].astype(np.float32) / 255.0
-        pre = (arr[:, :, :3].astype(np.float32) * af).astype(np.uint8)
-        out = np.empty((h, w, 4), dtype=np.uint8)
-        out[:, :, 0] = pre[:, :, 2]
-        out[:, :, 1] = pre[:, :, 1]
-        out[:, :, 2] = pre[:, :, 0]
-        out[:, :, 3] = arr[:, :, 3]
-        return bytearray(out.tobytes())
-    data = im.tobytes()
-    out  = bytearray(w * h * 4)
-    for i in range(w * h):
-        r, g, b, a = data[i*4], data[i*4+1], data[i*4+2], data[i*4+3]
-        f = a / 255
-        out[i*4], out[i*4+1], out[i*4+2], out[i*4+3] = (
-            int(b*f), int(g*f), int(r*f), a)
-    return out
+from .editor_utils import pil_to_cairo as _pil_to_cairo  # noqa: E402
 
 
 def _make_stamp(radius: int, softness: float, color, opacity: int,
@@ -1511,7 +1492,7 @@ class LayerPanel(Gtk.Box):
 
 
 def _apply_theme(window: Gtk.Window):
-    from . import theme as _theme
+    from ..ui import theme as _theme
     _theme.apply(window)
 
 
@@ -2205,7 +2186,7 @@ class PaintEditor(Gtk.Window):
 
     # ── guardar / abrir proyecto (.alproj) ───────────────────────────────────
     def _save_project_dialog(self):
-        from . import projects as _proj
+        from .. import projects as _proj
         dlg = Gtk.FileDialog()
         dlg.set_title("Guardar proyecto (.alproj)")
         f = Gtk.FileFilter(); f.set_name("Proyecto AnimaLinux (*.alproj)")
@@ -2260,7 +2241,7 @@ class PaintEditor(Gtk.Window):
 
     # ── tutorial ──────────────────────────────────────────────────────────────
     def _show_tutorial(self, force=False):
-        from . import settings as _s
+        from .. import settings as _s
         if not force and _s.get("tutorial_paint_shown", False):
             return
         dlg = Gtk.Dialog(title="Editor de Pintura — Guía rápida",
@@ -2336,7 +2317,7 @@ class PaintEditor(Gtk.Window):
         pose = self.pose_entry.get_text().strip() or "default"
         fps  = int(self.fps_spin.get_value())
         cw, ch = self.canvas.cw, self.canvas.ch
-        from . import importer
+        from ..core import image_processor as importer
 
         if self.anim_id is None:
             name = (self.name_entry.get_text().strip() if self.name_entry
@@ -2370,14 +2351,14 @@ class PaintEditor(Gtk.Window):
 
     def _suggest_next_pose(self):
         if not self.anim_id: return
-        from . import tips
+        from .. import tips
         anim = self.app.library.animations.get(self.anim_id, {})
         nxt  = tips.next_missing(anim.get("poses",[]))
         if nxt: self.pose_entry.set_text(nxt); self._show_tip(nxt)
         else:   self.save_status.set_text("¡Todas las poses creadas!")
 
     def _show_tip(self, pose):
-        from . import tips
+        from .. import tips
         info = tips.tip_for(pose)
         md   = Gtk.AlertDialog()
         md.set_message(f"Siguiente: {info['titulo']}  (~{info['frames']} cuadros)")

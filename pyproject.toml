@@ -12,5 +12,6 @@ animalinux = "animalinux.app:main"
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-packages = ["animalinux"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["animalinux*"]
