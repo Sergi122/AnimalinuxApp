@@ -23,7 +23,10 @@ class ControlWindow(Gtk.ApplicationWindow):
     def __init__(self, app):
         super().__init__(application=app, title=t("app_title"))
         self.app = app
-        self.set_default_size(600, 740)
+        self.set_default_size(640, 760)
+        # timers de las previews GIF animadas (se limpian en cada refresh)
+        self._preview_timers = []
+        self.connect("close-request", self._stop_previews)
 
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.set_child(root)
@@ -193,8 +196,16 @@ class ControlWindow(Gtk.ApplicationWindow):
         box.append(btn_row)
         dialog.present()
 
+    # ── Previews animadas ─────────────────────────────────────────────────────
+    def _stop_previews(self, *_):
+        for tid in self._preview_timers:
+            GLib.source_remove(tid)
+        self._preview_timers = []
+        return False
+
     # ── Refresh ─────────────────────────────────────────────────────────────
     def refresh(self):
+        self._stop_previews()   # cancela timers de previews de la tanda anterior
         for lb in (self._normal_list, self._life_list):
             child = lb.get_first_child()
             while child:
@@ -219,15 +230,17 @@ class ControlWindow(Gtk.ApplicationWindow):
     # ── Fila animación normal ────────────────────────────────────────────────
     def _make_normal_row(self, anim):
         row = Gtk.ListBoxRow()
-        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        box.set_margin_top(8); box.set_margin_bottom(8)
-        box.set_margin_start(8); box.set_margin_end(8)
+        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        box.add_css_class("mascot-card")
+        box.set_margin_top(6); box.set_margin_bottom(6)
+        box.set_margin_start(6); box.set_margin_end(6)
 
-        box.append(self._thumb(anim))
+        box.append(self._animated_preview(anim))
 
         info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         info.set_hexpand(True)
-        info.append(Gtk.Label(label=anim["name"], xalign=0))
+        info.set_valign(Gtk.Align.CENTER)
+        info.append(self._editable_name(anim))
         info.append(self._fps_scale_row(anim))
         box.append(info)
 
@@ -287,15 +300,17 @@ class ControlWindow(Gtk.ApplicationWindow):
     # ── Fila animación con vida ──────────────────────────────────────────────
     def _make_life_row(self, anim):
         row = Gtk.ListBoxRow()
-        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        box.set_margin_top(8); box.set_margin_bottom(8)
-        box.set_margin_start(8); box.set_margin_end(8)
+        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        box.add_css_class("mascot-card")
+        box.add_css_class("card-life")
+        box.set_margin_top(6); box.set_margin_bottom(6)
+        box.set_margin_start(6); box.set_margin_end(6)
 
-        box.append(self._thumb(anim))
+        box.append(self._animated_preview(anim))
 
         info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         info.set_hexpand(True)
-        info.append(Gtk.Label(label=anim["name"], xalign=0))
+        info.append(self._editable_name(anim))
         info.append(self._fps_scale_row(anim))
 
         poses = anim.get("poses", ["default"])
@@ -351,17 +366,57 @@ class ControlWindow(Gtk.ApplicationWindow):
         return row
 
     # ── Widgets reutilizables ─────────────────────────────────────────────────
-    def _thumb(self, anim):
-        thumb = Gtk.Picture()
-        thumb.set_size_request(60, 60)
-        thumb.set_content_fit(Gtk.ContentFit.CONTAIN)
-        first = self.app.library.frames_dir(anim["id"]) / "frame_0000.png"
-        if first.exists():
+    def _animated_preview(self, anim, size=64):
+        """Preview que reproduce la animación (GIF) en pequeño dentro de la card."""
+        pic = Gtk.Picture()
+        pic.set_size_request(size, size)
+        pic.set_content_fit(Gtk.ContentFit.CONTAIN)
+        pic.add_css_class("card-preview")
+        fd = self.app.library.frames_dir(anim["id"])
+        textures = []
+        for p in sorted(fd.glob("frame_*.png"))[:60]:
             try:
-                thumb.set_paintable(Gdk.Texture.new_from_filename(str(first)))
+                textures.append(Gdk.Texture.new_from_filename(str(p)))
             except GLib.Error:
                 pass
-        return thumb
+        if not textures:
+            return pic
+        pic.set_paintable(textures[0])
+        if len(textures) > 1:
+            state = {"i": 0}
+            fps = max(1, int(anim.get("fps", 12)))
+
+            def tick():
+                if pic.get_parent() is None:
+                    return False   # card destruida (refresh) → cancela el timer
+                state["i"] = (state["i"] + 1) % len(textures)
+                pic.set_paintable(textures[state["i"]])
+                return True
+
+            self._preview_timers.append(GLib.timeout_add(int(1000 / fps), tick))
+        return pic
+
+    def _editable_name(self, anim):
+        """Nombre editable in situ; guarda al pulsar Enter o salir del campo."""
+        entry = Gtk.Entry()
+        entry.set_text(anim["name"])
+        entry.add_css_class("card-title")
+        entry.set_hexpand(True)
+        entry.set_has_frame(False)
+        entry.set_tooltip_text("Editar nombre (Enter para guardar)")
+
+        def save(*_):
+            new = entry.get_text().strip()
+            if new and new != anim["name"]:
+                self.app.library.update(anim["id"], name=new)
+                anim["name"] = new
+            return False
+
+        entry.connect("activate", save)
+        foc = Gtk.EventControllerFocus()
+        foc.connect("leave", save)
+        entry.add_controller(foc)
+        return entry
 
     def _fps_scale_row(self, anim):
         row = Gtk.Box(spacing=6)
