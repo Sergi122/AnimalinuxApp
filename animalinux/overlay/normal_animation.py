@@ -231,6 +231,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self._jitter_base = 0    # x base mientras tiembla
         self._last_drag = None   # (t, ox, oy) para medir velocidad de arrastre
         self._grab_ttl  = 0      # ticks en estado "agarra el ratón"
+        self._grab_anchor = None # ancla (mx,my,x,y) para seguir el cursor relativo
         self._rest_ttl  = 0      # ticks de reposo tras aterrizar
         self._greet_cd  = 0      # cooldown anti-bucle de saludos
 
@@ -290,22 +291,13 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
 
     def _on_drag_end(self, gesture, ox, oy):
         self._dragging = False
-        vx = getattr(self, "_drag_vx", 0.0)
-        vy = getattr(self, "_drag_vy", 0.0)
         if self.mode == "life" and self._state != "grab":
-            # Al soltar, la mascota se queda DONDE la dejaste y cae suave al
-            # suelo (X no cambia). Nada de "lanzarla" lejos: eso se percibía como
-            # un teletransporte. Un flick rápido sólo añade un pelín de inercia
-            # horizontal, acotada a unos pocos px/tick para que no salga volando.
-            spd = (vx**2 + vy**2) ** 0.5
-            if spd > 1500:
-                self._toss_vx = max(-6, min(6, vx / 220.0))
-                self._toss_vy = max(-6, min(2, vy / 220.0))
-                self._state = "toss"
-            else:
-                self._toss_vx = 0.0
-                self._toss_vy = 0.0
-                self._state = "falling"
+            # Al soltar, la mascota se queda EXACTAMENTE donde la dejaste y cae
+            # recto al suelo (X no cambia). Sin impulso horizontal → nunca sale
+            # volando ni "se teletransporta".
+            self._toss_vx = 0.0
+            self._toss_vy = 0.0
+            self._state = "falling"
             self._pose = "jump" if self._has_pose("jump") else "default"
         if self.on_moved:
             self.on_moved(self.anim["id"], self._x, self._y)

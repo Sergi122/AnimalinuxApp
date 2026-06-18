@@ -54,6 +54,7 @@ class LiveAnimationMixin:
         self._grab_ttl = 80   # ~5 s a 60 ms/tick
         self._state = "grab"
         self._grabbing = True
+        self._grab_anchor = None   # se fija en el primer movimiento (sin salto)
         self._toss_vx = 0.0
         self._toss_vy = 0.0
         if self._has_pose("grab"):
@@ -63,14 +64,18 @@ class LiveAnimationMixin:
         self._update_input_region()   # ahora captura el cursor en toda la pantalla
 
     def _on_grab_motion(self, ctrl, mx, my):
-        """En grab: la ventana cubre la pantalla, así que (mx,my) son coordenadas
-        de pantalla → centra el sprite en el cursor (lo 'sujeta')."""
+        """En grab el sprite sigue el cursor de forma RELATIVA (igual que el
+        arrastre): se ancla en el primer movimiento y luego se desplaza por el
+        mismo delta que el cursor. Así NO salta a la posición del puntero al
+        empezar (eso se veía como un teletransporte) y es inmune a cualquier
+        desfase entre coordenadas de ventana y del sprite."""
         if not self._grabbing or self._dragging:
             return
-        w, h = self._cat_w, self._cat_h
-        nx = max(0, min(self._screen_w - w, int(mx - w / 2)))
-        ny = max(0, min(self._screen_h - h, int(my - h / 2)))
-        self._set_position(nx, ny)
+        if self._grab_anchor is None:
+            self._grab_anchor = (mx, my, self._x, self._y)
+            return
+        mx0, my0, x0, y0 = self._grab_anchor
+        self._set_position(x0 + (mx - mx0), y0 + (my - my0))
 
     def _end_grab_restore(self):
         """Suelta el cursor: la región de input vuelve a la caja del sprite.
