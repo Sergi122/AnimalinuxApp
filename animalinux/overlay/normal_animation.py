@@ -337,6 +337,11 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         # normalizan a este tamaño para que la mascota NO cambie de tamaño al
         # cambiar de animación (algunas poses se generan con otro lienzo).
         self._base_size = None
+        # auto-recorte: calcula la caja real del dibujo de la pose default y
+        # ajusta anim width/height (lo usan input region, colisiones y bordes)
+        self._orig_size = None
+        self._crop_box = None
+        self._compute_crop_box(base)
         # 'default' = capa plana
         self._load_one_pose("default", base)
         # poses extra = subcarpetas
@@ -372,16 +377,89 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         if normal:
             self._poses[name] = {"normal": normal, "flip": flip}
 
+    def _compute_crop_box(self, base):
+        """Calcula la caja real (unión de bboxes de TODAS las poses) para
+        recortar el margen transparente. Muchas mascotas se importan con un
+        lienzo enorme de margen vacío (medido: hasta 60-67% del área): eso
+        hacía la caja de input gigante y los bordes de caminado raros.
+        Recortando al contenido real mejora input region, colisiones y bordes
+        — sin tocar los PNG en disco (solo afecta a las texturas en memoria y
+        a anim width/height). Se usa UNA sola caja, unión de todas las poses,
+        para que todas queden alineadas y del mismo tamaño (las poses se
+        normalizan a este lienzo)."""
+        try:
+            from PIL import Image
+        except Exception:  # noqa: BLE001
+            return
+        base = Path(base)
+        # frames de la pose default (en la raíz) + todas las subcarpetas
+        normals = sorted(base.glob("frame_*.png"))
+        for sub in sorted(p for p in base.iterdir() if p.is_dir()):
+            normals += sorted(sub.glob("frame_*.png"))
+        if not normals:
+            return
+        box = None
+        orig = None
+        for p in normals:
+            try:
+                im = Image.open(str(p))
+            except Exception:  # noqa: BLE001
+                continue
+            if orig is None:
+                orig = im.size
+            # solo cuentan los frames del lienzo dominante (mismo tamaño que
+            # el primero); las poses generadas con otro lienzo se omiten aquí.
+            if im.size != orig:
+                continue
+            b = im.convert("RGBA").getbbox()
+            if b:
+                box = b if box is None else (
+                    min(box[0], b[0]), min(box[1], b[1]),
+                    max(box[2], b[2]), max(box[3], b[3]))
+        if not orig or not box:
+            return
+        ow, oh = orig
+        pad = 2   # margen de seguridad para no comer el borde del dibujo
+        x0 = max(0, box[0] - pad)
+        y0 = max(0, box[1] - pad)
+        x1 = min(ow, box[2] + pad)
+        y1 = min(oh, box[3] + pad)
+        cw, ch = x1 - x0, y1 - y0
+        # solo recortar si el margen es apreciable (>4% en algún eje); si el
+        # sprite ya está ajustado, no merece la pena el coste de re-rasterizar.
+        if cw >= ow * 0.96 and ch >= oh * 0.96:
+            return
+        self._orig_size = orig
+        self._crop_box = (x0, y0, x1, y1)
+        self._base_size = (cw, ch)
+        # propaga el tamaño real al resto de la lógica (input/colisión/bordes)
+        self.anim["width"] = cw
+        self.anim["height"] = ch
+
     def _load_texture(self, path):
-        """Carga un PNG como textura, redimensionado al tamaño base si difiere
-        (así todas las poses ocupan exactamente el mismo lienzo)."""
+        """Carga un PNG como textura, recortado al margen real (auto-recorte)
+        y redimensionado al tamaño base si difiere (así todas las poses ocupan
+        exactamente el mismo lienzo)."""
         target = self._base_size
         try:
             from PIL import Image
             im = Image.open(str(path))
-            if target is None or im.size == tuple(target):
+            changed = False
+            # recorte: a todo frame del lienzo dominante (raíz o subpose). Los
+            # flip_*.png usan la caja espejada para alinearse con su normal.
+            box = self._crop_box
+            if box and im.size == self._orig_size:
+                if Path(path).name.startswith("flip_"):
+                    ow = self._orig_size[0]
+                    box = (ow - box[2], box[1], ow - box[0], box[3])
+                im = im.crop(box)
+                changed = True
+            if target is not None and im.size != tuple(target):
+                im = im.convert("RGBA").resize(tuple(target), Image.NEAREST)
+                changed = True
+            if not changed:
                 return Gdk.Texture.new_from_filename(str(path))
-            im = im.convert("RGBA").resize(tuple(target), Image.NEAREST)
+            im = im.convert("RGBA")
             data = im.tobytes()
             gbytes = GLib.Bytes.new(data)
             return Gdk.MemoryTexture.new(
