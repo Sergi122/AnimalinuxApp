@@ -22,12 +22,47 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gtk4LayerShell", "1.0")
-from gi.repository import Gtk, Gdk, GLib  # noqa: E402
+from gi.repository import Gtk, Gdk, GLib, GObject  # noqa: E402
 from gi.repository import Gtk4LayerShell as LayerShell  # noqa: E402
 
 from .live_animation import LiveAnimationMixin  # noqa: E402
 
 _CSS_APPLIED = False
+
+
+class ScaledPaintable(GObject.GObject, Gdk.Paintable):
+    """Envuelve una textura y reporta su tamaño intrínseco MULTIPLICADO por un
+    factor de escala. Así GtkPicture toma como tamaño natural el escalado y el
+    sprite puede agrandarse Y EMPEQUEÑECERSE (un size_request menor que el
+    intrínseco no encoge un GtkPicture; esto sí). GTK escala al dibujar, sin
+    re-rasterizar píxeles."""
+    def __init__(self):
+        super().__init__()
+        self._tex = None
+        self._scale = 1.0
+        self._bw = 1
+        self._bh = 1
+
+    def set_texture(self, tex):
+        self._tex = tex
+        if tex is not None:
+            self._bw = tex.get_intrinsic_width()
+            self._bh = tex.get_intrinsic_height()
+        self.invalidate_contents()
+
+    def set_scale_factor(self, s):
+        self._scale = max(0.05, float(s))
+        self.invalidate_size()
+
+    def do_get_intrinsic_width(self):
+        return max(1, int(self._bw * self._scale))
+
+    def do_get_intrinsic_height(self):
+        return max(1, int(self._bh * self._scale))
+
+    def do_snapshot(self, snapshot, width, height):
+        if self._tex is not None:
+            self._tex.snapshot(snapshot, width, height)
 
 
 def _apply_transparency(display):
@@ -46,24 +81,6 @@ def _apply_transparency(display):
         "  background: transparent;"
         "  background-color: transparent;"
         "  background-image: none;"
-        "}"
-        # barra de control sobre el sprite (gana en especificidad a la regla *)
-        "window.animalinux-mascot .animalinux-ctrlbar {"
-        "  background-color: rgba(26,26,46,0.85);"
-        "  border-radius: 8px;"
-        "  padding: 2px;"
-        "  margin: 2px;"
-        "}"
-        "window.animalinux-mascot .animalinux-ctrlbtn {"
-        "  background-color: rgba(123,97,255,0.85);"
-        "  color: #ffffff;"
-        "  border-radius: 6px;"
-        "  min-width: 20px;"
-        "  min-height: 20px;"
-        "  padding: 2px;"
-        "}"
-        "window.animalinux-mascot .animalinux-ctrlbtn:hover {"
-        "  background-color: rgba(123,97,255,1.0);"
         "}"
     )
     if hasattr(provider, "load_from_string"):
@@ -140,27 +157,30 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self._cat_w = w
         self._cat_h = h
 
+        # El sprite se muestra a través de un ScaledPaintable: una sola vez se
+        # asigna al picture y luego sólo cambiamos su textura (cada frame) y su
+        # factor de escala (al hacer zoom). Esto permite empequeñecer el sprite,
+        # cosa que size_request por sí solo NO logra en un GtkPicture.
+        self._paintable = ScaledPaintable()
+        self._paintable.set_scale_factor(scale)
         self.picture = Gtk.Picture()
         self.picture.set_can_shrink(True)
         self.picture.set_content_fit(Gtk.ContentFit.FILL)
-        self.picture.set_size_request(w, h)
+        self.picture.set_halign(Gtk.Align.START)
+        self.picture.set_valign(Gtk.Align.START)
+        self.picture.set_paintable(self._paintable)
         first = self._frames_for("default")
         if first:
-            self.picture.set_paintable(first[0])
+            self._paintable.set_texture(first[0])
 
-        # ── barra de control (Administrar / Cerrar) sobre el sprite ──────────
-        # Va dentro de un Gtk.Overlay POR ENCIMA del picture: así los botones
-        # tienen su propio manejo de eventos y el gesto de arrastre del sprite
-        # NO se los traga (antes los clics se perdían al mover la mascota).
-        # Se revelan al pasar el cursor por encima de la mascota.
-        self._overlay = Gtk.Overlay()
+        # contenedor que se mueve dentro de la ventana fullscreen vía márgenes
+        # (la ventana nunca se mueve ni se redimensiona). NO se ponen botones ni
+        # opciones encima del sprite: la gestión se hace desde la ventana de
+        # control / bandeja, no sobre la mascota.
+        self._overlay = Gtk.Box()
         self._overlay.set_halign(Gtk.Align.START)
         self._overlay.set_valign(Gtk.Align.START)
-        self._overlay.set_child(self.picture)
-        self._overlay.add_overlay(self._build_ctrl_bar())
-
-        # el overlay (sprite + barra) se mueve dentro de la ventana fullscreen
-        # vía sus márgenes (la ventana nunca se mueve ni se redimensiona)
+        self._overlay.append(self.picture)
         self.set_child(self._overlay)
 
         # posición inicial del sprite (márgenes de la picture)
@@ -194,10 +214,6 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         motion.connect("enter", self._on_cursor_enter)
         self.picture.add_controller(motion)
 
-        # cursor encima -> revelar la barra de control (Administrar / Cerrar)
-        if getattr(self, "_overlay_hover", None) is not None:
-            self.picture.add_controller(self._overlay_hover)
-
         # tocarla (click) -> reaccionar / enojarse
         click = Gtk.GestureClick()
         click.connect("pressed", self._on_click)
@@ -219,64 +235,10 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self._greet_cd  = 0      # cooldown anti-bucle de saludos
 
 
-    # ---------- barra de control sobre el sprite ----------
-    def _build_ctrl_bar(self):
-        """Pequeña barra con «Administrar» y «Cerrar», anclada arriba-derecha
-        del sprite. Oculta por defecto; se revela al pasar el cursor encima."""
-        bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-        bar.add_css_class("animalinux-ctrlbar")
-
-        manage = Gtk.Button(label="⚙")
-        manage.set_tooltip_text("Administrar mascotas")
-        manage.add_css_class("animalinux-ctrlbtn")
-        manage.connect("clicked", self._on_manage_clicked)
-        bar.append(manage)
-
-        close = Gtk.Button(label="✕")
-        close.set_tooltip_text("Quitar del escritorio")
-        close.add_css_class("animalinux-ctrlbtn")
-        close.connect("clicked", self._on_close_clicked)
-        bar.append(close)
-
-        # Revealer para mostrar/ocultar suavemente al hacer hover
-        self._ctrl_revealer = Gtk.Revealer()
-        self._ctrl_revealer.set_transition_type(
-            Gtk.RevealerTransitionType.CROSSFADE)
-        self._ctrl_revealer.set_transition_duration(120)
-        self._ctrl_revealer.set_reveal_child(False)
-        self._ctrl_revealer.set_child(bar)
-        self._ctrl_revealer.set_halign(Gtk.Align.END)
-        self._ctrl_revealer.set_valign(Gtk.Align.START)
-
-        # hover sobre el área del sprite revela/oculta la barra
-        hover = Gtk.EventControllerMotion()
-        hover.connect("enter", lambda *_: self._ctrl_revealer.set_reveal_child(True))
-        hover.connect("leave", lambda *_: self._ctrl_revealer.set_reveal_child(False))
-        self._overlay_hover = hover  # se añade al picture en __init__ tardío
-        return self._ctrl_revealer
-
-    def _on_manage_clicked(self, _btn):
-        # abre (o trae al frente) la ventana de configuración
-        try:
-            self._app.show_control()
-        except Exception:  # noqa: BLE001
-            pass
-
-    def _on_close_clicked(self, _btn):
-        # quita la mascota del escritorio y lo persiste para que no reaparezca
-        aid = self.anim["id"]
-        try:
-            self._app.library.update(aid, on_desktop=False)
-            if self._app.control is not None:
-                self._app.control.refresh()
-        except Exception:  # noqa: BLE001
-            pass
-        self._app.set_mascot_visible(aid, False)
-
     # ---------- posición ----------
     def _set_position(self, x, y):
-        # el sprite se mueve dentro de la ventana fullscreen vía márgenes de la
-        # picture (la ventana en sí nunca se mueve ni se redimensiona)
+        # el sprite se mueve dentro de la ventana fullscreen vía márgenes del
+        # contenedor (la ventana en sí nunca se mueve ni se redimensiona)
         self._x = max(0, int(x))
         self._y = max(0, int(y))
         self._overlay.set_margin_start(self._x)
@@ -331,19 +293,20 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         vx = getattr(self, "_drag_vx", 0.0)
         vy = getattr(self, "_drag_vy", 0.0)
         if self.mode == "life" and self._state != "grab":
+            # Al soltar, la mascota se queda DONDE la dejaste y cae suave al
+            # suelo (X no cambia). Nada de "lanzarla" lejos: eso se percibía como
+            # un teletransporte. Un flick rápido sólo añade un pelín de inercia
+            # horizontal, acotada a unos pocos px/tick para que no salga volando.
             spd = (vx**2 + vy**2) ** 0.5
-            if spd > 700:
-                # tiro fuerte → trayectoria parabólica
-                self._toss_vx = max(-40, min(40, vx / 60.0))
-                self._toss_vy = max(-30, min(10,  vy / 60.0))
+            if spd > 1500:
+                self._toss_vx = max(-6, min(6, vx / 220.0))
+                self._toss_vy = max(-6, min(2, vy / 220.0))
                 self._state = "toss"
-                self._pose = "jump" if self._has_pose("jump") else "default"
             else:
-                # soltar suave → cae al suelo con gravedad, X no cambia
                 self._toss_vx = 0.0
                 self._toss_vy = 0.0
                 self._state = "falling"
-                self._pose = "jump" if self._has_pose("jump") else "default"
+            self._pose = "jump" if self._has_pose("jump") else "default"
         if self.on_moved:
             self.on_moved(self.anim["id"], self._x, self._y)
         self._drag_vx = 0.0
@@ -477,7 +440,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         if self._paused or len(frames) == 0:
             return True
         self._index = (self._index + 1) % len(frames)
-        self.picture.set_paintable(frames[self._index])
+        self._paintable.set_texture(frames[self._index])
         return True
 
 
@@ -492,7 +455,10 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         h = int(self.anim.get("height", 100) * scale)
         self._cat_w = w
         self._cat_h = h
-        self.picture.set_size_request(w, h)
+        # escala vía el paintable (encoge y agranda); el tamaño natural del
+        # picture pasa a ser el escalado, así halign START lo respeta en ambos
+        # sentidos. queue_resize fuerza el re-layout inmediato.
+        self._paintable.set_scale_factor(scale)
         self.picture.queue_resize()
         self._overlay.queue_resize()
         self.queue_resize()
