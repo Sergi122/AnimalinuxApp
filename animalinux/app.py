@@ -46,9 +46,12 @@ class AnimaApp(Gtk.Application):
             return 0
         if not self._started:
             self._start_daemon()
-        if "--show" in args or not args:
-            # arranque sin args también muestra config la primera vez
+        if "--show" in args:
             self.show_control()
+        elif not args:
+            # Steam-like: solo bandeja; abre control solo si es la primera vez
+            if not self.library.animations:
+                self.show_control()
         if "--daemon" in args:
             pass  # solo servicio, sin ventana
         return 0
@@ -82,10 +85,15 @@ class AnimaApp(Gtk.Application):
 
     def _launch_tray(self):
         try:
-            self._tray_proc = Gio.Subprocess.new(
-                ["python3", "-m", "animalinux.tray"],
-                Gio.SubprocessFlags.NONE,
-            )
+            import os
+            # El tray es GTK3 y NO debe heredar el LD_PRELOAD de gtk4-layer-shell
+            # (mezclar esa librería GTK4 en un proceso GTK3 rompe gtk_init).
+            env = os.environ.copy()
+            env.pop("LD_PRELOAD", None)
+            env.pop("ANIMALINUX_PRELOADED", None)
+            launcher = Gio.SubprocessLauncher.new(Gio.SubprocessFlags.NONE)
+            launcher.set_environ([f"{k}={v}" for k, v in env.items()])
+            self._tray_proc = launcher.spawnv(["python3", "-m", "animalinux.tray"])
         except GLib.Error:
             pass  # sin bandeja; se puede abrir con `animalinux --show`
 
