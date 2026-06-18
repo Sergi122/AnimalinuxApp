@@ -68,9 +68,15 @@ class AnimaApp(Gtk.Application):
         # restaurar mascotas que estaban en el escritorio
         for anim in self.library.active():
             self.manager.spawn(anim)
-        # pausa por pantalla completa
-        self._hypr = HyprMonitor(self._on_fullscreen)
-        self._hypr.start()
+        # Pausa por pantalla completa: DESACTIVADA por defecto. Antes esto
+        # pausaba (congelaba) la mascota en cuanto otra ventana entraba en
+        # fullscreen, para ahorrar GPU. Pero lo normal es querer que la mascota
+        # siga animando sobre juegos/apps. Se reactiva con la config
+        # pause_on_fullscreen: true en library.json.
+        self._hypr = None
+        if self.library.config.get("pause_on_fullscreen", False):
+            self._hypr = HyprMonitor(self._on_fullscreen)
+            self._hypr.start()
         # bandeja (proceso aparte para no mezclar GTK3 con GTK4)
         self._launch_tray()
         # saludo entre mascotas que se cruzan (modo Vida)
