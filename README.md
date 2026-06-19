@@ -24,12 +24,28 @@ saludos, emociones y más.
 
 ## Instalación rápida (Arch Linux)
 
+### Opción A — paquete pacman con makepkg (recomendada)
+
+Funciona ya, sin necesidad de AUR. Construye e instala con las dependencias:
+
 ```bash
 git clone https://github.com/Sergi122/AnimalinuxApp.git
-cd animalinux
+cd AnimalinuxApp
+makepkg -si
+```
+
+### Opción B — script de instalación
+
+```bash
+git clone https://github.com/Sergi122/AnimalinuxApp.git
+cd AnimalinuxApp
 chmod +x install.sh
 ./install.sh
 ```
+
+> **AUR:** el paquete está preparado (`PKGBUILD` + `.SRCINFO`). Se publicará en
+> el AUR como `animalinux` cuando el registro de cuentas de Arch vuelva a estar
+> abierto. Mientras tanto, usa la Opción A.
 
 ### Dependencias
 
@@ -257,8 +273,8 @@ git push
 ### Crear release con tag de versión
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 ---
@@ -288,7 +304,7 @@ cp /home/maomao/Downloads/animalinux/PKGBUILD .
 
 # 3. Edita PKGBUILD: pon tu nombre, email y URL de GitHub correcta
 #    Calcula el sha256sum cuando tengas el release en GitHub:
-#    curl -L https://github.com/Sergi122/AnimalinuxApp/archive/v0.1.0.tar.gz | sha256sum
+#    curl -L https://github.com/Sergi122/AnimalinuxApp/archive/v0.2.0.tar.gz | sha256sum
 
 # 4. Genera el .SRCINFO (obligatorio para AUR)
 makepkg --printsrcinfo > .SRCINFO
@@ -298,7 +314,7 @@ makepkg -si
 
 # 6. Sube a AUR
 git add PKGBUILD .SRCINFO
-git commit -m "Initial release v0.1.0"
+git commit -m "Initial release v0.2.0"
 git push
 ```
 
