@@ -81,6 +81,8 @@ class AnimaApp(Gtk.Application):
         self._launch_tray()
         # saludo entre mascotas que se cruzan (modo Vida)
         self._prox_id = GLib.timeout_add(800, self.manager.check_proximity)
+        # vigilar bordes de ventanas para que la mascota se suba/camine por ellos
+        self.manager.start_platform_watch()
 
     def _launch_tray(self):
         try:
