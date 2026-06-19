@@ -9,6 +9,10 @@ módulos no cambia.
 El manager NO crea bucles GTK ni bandeja: solo gestiona las ventanas overlay
 (MascotWindow) y los datos de la librería.
 """
+import json
+import subprocess
+import threading
+
 from gi.repository import GLib
 
 from ..overlay import MascotWindow
@@ -19,6 +23,44 @@ class MascotManager:
         self.app = app
         self.library = app.library
         self.mascots = {}          # anim_id -> MascotWindow
+        # Idea 5: plataformas = bordes superiores de las ventanas abiertas
+        # (coords GLOBALES de Hyprland). Las mascotas se suben/caminan por ellas.
+        # Se refresca en segundo plano para no bloquear el bucle GTK.
+        self.platforms = []
+        self._platforms_busy = False
+
+    # ---------- plataformas (andar por ventanas) ----------
+    def start_platform_watch(self, interval_ms=1500):
+        GLib.timeout_add(interval_ms, self._refresh_platforms)
+        self._refresh_platforms()
+
+    def _refresh_platforms(self):
+        if not self._platforms_busy:
+            self._platforms_busy = True
+            threading.Thread(target=self._fetch_platforms, daemon=True).start()
+        return True   # seguir repitiendo
+
+    def _fetch_platforms(self):
+        plats = []
+        try:
+            out = subprocess.run(
+                ["hyprctl", "-j", "clients"],
+                capture_output=True, text=True, timeout=2).stdout
+            for c in json.loads(out):
+                if c.get("hidden") or not c.get("mapped", True):
+                    continue
+                if c.get("workspace", {}).get("id", 1) < 0:
+                    continue   # special/scratchpad
+                at = c.get("at") or [0, 0]
+                size = c.get("size") or [0, 0]
+                if size[0] < 80 or size[1] < 40:
+                    continue
+                # borde SUPERIOR de la ventana = plataforma
+                plats.append((at[0], at[0] + size[0], at[1]))
+        except Exception:  # noqa: BLE001
+            plats = self.platforms        # conserva el último bueno si falla
+        self.platforms = plats
+        self._platforms_busy = False
 
     # ---------- ciclo de vida de las ventanas ----------
     def spawn(self, anim):
@@ -79,13 +121,17 @@ class MascotManager:
             win.set_paused(active)
 
     def check_proximity(self):
-        """Saludo entre mascotas que se cruzan (modo Vida)."""
+        """Saludo entre mascotas que se cruzan (modo Vida). Idea 7: además se
+        giran a mirarse antes de saludar."""
         life = [w for w in self.mascots.values() if w.mode == "life"]
         for i in range(len(life)):
             for j in range(i + 1, len(life)):
-                if abs(life[i].center_x() - life[j].center_x()) < 90:
-                    life[i].trigger_greet()
-                    life[j].trigger_greet()
+                a, b = life[i], life[j]
+                if abs(a.center_x() - b.center_x()) < 90:
+                    a.face_toward(b.center_x())
+                    b.face_toward(a.center_x())
+                    a.trigger_greet()
+                    b.trigger_greet()
         return True
 
     def destroy_all(self):

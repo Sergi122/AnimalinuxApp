@@ -109,12 +109,21 @@ def gen_angry(base):
     return _seq(base, 8, f)
 
 
+def gen_sleep(base):
+    # dormida: achatada/acurrucada con respiración muy lenta y profunda
+    def f(t):
+        s = math.sin(2 * math.pi * t)
+        return (0, 0, 0, 1.06 + 0.02 * s, 0.9 + 0.03 * s)
+    return _seq(base, 12, f)
+
+
 POSE_GENERATORS = {
     "idle": gen_idle,
     "walk": gen_walk,
     "greet": gen_greet,
     "jump": gen_jump,
     "angry": gen_angry,
+    "sleep": gen_sleep,
 }
 
 

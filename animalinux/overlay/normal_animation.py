@@ -22,7 +22,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gtk4LayerShell", "1.0")
-from gi.repository import Gtk, Gdk, GLib, GObject  # noqa: E402
+from gi.repository import Gtk, Gdk, GLib, GObject, Graphene  # noqa: E402
 from gi.repository import Gtk4LayerShell as LayerShell  # noqa: E402
 
 from .live_animation import LiveAnimationMixin  # noqa: E402
@@ -42,6 +42,12 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
         self._scale = 1.0
         self._bw = 1
         self._bh = 1
+        # deformación dinámica (squash&stretch + inclinación) ANCLADA en los
+        # pies. No cambia el tamaño intrínseco (no thrashea el layout): solo
+        # transforma el dibujo en do_snapshot.
+        self._sx = 1.0
+        self._sy = 1.0
+        self._lean = 0.0   # grados
 
     def set_texture(self, tex):
         self._tex = tex
@@ -54,6 +60,16 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
         self._scale = max(0.05, float(s))
         self.invalidate_size()
 
+    def set_squash(self, sx, sy):
+        if (sx, sy) != (self._sx, self._sy):
+            self._sx, self._sy = sx, sy
+            self.invalidate_contents()
+
+    def set_lean(self, deg):
+        if deg != self._lean:
+            self._lean = deg
+            self.invalidate_contents()
+
     def do_get_intrinsic_width(self):
         return max(1, int(self._bw * self._scale))
 
@@ -61,8 +77,22 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
         return max(1, int(self._bh * self._scale))
 
     def do_snapshot(self, snapshot, width, height):
-        if self._tex is not None:
-            self._tex.snapshot(snapshot, width, height)
+        if self._tex is None:
+            return
+        sx, sy, lean = self._sx, self._sy, self._lean
+        deform = (sx != 1.0 or sy != 1.0 or lean != 0.0)
+        if deform:
+            snapshot.save()
+            # anclar la transformación en los pies (centro-abajo)
+            snapshot.translate(Graphene.Point().init(width / 2.0, height))
+            if lean:
+                snapshot.rotate(lean)
+            if sx != 1.0 or sy != 1.0:
+                snapshot.scale(sx, sy)
+            snapshot.translate(Graphene.Point().init(-width / 2.0, -height))
+        self._tex.snapshot(snapshot, width, height)
+        if deform:
+            snapshot.restore()
 
 
 def _apply_transparency(display):
@@ -169,6 +199,9 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self.picture.set_content_fit(Gtk.ContentFit.FILL)
         self.picture.set_halign(Gtk.Align.START)
         self.picture.set_valign(Gtk.Align.START)
+        # overflow visible: el squash&stretch/lean puede dibujar fuera de la
+        # caja del sprite (estirado o inclinado) sin que se recorte.
+        self.picture.set_overflow(Gtk.Overflow.VISIBLE)
         self.picture.set_paintable(self._paintable)
         first = self._frames_for("default")
         if first:
@@ -181,6 +214,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self._overlay = Gtk.Box()
         self._overlay.set_halign(Gtk.Align.START)
         self._overlay.set_valign(Gtk.Align.START)
+        self._overlay.set_overflow(Gtk.Overflow.VISIBLE)
         self._overlay.append(self.picture)
         self.set_child(self._overlay)
 
@@ -236,6 +270,20 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self._rest_ttl  = 0      # ticks de reposo tras aterrizar
         self._greet_cd  = 0      # cooldown anti-bucle de saludos
 
+        # ── mejoras modo Vida ───────────────────────────────────────────────
+        self._walk_phase = 0.0   # fase de caminado ligada a la DISTANCIA (idea 2)
+        self._sq_sx = 1.0        # squash & stretch dinámico (idea 1)
+        self._sq_sy = 1.0
+        self._lean = 0.0         # inclinación al lanzarse/caer (idea 10)
+        self._lean_target = 0.0
+        self._last_cursor_x = None  # última X del cursor sobre la mascota (idea 6)
+        self._phys_k = 1.0       # factor de física según tamaño (idea 3)
+        self._gravity = 2.0      # = live_animation.GRAVITY; se recalcula en _enter_life
+        self._idle_accum = 0     # acumulador para dormirse (idea 4)
+        self._mon_x = 0          # offset del monitor (idea 5/8)
+        self._mon_y = 0
+        self._ground_y = 0       # y-tope del sprite cuando está apoyado (idea 5)
+
 
     # ---------- posición ----------
     def _set_position(self, x, y):
@@ -270,6 +318,8 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         if self._state == "grab":
             gesture.set_state(Gtk.EventSequenceState.DENIED)
             return
+        if self.mode == "life":
+            self._wake()          # idea 4: arrastrarla la despierta
         self._dragging = True
         self._drag_origin = (self._x, self._y)
         self._toss_vx = 0.0
@@ -526,6 +576,9 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
             if mon is not None:
                 geo = mon.get_geometry()
                 self._screen_w, self._screen_h = geo.width, geo.height
+                # offset del monitor: las ventanas de hyprctl vienen en coords
+                # GLOBALES; restando esto se pasan a coords locales del monitor.
+                self._mon_x, self._mon_y = geo.x, geo.y
         except Exception:  # noqa: BLE001
             pass
 
@@ -542,7 +595,13 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         frames = self._frames_for(self._pose)
         if self._paused or len(frames) == 0:
             return True
-        self._index = (self._index + 1) % len(frames)
+        # Idea 2: el caminado avanza con la DISTANCIA recorrida (no con un fps
+        # fijo), así los pies no "patinan". _walk_phase lo alimenta el behavior
+        # tick (px/zancada). Para el resto de poses, avance normal por tiempo.
+        if self.mode == "life" and self._pose == "walk" and self._state == "walk":
+            self._index = int(self._walk_phase) % len(frames)
+        else:
+            self._index = (self._index + 1) % len(frames)
         self._paintable.set_texture(frames[self._index])
         return True
 
