@@ -219,22 +219,20 @@ class LiveAnimationMixin:
     def _start_bored_grab(self):
         _g, dur, _d = self._bored_cfg()
         self._bored_grab = True
-        self._orig_scale = self.anim.get("scale", 1.0)
-        # se hace GRANDE
-        self.set_scale(min(3.0, self._orig_scale * 2.5))
+        # NO se agranda (escalar el bitmap se ve pixelado): el drama es el
+        # temblor frenético + agarrar el ratón con cara de enfado.
         self._start_grab()
         self._grab_ttl = max(1, int(dur * 1000 / BEHAVIOR_INTERVAL))   # ~10 s
         self._grab_keyboard(True)      # además bloquea el teclado
+        if self._has_pose("angry"):
+            self._set_pose("angry")
 
     def _end_bored_grab(self):
         self._bored_grab = False
         self._grab_ttl = 0
         self._grabbing = False
         self._grab_keyboard(False)
-        try:
-            self.set_scale(self._orig_scale)
-        except Exception:  # noqa: BLE001
-            pass
+        self._paintable.set_squash(1.0, 1.0)
         self._update_input_region()
         self._state = "falling"
         self._set_pose("jump" if self._has_pose("jump") else "default")
@@ -415,6 +413,12 @@ class LiveAnimationMixin:
 
         # ── agarre del ratón (manual o por berrinche) ──────────────────────
         if self._state == "grab":
+            if self._bored_grab:
+                # temblor frenético + pulso de squash (sin escalar → sin pixelar)
+                self._set_position(self._x + random.randint(-3, 3),
+                                   self._y + random.randint(-3, 3))
+                self._paintable.set_squash(1.0 + random.uniform(-0.06, 0.06),
+                                           1.0 + random.uniform(-0.06, 0.06))
             self._grab_ttl -= 1
             if self._grab_ttl <= 0:
                 self._grab_ttl = 0
