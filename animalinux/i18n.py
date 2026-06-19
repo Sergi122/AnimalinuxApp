@@ -70,6 +70,8 @@ _T: dict[str, dict[str, str]] = {
     "settings_title":       {"es":"⚙️ Configuración","en":"⚙️ Settings","pt":"⚙️ Configurações","fr":"⚙️ Paramètres","de":"⚙️ Einstellungen","ja":"⚙️ 設定","zh":"⚙️ 设置"},
     "lang_label":           {"es":"Idioma / Language:","en":"Language:","pt":"Idioma:","fr":"Langue :","de":"Sprache:","ja":"言語:","zh":"语言:"},
     "lang_restart":         {"es":"(El cambio se aplica al reabrir las ventanas)","en":"(Change applies when reopening windows)","pt":"(A mudança é aplicada ao reabrir as janelas)","fr":"(Le changement s'applique à la réouverture des fenêtres)","de":"(Änderung gilt nach erneutem Öffnen der Fenster)","ja":"(変更はウィンドウを再度開くと適用されます)","zh":"(更改在重新打开窗口后生效)"},
+    "autostart_label":      {"es":"Iniciar al encender el sistema","en":"Start when the system boots","pt":"Iniciar ao ligar o sistema","fr":"Démarrer au lancement du système","de":"Beim Systemstart starten","ja":"システム起動時に開始","zh":"开机时启动"},
+    "autostart_hint":       {"es":"(Se aplica al próximo inicio de sesión)","en":"(Applies at the next login)","pt":"(Aplica-se no próximo login)","fr":"(S'applique à la prochaine connexion)","de":"(Gilt ab der nächsten Anmeldung)","ja":"(次回のログインから適用)","zh":"(将在下次登录时生效)"},
     "ok":                   {"es":"✓ Aceptar","en":"✓ OK","pt":"✓ OK","fr":"✓ OK","de":"✓ OK","ja":"✓ OK","zh":"✓ 确定"},
     "cancel":               {"es":"Cancelar","en":"Cancel","pt":"Cancelar","fr":"Annuler","de":"Abbrechen","ja":"キャンセル","zh":"取消"},
 
