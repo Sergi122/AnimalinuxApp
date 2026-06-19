@@ -280,9 +280,17 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self._phys_k = 1.0       # factor de física según tamaño (idea 3)
         self._gravity = 2.0      # = live_animation.GRAVITY; se recalcula en _enter_life
         self._idle_accum = 0     # acumulador para dormirse (idea 4)
+        self._sleep_phase = 0
         self._mon_x = 0          # offset del monitor (idea 5/8)
         self._mon_y = 0
         self._ground_y = 0       # y-tope del sprite cuando está apoyado (idea 5)
+        self._climb_target = None  # (x, y_tope, altura) al trepar a una ventana
+        self._retreat_from = None  # X de la otra mascota tras saludarse (idea 7)
+        # berrinche por aburrimiento (idea 11)
+        self._last_interaction = GLib.get_monotonic_time()
+        self._bored_phase = 0    # 0=normal 1=ya agarró 2=desactivada
+        self._bored_grab = False
+        self._orig_scale = anim.get("scale", 1.0)
 
 
     # ---------- posición ----------
@@ -375,7 +383,17 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
 
     def _on_cursor_enter(self, controller, x, y):
         if self.mode == "life" and self._state != "grab":
+            self._wake()              # pasar el cursor por encima = atención
             self.trigger_greet()
+
+    def _grab_keyboard(self, on):
+        """Berrinche: bloquear/soltar el teclado (capa exclusiva)."""
+        try:
+            mode = (LayerShell.KeyboardMode.EXCLUSIVE if on
+                    else LayerShell.KeyboardMode.NONE)
+            LayerShell.set_keyboard_mode(self, mode)
+        except Exception:  # noqa: BLE001
+            pass
 
     def _on_click(self, gesture, n_press, x, y):
         if self.mode == "life":

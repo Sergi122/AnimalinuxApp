@@ -121,17 +121,15 @@ class MascotManager:
             win.set_paused(active)
 
     def check_proximity(self):
-        """Saludo entre mascotas que se cruzan (modo Vida). Idea 7: además se
-        giran a mirarse antes de saludar."""
+        """Saludo entre mascotas que se cruzan (modo Vida). Idea 7: se miran,
+        se saludan y luego se ALEJAN (meet) para no quedarse pegadas/trabadas."""
         life = [w for w in self.mascots.values() if w.mode == "life"]
         for i in range(len(life)):
             for j in range(i + 1, len(life)):
                 a, b = life[i], life[j]
                 if abs(a.center_x() - b.center_x()) < 90:
-                    a.face_toward(b.center_x())
-                    b.face_toward(a.center_x())
-                    a.trigger_greet()
-                    b.trigger_greet()
+                    a.meet(b.center_x())
+                    b.meet(a.center_x())
         return True
 
     def destroy_all(self):
