@@ -832,6 +832,23 @@ class ControlWindow(Gtk.ApplicationWindow):
         hint.set_wrap(True)
         box.append(hint)
 
+        # Arranque automático al iniciar sesión
+        from ..core import autostart
+        auto_row = Gtk.Box(spacing=10)
+        auto_lbl = Gtk.Label(label=t("autostart_label"), xalign=0)
+        auto_lbl.set_hexpand(True)
+        auto_lbl.set_wrap(True)
+        auto_row.append(auto_lbl)
+        auto_sw = Gtk.Switch(valign=Gtk.Align.CENTER)
+        auto_sw.set_active(autostart.is_enabled())
+        auto_row.append(auto_sw)
+        box.append(auto_row)
+
+        auto_hint = Gtk.Label(label=t("autostart_hint"))
+        auto_hint.add_css_class("dim-label")
+        auto_hint.set_wrap(True)
+        box.append(auto_hint)
+
         btn_row = Gtk.Box(spacing=8, halign=Gtk.Align.END)
         cancel = Gtk.Button(label=t("cancel"))
         cancel.connect("clicked", lambda _: dlg.destroy())
@@ -841,6 +858,10 @@ class ControlWindow(Gtk.ApplicationWindow):
         def _apply(_b):
             code = lang_codes[dd.get_selected()]
             _i18n.set_language(code)
+            try:
+                autostart.set_enabled(auto_sw.get_active())
+            except OSError:
+                pass
             dlg.destroy()
         ok.connect("clicked", _apply)
         btn_row.append(ok)
