@@ -59,6 +59,22 @@ class ControlWindow(Gtk.ApplicationWindow):
                                   Gtk.Label(label=t("tab_normal")))
         self.notebook.append_page(self._build_vida_tab(),
                                   Gtk.Label(label=t("tab_vida")))
+
+        # pie: enlace a la web (más animaciones / compartir las tuyas)
+        footer = Gtk.Box(spacing=6)
+        footer.set_halign(Gtk.Align.CENTER)
+        footer.set_margin_top(4); footer.set_margin_bottom(8)
+        footer.set_margin_start(12); footer.set_margin_end(12)
+        web = Gtk.Label()
+        web.add_css_class("dim-label")
+        web.set_use_markup(True)
+        web.set_markup(
+            '🌐 ¿Buscas más animaciones o quieres compartir las tuyas?  '
+            '<a href="https://sergi122.github.io/Animalinux/">'
+            'sergi122.github.io/Animalinux</a>')
+        footer.append(web)
+        root.append(footer)
+
         self.refresh()
 
     # ── Tab Normal ──────────────────────────────────────────────────────────
