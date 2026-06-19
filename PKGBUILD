@@ -1,6 +1,6 @@
 # Maintainer: Sergi122 <grupodetrabajodeiayanalisis@gmail.com>
 pkgname=animalinux
-pkgver=0.1.0
+pkgver=0.2.0
 pkgrel=1
 pkgdesc="Mascotas animadas en el escritorio para Hyprland/Wayland, con editor de píxeles y pintura"
 arch=('x86_64' 'aarch64')
@@ -28,7 +28,7 @@ makedepends=(
     'python-setuptools'
 )
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
-sha256sums=('22bc3b8f9708724d18e6b2568cd870350b15b8c0eef432b8dcbaa32fbcc1be85')
+sha256sums=('SKIP')  # se rellena tras crear el tag v0.2.0
 
 build() {
     cd "$pkgname-$pkgver"
@@ -40,4 +40,5 @@ package() {
     python -m installer --destdir="$pkgdir" dist/*.whl
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
     install -Dm644 animalinux.desktop "$pkgdir/usr/share/applications/animalinux.desktop"
+    install -Dm644 animalinux.png "$pkgdir/usr/share/icons/hicolor/256x256/apps/animalinux.png"
 }
