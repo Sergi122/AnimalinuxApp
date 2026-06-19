@@ -259,39 +259,29 @@ class ControlWindow(Gtk.ApplicationWindow):
                    lambda s, st, aid=anim["id"]: self._on_toggle(aid, st))
         col.append(sw)
 
-        edit_r = Gtk.Box(spacing=4)
-        b1 = Gtk.Button(label="🎨 Editar")
-        b1.set_tooltip_text("Editar frames con editor de píxeles")
-        b1.connect("clicked",
-                   lambda _, aid=anim["id"]: self.app.show_pixel_editor(
-                       anim_id=aid, pose="default"))
-        b2 = Gtk.Button(label="🖌️ Editar")
-        b2.set_tooltip_text("Editar frames con editor de dibujo libre")
-        b2.connect("clicked",
-                   lambda _, aid=anim["id"]: self.app.show_paint_editor(
-                       anim_id=aid, pose="default"))
-        edit_r.append(b1); edit_r.append(b2)
-        col.append(edit_r)
+        # Editar: SOLO para contenido creado/empaquetado con la app (packs de la
+        # app, dibujo, spritesheet, imagen estática). Un GIF/MP4 importado trae
+        # su propia animación y no se edita frame a frame → no se muestra Editar.
+        if not anim.get("source_animated"):
+            edit_r = Gtk.Box(spacing=4)
+            b1 = Gtk.Button(label="🎨 Editar")
+            b1.set_tooltip_text("Editar frames con editor de píxeles")
+            b1.connect("clicked",
+                       lambda _, aid=anim["id"]: self.app.show_pixel_editor(
+                           anim_id=aid, pose="default"))
+            b2 = Gtk.Button(label="🖌️ Editar")
+            b2.set_tooltip_text("Editar frames con editor de dibujo libre")
+            b2.connect("clicked",
+                       lambda _, aid=anim["id"]: self.app.show_paint_editor(
+                           anim_id=aid, pose="default"))
+            edit_r.append(b1); edit_r.append(b2)
+            col.append(edit_r)
 
-        act_r = Gtk.Box(spacing=4)
-        life_btn = Gtk.Button(label="→ Con vida")
-        life_btn.connect("clicked",
-                         lambda _, aid=anim["id"]: self._to_life(aid))
-        if anim.get("source_animated"):
-            # No tiene sentido generar poses procedurales deformando un GIF
-            # animado / vídeo: ya trae su propia animación.
-            life_btn.set_sensitive(False)
-            life_btn.set_tooltip_text(
-                "Solo disponible para imágenes estáticas o packs de sprites")
-        else:
-            life_btn.set_tooltip_text(
-                "Convierte esta animación a modo con vida (genera poses)")
-        exp_btn = Gtk.Button(label="📦")
-        exp_btn.set_tooltip_text("Exportar pack")
+        exp_btn = Gtk.Button(label="📦 Exportar")
+        exp_btn.set_tooltip_text("Exportar como pack .alpack para compartir")
         exp_btn.connect("clicked",
                         lambda _, aid=anim["id"]: self._on_export_pack(aid))
-        act_r.append(life_btn); act_r.append(exp_btn)
-        col.append(act_r)
+        col.append(exp_btn)
 
         del_btn = Gtk.Button(label="🗑 Eliminar")
         del_btn.add_css_class("destructive-action")
@@ -346,16 +336,6 @@ class ControlWindow(Gtk.ApplicationWindow):
         sw.connect("state-set",
                    lambda s, st, aid=anim["id"]: self._on_toggle(aid, st))
         col.append(sw)
-
-        gen = Gtk.Button(label="⚙️ Generar poses")
-        gen.connect("clicked", lambda _, aid=anim["id"]: self._on_gen_life(aid))
-        if anim.get("source_animated"):
-            gen.set_sensitive(False)
-            gen.set_tooltip_text(
-                "Solo disponible para imágenes estáticas o packs de sprites")
-        else:
-            gen.set_tooltip_text("Auto-genera poses a partir del frame base")
-        col.append(gen)
 
         exp = Gtk.Button(label="📦 Exportar")
         exp.connect("clicked", lambda _, aid=anim["id"]: self._on_export_pack(aid))
@@ -511,9 +491,10 @@ class ControlWindow(Gtk.ApplicationWindow):
 
     def _import_done(self, aid, name, fc, w, h, fps, live=False):
         self.app.library.add(aid, name, fc, w, h)
-        # Marca si el origen era animado (GIF/WebP/APNG/vídeo con >1 frame).
-        # Los spritesheets entran por otra ruta y NO se marcan → siguen
-        # permitiendo «Generar poses». Las imágenes estáticas dan fc == 1.
+        # Marca si el origen ya traía animación propia (GIF/WebP/APNG/vídeo con
+        # >1 frame). Se usa para NO ofrecer «Editar» en esas (no se editan frame
+        # a frame). Spritesheets entran por otra ruta y NO se marcan; las
+        # imágenes estáticas dan fc == 1 → sí editables.
         self.app.library.update(aid, fps=fps, source_animated=(fc > 1))
         if live:
             self.app.library.update(aid, mode="life")
@@ -550,27 +531,6 @@ class ControlWindow(Gtk.ApplicationWindow):
         box.append(row)
         dialog.present()
 
-    # ── Convertir normal → vida ───────────────────────────────────────────────
-    def _to_life(self, aid):
-        self.status.set_text("Generando poses de vida…")
-
-        def work():
-            try:
-                self.app._generate_pose_files(aid)
-                GLib.idle_add(self._to_life_done, aid)
-            except Exception as e:  # noqa: BLE001
-                GLib.idle_add(self.status.set_text, f"Error: {e}")
-
-        threading.Thread(target=work, daemon=True).start()
-
-    def _to_life_done(self, aid):
-        self.app.library.update(aid, mode="life")
-        self.app.reload_mascot(aid)
-        self.refresh()
-        self.notebook.set_current_page(1)  # saltar a tab Vida
-        self.status.set_text("Convertida a modo vida. Puedes añadir poses desde el editor.")
-        return False
-
     # ── Handlers comunes ─────────────────────────────────────────────────────
     def _on_fps(self, aid, fps):
         self.app.library.update(aid, fps=fps)
@@ -590,26 +550,6 @@ class ControlWindow(Gtk.ApplicationWindow):
         self.app.library.remove(aid)
         self.refresh()
 
-    def _on_gen_life(self, aid):
-        self.status.set_text("Generando poses automáticas…")
-
-        def work():
-            try:
-                made = self.app._generate_pose_files(aid)
-                GLib.idle_add(self._life_done, made, aid)
-            except Exception as e:  # noqa: BLE001
-                GLib.idle_add(self.status.set_text, f"Error: {e}")
-
-        threading.Thread(target=work, daemon=True).start()
-
-    def _life_done(self, made, aid):
-        self.app.reload_mascot(aid)
-        if made:
-            self.status.set_text("Poses generadas: " + ", ".join(made))
-        else:
-            self.status.set_text("No se pudieron generar poses automáticas.")
-        self.refresh()
-        return False
 
     # ── Packs ────────────────────────────────────────────────────────────────
     def _on_import_pack(self, _btn):
@@ -953,15 +893,7 @@ class ControlWindow(Gtk.ApplicationWindow):
             "  └── grab/\n\n"
             "Los PNGs deben tener fondo transparente (RGBA).\n"
             "El tamaño de todos los frames de una pose\n"
-            "debe ser igual.\n\n"
-            "⚙️  GENERACIÓN AUTOMÁTICA\n"
-            "════════════════════════════════════════\n"
-            "Si solo tienes «default», pulsa\n"
-            "«⚙️ Generar poses» en la fila de la mascota.\n"
-            "La app deforma la imagen base para crear\n"
-            "las demás acciones automáticamente.\n"
-            "El resultado es básico — edítalo luego si\n"
-            "quieres animaciones más expresivas.\n"
+            "debe ser igual.\n"
         )
         buf.set_text(GUIDE)
         sc.set_child(txt)

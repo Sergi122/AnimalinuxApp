@@ -67,9 +67,15 @@ pip install --user --break-system-packages rembg onnxruntime  # recorte IA
 ```bash
 cd /home/maomao/Downloads/animalinux
 pip install --user --break-system-packages .
-pkill -f animalinux; sleep 1
-ANIMALINUX_PRELOADED=1 nohup animalinux --show > /tmp/animalinux.log 2>&1 &
+animalinux --quit ; sleep 1
+nohup animalinux --show > /tmp/animalinux.log 2>&1 &
 ```
+
+> ⚠️ **No** lances con `ANIMALINUX_PRELOADED=1` por delante. La app necesita
+> ponerse ella misma `LD_PRELOAD=libgtk4-layer-shell.so` y re-ejecutarse; esa
+> variable se lo impide y entonces el overlay deja de ser una capa transparente
+> (las mascotas salen como ventanas opacas que tapan la pantalla). Lanza siempre
+> `animalinux --show` o `--daemon` tal cual.
 
 ---
 
