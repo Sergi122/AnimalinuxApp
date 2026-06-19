@@ -2,24 +2,22 @@
 Modo Vida del overlay: comportamiento autónomo de la mascota.
 
 Contiene LiveAnimationMixin, que se mezcla en MascotWindow (ver
-normal_animation.py). Toda la lógica de caminar / idle / saltar / rebotar /
-saludar / enojarse / agarrar el ratón / tiro parabólico vive aquí.
+normal_animation.py).
 
 Mejoras (modo Vida):
   1. Squash & stretch dinámico al saltar/aterrizar (vía ScaledPaintable).
   2. Caminado sincronizado a la distancia (no patina).
   3. Física escalada al tamaño de la mascota.
-  4. Se duerme tras mucho rato quieta; despierta al interactuar.
-  5. Anda por los bordes de las ventanas / se sienta encima (usa hyprctl).
-  7. Las mascotas se giran a mirarse al cruzarse.
+  4. Se duerme tras un rato quieta (con inclinación visible); despierta al
+     interactuar.
+  5. Anda por los bordes de las ventanas / se sienta encima (usa hyprctl) y
+     ADEMÁS trepa proactivamente a una ventana cercana.
+  7. Las mascotas se saludan al cruzarse y luego se ALEJAN (no se quedan pegadas).
   9. Transiciones de pose limpias (_set_pose).
  10. Inclinación (lean) al lanzarse/caer.
-
-Estos métodos asumen que el host (MascotWindow) aporta: self.anim,
-self._set_position, self._has_pose, self._update_input_region, self.picture,
-self._paintable, self._screen_w/_screen_h, self._floor_y, self._x/_y,
-self._cat_w/_cat_h, los offsets self._mon_x/_mon_y y el resto del estado de
-comportamiento inicializado en MascotWindow.__init__.
+ 11. Berrinche por aburrimiento: tras mucho rato SIN interacción del usuario, se
+     hace grande y "agarra" el ratón unos segundos; si la siguen ignorando, se
+     desactiva sola del panel.
 """
 import math
 import random
@@ -31,7 +29,14 @@ GRAVITY = 2                 # px/tick^2 base (se escala por tamaño)
 GREET_TICKS = 25            # cuánto dura el saludo
 GREET_COOLDOWN = 80         # ticks (~5 s) entre saludos por proximidad
 REF_HEIGHT = 150            # altura de referencia para escalar la física
-SLEEP_AFTER = 360           # ticks de quietud acumulada antes de dormirse (~22s)
+SLEEP_AFTER = 320           # ticks de quietud acumulada antes de dormirse (~19s)
+
+# Berrinche por aburrimiento (idea 11). Segundos REALES sin interacción del
+# usuario. Se pueden anular desde library.json (bored_grab_s / bored_grab_dur_s
+# / bored_disable_s) — útil para probar con valores cortos.
+BORED_GRAB_S = 15 * 60      # 15 min sin atención → agarra el ratón
+BORED_GRAB_DUR_S = 10       # el agarre dura 10 s
+BORED_DISABLE_S = 5 * 60    # 5 min más ignorada → se desactiva del panel
 
 
 class LiveAnimationMixin:
@@ -39,14 +44,13 @@ class LiveAnimationMixin:
 
     # ───────────────────────── utilidades ──────────────────────────────────
     def _set_pose(self, name):
-        """Idea 9: cambiar de pose reseteando el frame para que no salte a
-        mitad de ciclo. Si ya estamos en esa pose, no hace nada."""
+        """Idea 9: cambiar de pose reseteando el frame (sin saltos a mitad)."""
         if name != self._pose:
             self._pose = name
             self._index = 0
 
     def face_toward(self, target_cx):
-        """Idea 7: girarse hacia un punto X (otra mascota, etc.)."""
+        """Idea 7: girarse hacia un punto X."""
         my = self._x + self._cat_w / 2
         self._facing_left = target_cx < my
         self._dir = -1 if self._facing_left else 1
@@ -59,9 +63,6 @@ class LiveAnimationMixin:
         self._lean_target = deg
 
     def _apply_juice(self):
-        """Suaviza el squash&stretch y el lean hacia el reposo cada tick y los
-        empuja al paintable. Los eventos (saltar/aterrizar/lanzar) fijan un
-        impulso y esto lo va relajando → efecto elástico."""
         self._sq_sx += (1.0 - self._sq_sx) * 0.35
         self._sq_sy += (1.0 - self._sq_sy) * 0.35
         self._lean += (self._lean_target - self._lean) * 0.4
@@ -77,9 +78,6 @@ class LiveAnimationMixin:
             return []
 
     def _ground_for_x(self, cx, cur_top):
-        """Y-tope del sprite (mascota) de la superficie sobre la que aterrizaría
-        al caer desde cur_top en la columna cx: la plataforma más ALTA que esté
-        por debajo de la posición actual; si no hay, el suelo."""
         best = self._floor_y
         for (x0, x1, top) in self._platforms():
             if x0 - 4 <= cx <= x1 + 4:
@@ -89,8 +87,6 @@ class LiveAnimationMixin:
         return best
 
     def _support_at(self, cx, level, tol=12):
-        """Si en la columna cx hay una superficie (plataforma o suelo) a la
-        altura 'level' (±tol), devuelve su y-tope; si no, None (→ caer)."""
         best = None
 
         def consider(gt):
@@ -105,12 +101,47 @@ class LiveAnimationMixin:
         consider(self._floor_y)
         return best
 
-    # ───────────────────────── interacción ─────────────────────────────────
+    def _pick_climb_target(self):
+        """Idea 5 (proactiva): elige una ventana cercana y alcanzable a la que
+        trepar. Devuelve (x_donde_pararse, y_tope_sprite, altura_a_subir)."""
+        max_h = 60 + 110 * self._phys_k     # cuánto puede subir de un salto
+        best = None
+        for (x0, x1, top) in self._platforms():
+            lx0, lx1 = x0 - self._mon_x, x1 - self._mon_x
+            gt = (top - self._mon_y) - self._cat_h
+            climb_h = self._floor_y - gt
+            if 40 <= climb_h <= max_h and (lx1 - lx0) >= self._cat_w + 10:
+                sx = min(max(self._x, lx0 + 5), lx1 - self._cat_w - 5)
+                if 0 <= sx <= self._screen_w - self._cat_w:
+                    d = abs(sx - self._x)
+                    if best is None or d < best[0]:
+                        best = (d, sx, gt, climb_h)
+        if best:
+            return (best[1], best[2], best[3])
+        return None
+
+    # ───────────────────────── interacción usuario ─────────────────────────
+    def _interaction_now(self):
+        """Marca atención del USUARIO (resetea el reloj de aburrimiento)."""
+        self._last_interaction = GLib.get_monotonic_time()
+        self._bored_phase = 0
+        if self._bored_grab:
+            self._end_bored_grab()
+
+    def _wake(self):
+        """El usuario la toca/arrastra/pasa por encima: cuenta como atención y
+        la despierta si dormía."""
+        self._interaction_now()
+        self._idle_accum = 0
+        if self._state == "sleep":
+            self._state = "rest"
+            self._rest_ttl = random.randint(6, 14)
+
     def _react_to_touch(self):
         """Tocarla la sobresalta; si insistes (4 clicks), agarra el ratón."""
         self._wake()
         if self._grab_ttl > 0:
-            return   # ya está en modo agarre
+            return
         self._anger = min(4, self._anger + 1)
         self._react_ttl = 14
         self._jitter_base = self._x
@@ -120,10 +151,8 @@ class LiveAnimationMixin:
             self._set_pose("greet")
 
         if self._anger >= 4:
-            # ¡Harta! → agarra el ratón
             self._start_grab()
         elif self._anger >= 2:
-            # enojada: se voltea y sale corriendo
             self._facing_left = not self._facing_left
             self._state = "walk"
             self._dir = 1 if not self._facing_left else -1
@@ -133,30 +162,22 @@ class LiveAnimationMixin:
         GLib.timeout_add_seconds(3, self._cool_down)
 
     def _start_grab(self):
-        """La mascota agarra el cursor: amplía la región de input a toda la
-        pantalla (la ventana YA es fullscreen) y el sprite sigue el puntero por
-        todo el escritorio hasta soltarlo. NO redimensiona nada → sin artefactos."""
-        self._grab_ttl = 80   # ~5 s a 60 ms/tick
+        """La mascota agarra el cursor: la región de input cubre TODA la pantalla
+        y el sprite sigue al puntero hasta soltarlo."""
+        self._grab_ttl = 80
         self._state = "grab"
         self._grabbing = True
-        self._grab_anchor = None   # se fija en el primer movimiento (sin salto)
+        self._grab_anchor = None
         self._toss_vx = 0.0
         self._toss_vy = 0.0
         if self._has_pose("grab"):
             self._set_pose("grab")
         elif self._has_pose("angry"):
             self._set_pose("angry")
-        self._update_input_region()   # ahora captura el cursor en toda la pantalla
+        self._update_input_region()
 
     def _on_grab_motion(self, ctrl, mx, my):
-        """En grab el sprite sigue el cursor de forma RELATIVA (igual que el
-        arrastre): se ancla en el primer movimiento y luego se desplaza por el
-        mismo delta que el cursor. Así NO salta a la posición del puntero al
-        empezar (eso se veía como un teletransporte) y es inmune a cualquier
-        desfase entre coordenadas de ventana y del sprite."""
-        # Idea 6 (versión segura): aunque no estemos en grab, recordar la última
-        # X del cursor SOBRE la mascota para mirar hacia él en idle.
-        self._last_cursor_x = self._x + mx
+        self._last_cursor_x = self._x + mx     # idea 6 (versión segura)
         if not self._grabbing or self._dragging:
             return
         if self._grab_anchor is None:
@@ -166,8 +187,6 @@ class LiveAnimationMixin:
         self._set_position(x0 + (mx - mx0), y0 + (my - my0))
 
     def _end_grab_restore(self):
-        """Suelta el cursor: la región de input vuelve a la caja del sprite.
-        El sprite se queda DONDE estaba el cursor (self._x/_y), sin teleport."""
         self._grabbing = False
         self._update_input_region()
 
@@ -175,22 +194,74 @@ class LiveAnimationMixin:
         self._anger = max(0, self._anger - 1)
         return False
 
-    def _wake(self):
-        """Idea 4: despertar de un toque/arrastre/saludo."""
-        self._idle_accum = 0
-        if self._state == "sleep":
-            self._state = "rest"
-            self._rest_ttl = random.randint(6, 14)
+    # ───────────────────── berrinche por aburrimiento (idea 11) ────────────
+    def _bored_cfg(self):
+        try:
+            c = self._app.library.config
+            return (c.get("bored_grab_s", BORED_GRAB_S),
+                    c.get("bored_grab_dur_s", BORED_GRAB_DUR_S),
+                    c.get("bored_disable_s", BORED_DISABLE_S))
+        except Exception:  # noqa: BLE001
+            return (BORED_GRAB_S, BORED_GRAB_DUR_S, BORED_DISABLE_S)
+
+    def _check_boredom(self):
+        if self._dragging or self._grabbing or self._bored_grab:
+            return
+        grab_s, _dur, disable_s = self._bored_cfg()
+        idle = (GLib.get_monotonic_time() - self._last_interaction) / 1_000_000.0
+        if self._bored_phase == 0 and idle >= grab_s:
+            self._bored_phase = 1
+            self._start_bored_grab()
+        elif self._bored_phase == 1 and idle >= grab_s + disable_s:
+            self._bored_phase = 2
+            self._disable_self()
+
+    def _start_bored_grab(self):
+        _g, dur, _d = self._bored_cfg()
+        self._bored_grab = True
+        self._orig_scale = self.anim.get("scale", 1.0)
+        # se hace GRANDE
+        self.set_scale(min(3.0, self._orig_scale * 2.5))
+        self._start_grab()
+        self._grab_ttl = max(1, int(dur * 1000 / BEHAVIOR_INTERVAL))   # ~10 s
+        self._grab_keyboard(True)      # además bloquea el teclado
+
+    def _end_bored_grab(self):
+        self._bored_grab = False
+        self._grab_ttl = 0
+        self._grabbing = False
+        self._grab_keyboard(False)
+        try:
+            self.set_scale(self._orig_scale)
+        except Exception:  # noqa: BLE001
+            pass
+        self._update_input_region()
+        self._state = "falling"
+        self._set_pose("jump" if self._has_pose("jump") else "default")
+
+    def _disable_self(self):
+        """Se rinde: se quita del escritorio y se desmarca en el panel."""
+        aid = self.anim.get("id")
+        app = self._app
+
+        def go():
+            try:
+                app.library.update(aid, on_desktop=False)
+                app.manager.set_visible(aid, False)
+            except Exception:  # noqa: BLE001
+                pass
+            return False
+        GLib.timeout_add(30, go)
 
     # ───────────────────────── ciclo de vida ───────────────────────────────
     def _enter_life(self):
         scale = self.anim.get("scale", 1.0)
         h = int(self.anim.get("height", 100) * scale)
-        # Idea 3: física proporcional al tamaño (una mascota grande "pesa" más)
         self._phys_k = max(0.6, min(1.8, h / float(REF_HEIGHT)))
         self._gravity = GRAVITY * self._phys_k
         self._floor_y = max(0, self._screen_h - h)
         self._ground_y = self._floor_y
+        self._last_interaction = GLib.get_monotonic_time()
         self._set_position(self._x, self._floor_y)
         self._pick_behavior()
         if self._behavior_id is None:
@@ -201,25 +272,40 @@ class LiveAnimationMixin:
         if self._behavior_id:
             GLib.source_remove(self._behavior_id)
             self._behavior_id = None
+        if self._bored_grab:
+            self._end_bored_grab()
         self._facing_left = False
         self._set_pose("default")
-        # devolver el sprite a su forma neutra
         self._squash(1.0, 1.0)
         self._lean = self._lean_target = 0.0
         self._paintable.set_squash(1.0, 1.0)
         self._paintable.set_lean(0.0)
 
     def _pick_behavior(self):
-        # Idea 4: si lleva mucho rato quieta, dormirse
+        # retirarse tras saludar a otra mascota (idea 7: no quedarse pegadas)
+        if self._retreat_from is not None:
+            away = self._retreat_from
+            self._retreat_from = None
+            self._idle_accum = 0
+            self._state = "walk"
+            self._state_ttl = random.randint(40, 80)
+            self._dir = -1 if away > (self._x + self._cat_w / 2) else 1
+            self._facing_left = self._dir < 0
+            self._speed = max(1, round(random.randint(3, 4) * self._phys_k))
+            self._set_pose("walk" if self._has_pose("walk") else "default")
+            return
+
+        # dormirse tras mucha quietud (idea 4)
         if self._idle_accum >= SLEEP_AFTER:
             self._state = "sleep"
             self._speed = 0
+            self._sleep_phase = 0
             self._set_pose("sleep" if self._has_pose("sleep")
                            else ("idle" if self._has_pose("idle") else "default"))
             return
+
         r = random.random()
-        if r < 0.22:
-            # pausa breve; a veces se gira para "mirar alrededor"
+        if r < 0.18:
             self._state = "idle"
             self._state_ttl = random.randint(15, 45)
             self._idle_accum += self._state_ttl
@@ -229,11 +315,11 @@ class LiveAnimationMixin:
                 self._dir = -1 if self._facing_left else 1
             elif getattr(self, "_last_cursor_x", None) is not None \
                     and random.random() < 0.4:
-                # Idea 6: a veces mirar hacia donde estuvo el cursor
                 self.face_toward(self._last_cursor_x)
             self._set_pose("idle" if self._has_pose("idle") else "default")
-        elif r < 0.72:
-            # caminar: tramos largos y mantiene el rumbo casi siempre
+        elif r < 0.30 and self._try_climb():
+            self._idle_accum = 0          # idea 5: trepar a una ventana
+        elif r < 0.74:
             self._idle_accum = 0
             self._state = "walk"
             self._state_ttl = random.randint(45, 120)
@@ -243,22 +329,29 @@ class LiveAnimationMixin:
             self._facing_left = self._dir < 0
             self._set_pose("walk" if self._has_pose("walk") else "default")
         elif r < 0.88:
-            # brinco hacia adelante: avanza mientras salta
             self._idle_accum = 0
             self._start_hop()
         else:
-            # salto vertical en el sitio
             self._idle_accum = 0
             self._start_jump()
 
+    def _try_climb(self):
+        target = self._pick_climb_target()
+        if not target:
+            return False
+        self._climb_target = target
+        self._state = "to_climb"
+        self._speed = max(2, round(3 * self._phys_k))
+        self._set_pose("walk" if self._has_pose("walk") else "default")
+        return True
+
     def _start_jump(self):
         self._state = "jump"
-        self._jump_vy = -random.randint(14, 22) * self._phys_k   # impulso arriba
-        self._squash(0.86, 1.16)                                 # stretch despegue
+        self._jump_vy = -random.randint(14, 22) * self._phys_k
+        self._squash(0.86, 1.16)
         self._set_pose("jump" if self._has_pose("jump") else "default")
 
     def _start_hop(self):
-        """Brinco con avance horizontal (reusa la física de 'toss')."""
         if self._dir == 0:
             self._dir = random.choice([-1, 1])
         self._state = "toss"
@@ -270,8 +363,11 @@ class LiveAnimationMixin:
         self._set_pose("jump" if self._has_pose("jump") else "default")
 
     def trigger_greet(self):
-        """Saludar: usa la pose 'greet' si existe; si no, da un saltito."""
-        self._wake()
+        """Saludar. NO cuenta como atención del usuario (puede venir de otra
+        mascota), pero sí saca del sueño."""
+        if self._state == "sleep":
+            self._state = "rest"
+            self._rest_ttl = random.randint(6, 14)
         if self._greet_ttl > 0 or self._greet_cd > 0:
             return
         if self._has_pose("greet"):
@@ -280,14 +376,22 @@ class LiveAnimationMixin:
         elif self._state != "jump":
             self._start_jump()
 
+    def meet(self, other_cx):
+        """Idea 7: encuentro con otra mascota → mirarse, saludar y retirarse
+        (para no quedarse pegadas / 'trabadas')."""
+        if (self._greet_cd > 0 or self._greet_ttl > 0 or self._bored_grab or
+                self._state in ("grab", "toss", "jump", "falling", "to_climb")):
+            return
+        self.face_toward(other_cx)
+        self._retreat_from = other_cx
+        self.trigger_greet()
+
     def _land(self, ny):
-        """Aterrizaje: squash de impacto proporcional a la caída."""
-        self._squash(1.0 + 0.22, 1.0 - 0.18)
+        self._squash(1.22, 0.82)
         self._lean_to(0)
         self._rest_ttl = random.randint(12, 28)
         self._state = "rest"
         self._set_pose("idle" if self._has_pose("idle") else "default")
-        self._index = 0
         return ny
 
     # ───────────────────────── tick principal ──────────────────────────────
@@ -295,33 +399,56 @@ class LiveAnimationMixin:
         if self._paused or self._dragging:
             return True
 
-        self._apply_juice()   # squash&stretch + lean elásticos (ideas 1/10)
+        self._apply_juice()
+        self._check_boredom()
 
-        # cooldown de saludo: decrementa siempre
         if self._greet_cd > 0:
             self._greet_cd -= 1
 
-        # ── dormida (idea 4): respiración lenta hasta que la despierten ──────
+        # ── dormida (idea 4): respiración lenta + cabeza ladeada (visible) ──
         if self._state == "sleep":
             self._sleep_phase = getattr(self, "_sleep_phase", 0) + 1
-            s = math.sin(self._sleep_phase * 0.12)
-            self._paintable.set_squash(1.0 - 0.02 * s, 1.0 + 0.05 * s)
+            s = math.sin(self._sleep_phase * 0.10)
+            self._paintable.set_squash(1.05 - 0.03 * s, 0.90 + 0.05 * s)
+            self._paintable.set_lean(7.0)        # dormita inclinada
             return True
 
-        # ── modo agarre del ratón (sigue el cursor; al soltar cae suave) ──
+        # ── agarre del ratón (manual o por berrinche) ──────────────────────
         if self._state == "grab":
             self._grab_ttl -= 1
             if self._grab_ttl <= 0:
                 self._grab_ttl = 0
                 self._anger = 0
-                self._end_grab_restore()
-                self._toss_vx = 0.0
-                self._toss_vy = 0.0
-                self._state = "falling"
-                self._set_pose("jump" if self._has_pose("jump") else "default")
+                if self._bored_grab:
+                    self._end_bored_grab()
+                else:
+                    self._end_grab_restore()
+                    self._toss_vx = 0.0
+                    self._toss_vy = 0.0
+                    self._state = "falling"
+                    self._set_pose("jump" if self._has_pose("jump") else "default")
             return True
 
-        # ── caída libre (soltar suave en el aire) ──────────────────────────
+        # ── ir a trepar a una ventana (idea 5 proactiva) ───────────────────
+        if self._state == "to_climb":
+            tx, gt, climb_h = self._climb_target
+            if abs(self._x - tx) <= self._speed + 1:
+                self._x = tx
+                vy = math.sqrt(2 * self._gravity * (climb_h + 24))
+                self._state = "jump"
+                self._jump_vy = -vy
+                self._squash(0.85, 1.18)
+                self._set_pose("jump" if self._has_pose("jump") else "default")
+            else:
+                self._dir = 1 if tx > self._x else -1
+                self._facing_left = self._dir < 0
+                nx = self._x + self._dir * self._speed
+                stride = max(8.0, self._cat_w * 0.45)
+                self._walk_phase += abs(self._speed) / stride
+                self._set_position(max(0, nx), self._floor_y)
+            return True
+
+        # ── caída libre ────────────────────────────────────────────────────
         if self._state == "falling":
             center = self._x + self._cat_w / 2
             ground = self._ground_for_x(center, self._y)
@@ -335,7 +462,7 @@ class LiveAnimationMixin:
                 self._land(ground)
             return True
 
-        # ── tiro parabólico ────────────────────────────────────────────────
+        # ── tiro parabólico / brinco ───────────────────────────────────────
         if self._state == "toss":
             scale = self.anim.get("scale", 1.0)
             w = int(self.anim.get("width", 100) * scale)
@@ -345,19 +472,18 @@ class LiveAnimationMixin:
                 nx = 0
                 self._toss_vx = abs(self._toss_vx) * 0.55
             elif nx >= right:
-                nx = min(nx, self._x)          # nunca saltar a la derecha
+                nx = min(nx, self._x)
                 if self._x <= right:
                     nx = right
                 self._toss_vx = -abs(self._toss_vx) * 0.55
             self._facing_left = self._toss_vx < 0
-            self._lean_to(-self._toss_vx * 1.8)   # inclina según el avance
+            self._lean_to(-self._toss_vx * 1.8)
             self._toss_vx *= 0.88
-            # mover Y con gravedad
             self._toss_vy += self._gravity
             ny = self._y + int(self._toss_vy)
             center = nx + self._cat_w / 2
             ground = self._ground_for_x(center, self._y)
-            if ny >= ground:                       # aterrizó
+            if ny >= ground:
                 ny = ground
                 self._toss_vx = 0.0
                 self._toss_vy = 0.0
@@ -377,7 +503,7 @@ class LiveAnimationMixin:
                 self._pick_behavior()
             return True
 
-        # ── reacción al tocarla: tiembla unos ticks (RELATIVO) ─────────────
+        # ── reacción al tocarla ────────────────────────────────────────────
         if self._react_ttl > 0:
             self._react_ttl -= 1
             self._set_position(self._x + random.randint(-2, 2), self._y)
@@ -388,17 +514,17 @@ class LiveAnimationMixin:
         if self._greet_ttl > 0:
             self._greet_ttl -= 1
             if self._greet_ttl == 0:
-                self._greet_cd = GREET_COOLDOWN   # bloquea re-saludo ~5 s
+                self._greet_cd = GREET_COOLDOWN
                 self._pick_behavior()
             return True
 
-        # ── salto vertical en el sitio ─────────────────────────────────────
+        # ── salto vertical ─────────────────────────────────────────────────
         if self._state == "jump":
             self._y += int(self._jump_vy)
             self._jump_vy += self._gravity
             center = self._x + self._cat_w / 2
             ground = self._ground_for_x(center, self._y)
-            if self._y >= ground:               # aterrizó
+            if self._y >= ground:
                 self._y = ground
                 self._ground_y = ground
                 self._set_position(self._x, self._y)
@@ -416,7 +542,6 @@ class LiveAnimationMixin:
             w = int(self.anim.get("width", 100) * scale)
             right = max(0, self._screen_w - w)
             if self._x > right:
-                # quedó pasada el borde derecho: vuelve ANDANDO (sin teleport)
                 self._dir, self._facing_left = -1, True
                 nx = self._x - self._speed
             else:
@@ -426,10 +551,8 @@ class LiveAnimationMixin:
                 elif nx >= right:
                     nx, self._dir, self._facing_left = right, -1, True
             nx = max(0, nx)
-            # Idea 2: avanzar el frame de caminado con la distancia recorrida
             stride = max(8.0, self._cat_w * 0.45)
             self._walk_phase += abs(self._dir * self._speed) / stride
-            # Idea 5: ¿sigue habiendo suelo bajo los pies a la nueva X?
             center = nx + self._cat_w / 2
             support = self._support_at(center, self._y)
             if support is not None:
