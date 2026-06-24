@@ -22,6 +22,6 @@ pkgbase = animalinux
 	optdepends = python-rembg: recorte de fondo con IA (requiere onnxruntime)
 	optdepends = python-onnxruntime: motor IA para rembg
 	source = animalinux-0.3.0.tar.gz::https://github.com/Sergi122/AnimalinuxApp/archive/v0.3.0.tar.gz
-	sha256sums = 4a024e4ba2833c60bd0fc8c53751d23645a1fa2228865784a549941fd7b4a502
+	sha256sums = 51bfc2783253784addcd5477aa52f7221e94b7255262699f8cc37f48ed6981a4
 
 pkgname = animalinux
