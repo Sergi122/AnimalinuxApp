@@ -28,7 +28,7 @@ makedepends=(
     'python-setuptools'
 )
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
-sha256sums=('4a024e4ba2833c60bd0fc8c53751d23645a1fa2228865784a549941fd7b4a502')
+sha256sums=('51bfc2783253784addcd5477aa52f7221e94b7255262699f8cc37f48ed6981a4')
 
 build() {
     cd "$pkgname-$pkgver"
