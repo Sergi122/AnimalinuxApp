@@ -1,6 +1,6 @@
 # Maintainer: Sergi122 <grupodetrabajodeiayanalisis@gmail.com>
 pkgname=animalinux
-pkgver=0.2.0
+pkgver=0.3.0
 pkgrel=1
 pkgdesc="Mascotas animadas en el escritorio para Hyprland/Wayland, con editor de píxeles y pintura"
 arch=('x86_64' 'aarch64')
