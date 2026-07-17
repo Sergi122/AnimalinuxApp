@@ -24,9 +24,15 @@ saludos, emociones y más.
 
 ## Instalación rápida (Arch Linux)
 
-### Opción A — paquete pacman con makepkg (recomendada)
+### Opción A — AUR (recomendada)
 
-Funciona ya, sin necesidad de AUR. Construye e instala con las dependencias:
+```bash
+paru -S animalinux
+# o
+yay -S animalinux
+```
+
+### Opción B — paquete pacman con makepkg
 
 ```bash
 git clone https://github.com/Sergi122/AnimalinuxApp.git
@@ -34,7 +40,7 @@ cd AnimalinuxApp
 makepkg -si
 ```
 
-### Opción B — script de instalación
+### Opción C — script de instalación
 
 ```bash
 git clone https://github.com/Sergi122/AnimalinuxApp.git
@@ -42,10 +48,6 @@ cd AnimalinuxApp
 chmod +x install.sh
 ./install.sh
 ```
-
-> **AUR:** el paquete está preparado (`PKGBUILD` + `.SRCINFO`). Se publicará en
-> el AUR como `animalinux` cuando el registro de cuentas de Arch vuelva a estar
-> abierto. Mientras tanto, usa la Opción A.
 
 ### Dependencias
 
