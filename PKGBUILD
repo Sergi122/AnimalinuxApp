@@ -1,4 +1,4 @@
-# Maintainer: Sergi122 <grupodetrabajodeiayanalisis@gmail.com>
+# Maintainer: Sergi122 <sergiopoma42@gmail.com>
 pkgname=animalinux
 pkgver=0.3.0
 pkgrel=1
