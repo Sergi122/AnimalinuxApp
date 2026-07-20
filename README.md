@@ -1,10 +1,14 @@
 # AnimaLinux
 
-Mascotas animadas en tu escritorio para **Hyprland (Wayland)**, con editor de
-**píxeles** estilo Aseprite y editor de **pintura** estilo Clip Studio Paint.
-Importa un GIF/vídeo o dibuja tus propias poses, quita el fondo y deja solo la
-mascota flotando sobre el escritorio. Múltiples mascotas, física de rebote,
-saludos, emociones y más.
+Mascotas animadas en tu escritorio, con editor de **píxeles** estilo Aseprite y
+editor de **pintura** estilo Clip Studio Paint. Importa un GIF/vídeo o dibuja
+tus propias poses, quita el fondo y deja solo la mascota flotando sobre el
+escritorio. Múltiples mascotas, física de rebote, saludos, emociones y más.
+
+Funciona en **Hyprland/Sway** (Wayland, vía wlr-layer-shell) y también en
+**GNOME, Cinnamon, MATE y Xfce** (Ubuntu, Linux Mint, Fedora Workstation...):
+la app detecta sola el entorno y usa el backend adecuado — no hace falta
+configurar nada.
 
 🌐 **Descarga y comparte animaciones en la comunidad:** [sergi122.github.io/Animalinux](https://sergi122.github.io/Animalinux)
 
@@ -78,6 +82,44 @@ nohup animalinux --show > /tmp/animalinux.log 2>&1 &
 > variable se lo impide y entonces el overlay deja de ser una capa transparente
 > (las mascotas salen como ventanas opacas que tapan la pantalla). Lanza siempre
 > `animalinux --show` o `--daemon` tal cual.
+
+---
+
+## Instalación en Debian / Ubuntu / Linux Mint
+
+No hay paquete `.deb` todavía: se instala como paquete de Python normal.
+`gtk4-layer-shell` **no hace falta** aquí (es solo para Hyprland/Sway) — en
+GNOME, Cinnamon, MATE y Xfce la app usa su propio backend X11/EWMH sin nada
+extra que configurar.
+
+```bash
+sudo apt install python3 python3-gi gir1.2-gtk-4.0 python3-pip python3-pil \
+                  gir1.2-ayatanaappindicator3-0.1 gir1.2-wnck-3.0
+
+git clone https://github.com/Sergi122/AnimalinuxApp.git
+cd AnimalinuxApp
+pip install --user --break-system-packages .
+animalinux --show
+```
+
+`gir1.2-wnck-3.0` es opcional: sin él la app funciona igual, solo se pierde el
+detalle de que la mascota camine/se suba por el borde de otras ventanas.
+
+## Instalación en Fedora / openSUSE
+
+```bash
+# Fedora
+sudo dnf install python3 python3-gobject gtk4 python3-pillow \
+                  libappindicator-gtk3 libwnck3
+
+# openSUSE
+sudo zypper install python3 python3-gobject gtk4 python3-Pillow libwnck3
+
+git clone https://github.com/Sergi122/AnimalinuxApp.git
+cd AnimalinuxApp
+pip install --user --break-system-packages .
+animalinux --show
+```
 
 ---
 
@@ -349,7 +391,8 @@ git push
 | `control.py` | Ventana de configuración (pestañas Normal / Con vida) |
 | `pixeleditor.py` | Editor de píxeles estilo Aseprite |
 | `painteditor.py` | Editor de pintura estilo Clip Studio Paint |
-| `overlay.py` | Ventana transparente layer-shell por mascota |
+| `overlay/normal_animation.py` | Ventana transparente layer-shell por mascota (Hyprland/Sway) |
+| `overlay/x11_animation.py` | Misma ventana, backend X11/EWMH (GNOME, Cinnamon, MATE, Xfce) |
 | `library.py` | Base de datos JSON de animaciones |
 | `importer.py` | Importa gif/mp4, quita fondo |
 | `settings.py` | Configuración persistente del usuario |
@@ -373,3 +416,5 @@ git push
 | Los tutoriales no aparecen | Borra `~/.config/animalinux/settings.json` para reiniciarlos |
 | No se exporta MP4 | Instala `ffmpeg`: `sudo pacman -S ffmpeg` |
 | No hay audio en el editor | Instala `mpv`: `sudo pacman -S mpv` |
+| En GNOME/Cinnamon/MATE/Xfce la mascota no queda siempre encima | Instala `python-xlib` (`pip install python-xlib` o `python3-xlib` por apt/dnf); sin él, la ventana funciona pero pierde el hint EWMH de always-on-top |
+| En GNOME (sesión Wayland) no aparece la mascota | Comprueba que haya XWayland activo (`echo $DISPLAY`); la app se relanza forzando `GDK_BACKEND=x11` para usar el backend X11, y sin XWayland no tiene dónde hacerlo |

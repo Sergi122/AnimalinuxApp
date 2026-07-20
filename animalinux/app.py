@@ -210,6 +210,50 @@ class AnimaApp(Gtk.Application):
         self.quit()
 
 
+def _ensure_x11_backend_for_non_wlroots_wayland():
+    """
+    wlr-layer-shell (usado por overlay/normal_animation.py) solo existe en
+    compositores wlroots (Hyprland, Sway...). En una sesión Wayland de
+    GNOME/KDE no hay layer-shell, así que el overlay usaría el backend X11
+    (overlay/x11_animation.py) pero GTK, por defecto, conectaría por Wayland
+    puro (sin XWayland) y ese backend perdería los hints EWMH y el
+    click-through basado en Gdk.Surface, pensados para una superficie X11.
+
+    Solución: si detectamos Wayland SIN wlr-layer-shell, forzamos
+    GDK_BACKEND=x11 y nos relanzamos, para que GTK conecte por XWayland (que
+    trae cualquier compositor Wayland de escritorio) y el backend X11
+    funcione exactamente igual que en una sesión X11 nativa (Cinnamon, MATE,
+    Xfce). En Hyprland/Sway (Wayland CON layer-shell) esta función no hace
+    nada: no toca el entorno ni relanza el proceso.
+    """
+    import os
+    import sys
+
+    if os.environ.get("ANIMALINUX_X11_FORCED"):
+        return  # ya relanzado, no repetir
+
+    session = os.environ.get("XDG_SESSION_TYPE", "").lower()
+    is_wayland = session == "wayland" or bool(os.environ.get("WAYLAND_DISPLAY"))
+    if not is_wayland:
+        return  # sesión X11 nativa: nada que forzar
+
+    try:
+        import gi
+        gi.require_version("Gtk4LayerShell", "1.0")
+        from gi.repository import Gtk4LayerShell  # noqa: F401
+    except Exception:  # noqa: BLE001
+        pass
+    else:
+        return  # wlr-layer-shell disponible (Hyprland/Sway): no tocar nada
+
+    if not os.environ.get("DISPLAY"):
+        return  # no hay XWayland a mano; seguir en Wayland puro (degradado)
+
+    os.environ["GDK_BACKEND"] = "x11"
+    os.environ["ANIMALINUX_X11_FORCED"] = "1"
+    os.execv(sys.executable, [sys.executable, "-m", "animalinux"] + sys.argv[1:])
+
+
 def _ensure_layer_shell_preload():
     """
     gtk4-layer-shell DEBE precargarse antes que GTK, o init_for_window() no
@@ -242,6 +286,7 @@ def _ensure_layer_shell_preload():
 
 def main():
     import sys
+    _ensure_x11_backend_for_non_wlroots_wayland()
     _ensure_layer_shell_preload()
     app = AnimaApp()
     return app.run(sys.argv)
