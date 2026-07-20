@@ -6,6 +6,8 @@ Objetivo: instalar y comprobar que la mascota funciona bien en Mint
 que NO es Hyprland — hasta ahora solo se probó en Xvfb simulado.
 
 Repo: https://github.com/Sergi122/AnimalinuxApp.git
+Rama de prueba (todo este trabajo está aquí, NO en main todavía):
+    https://github.com/Sergi122/AnimalinuxApp/tree/backend-x11-otras-distros
 
 
 ------------------------------------------------------------
@@ -13,8 +15,11 @@ Repo: https://github.com/Sergi122/AnimalinuxApp.git
 ------------------------------------------------------------
 Si esa máquina tiene internet:
 
-    git clone https://github.com/Sergi122/AnimalinuxApp.git
+    git clone -b backend-x11-otras-distros https://github.com/Sergi122/AnimalinuxApp.git
     cd AnimalinuxApp
+
+  (si ya tenías el repo clonado ahí, en vez de clonar de nuevo basta con
+   "git fetch origin && git checkout backend-x11-otras-distros")
 
 Si NO tiene internet (o el código no está subido a GitHub todavía):
 llevar la carpeta del proyecto en un USB y copiarla, luego:
