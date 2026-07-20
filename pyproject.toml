@@ -1,9 +1,9 @@
 [project]
 name = "animalinux"
 version = "0.3.0"
-description = "Mascotas animadas en el escritorio para Hyprland (Wayland), estilo AnimaEngine"
+description = "Mascotas animadas en el escritorio (Hyprland/Wayland y GNOME/Cinnamon/MATE/Xfce/X11), estilo AnimaEngine"
 requires-python = ">=3.10"
-dependencies = ["Pillow"]
+dependencies = ["Pillow", "python-xlib"]
 
 [project.scripts]
 animalinux = "animalinux.app:main"

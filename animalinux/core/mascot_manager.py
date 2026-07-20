@@ -41,11 +41,22 @@ class MascotManager:
         return True   # seguir repitiendo
 
     def _fetch_platforms(self):
-        plats = []
+        plats = self._fetch_platforms_hyprctl()
+        if plats is None:
+            # no estamos en Hyprland (o hyprctl no existe): en X11 (GNOME,
+            # Cinnamon, MATE, Xfce...) el equivalente EWMH estándar es Wnck.
+            plats = self._fetch_platforms_wnck()
+        if plats is None:
+            plats = self.platforms        # conserva el último bueno si todo falla
+        self.platforms = plats
+        self._platforms_busy = False
+
+    def _fetch_platforms_hyprctl(self):
         try:
             out = subprocess.run(
                 ["hyprctl", "-j", "clients"],
                 capture_output=True, text=True, timeout=2).stdout
+            plats = []
             for c in json.loads(out):
                 if c.get("hidden") or not c.get("mapped", True):
                     continue
@@ -57,10 +68,38 @@ class MascotManager:
                     continue
                 # borde SUPERIOR de la ventana = plataforma
                 plats.append((at[0], at[0] + size[0], at[1]))
+            return plats
         except Exception:  # noqa: BLE001
-            plats = self.platforms        # conserva el último bueno si falla
-        self.platforms = plats
-        self._platforms_busy = False
+            return None
+
+    def _fetch_platforms_wnck(self):
+        """Lista de ventanas vía libwnck (EWMH), para X11 sin hyprctl. Cubre
+        GNOME/Cinnamon/MATE/Xfce con una sola implementación. Las mascotas
+        mismas quedan excluidas solas: llevan _NET_WM_STATE_SKIP_TASKBAR
+        (ver overlay/_x11_hints.py) y is_skip_tasklist() lo detecta."""
+        try:
+            import gi
+            gi.require_version("Wnck", "3.0")
+            from gi.repository import Wnck
+        except Exception:  # noqa: BLE001
+            return None
+        try:
+            screen = Wnck.Screen.get_default()
+            screen.force_update()
+            plats = []
+            for w in screen.get_windows():
+                if w.is_minimized() or w.is_skip_tasklist():
+                    continue
+                if w.get_window_type() not in (
+                        Wnck.WindowType.NORMAL, Wnck.WindowType.DIALOG):
+                    continue
+                x, y, width, height = w.get_geometry()
+                if width < 80 or height < 40:
+                    continue
+                plats.append((x, x + width, y))
+            return plats
+        except Exception:  # noqa: BLE001
+            return None
 
     # ---------- ciclo de vida de las ventanas ----------
     def spawn(self, anim):

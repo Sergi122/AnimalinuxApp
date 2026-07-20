@@ -1,0 +1,109 @@
+============================================================
+ PROBAR ANIMALINUX EN EL LINUX MINT DE MI MADRE — PASO A PASO
+============================================================
+Objetivo: instalar y comprobar que la mascota funciona bien en Mint
+(Cinnamon por defecto). Este es el primer test en una máquina real
+que NO es Hyprland — hasta ahora solo se probó en Xvfb simulado.
+
+Repo: https://github.com/Sergi122/AnimalinuxApp.git
+
+
+------------------------------------------------------------
+ PASO 0 — Llevar el código a esa máquina
+------------------------------------------------------------
+Si esa máquina tiene internet:
+
+    git clone https://github.com/Sergi122/AnimalinuxApp.git
+    cd AnimalinuxApp
+
+Si NO tiene internet (o el código no está subido a GitHub todavía):
+llevar la carpeta del proyecto en un USB y copiarla, luego:
+
+    cd <carpeta_copiada>
+
+
+------------------------------------------------------------
+ PASO 1 — Instalar (un solo comando)
+------------------------------------------------------------
+El script detecta solo que es Debian/Ubuntu/Mint (usa apt) y NO
+instala gtk4-layer-shell (eso es solo para Hyprland, aquí no hace falta):
+
+    chmod +x install.sh
+    ./install.sh
+
+Esto instala: python3, PyGObject, GTK4, Pillow, python-xlib (necesario
+para que la mascota se quede "siempre encima"), y libwnck (opcional,
+para que la mascota camine por el borde de otras ventanas).
+
+Si install.sh falla por lo que sea, instalar a mano:
+
+    sudo apt update
+    sudo apt install python3 python3-gi gir1.2-gtk-4.0 python3-pip \
+                      python3-pil python3-xlib gir1.2-ayatanaappindicator3-0.1 \
+                      gir1.2-wnck-3.0
+    pip install --user --break-system-packages .
+
+
+------------------------------------------------------------
+ PASO 2 — Lanzar la app
+------------------------------------------------------------
+    animalinux --show
+
+  Si dice "command not found", usar la ruta completa que imprime
+  install.sh al final, o:
+
+    python3 -m animalinux --show
+
+
+------------------------------------------------------------
+ PASO 3 — QUÉ COMPROBAR (la checklist real)
+------------------------------------------------------------
+  [ ] ¿Aparece la ventana de Control (Normal / Con vida)?
+  [ ] Al añadir/activar una mascota, ¿se ve flotando en el escritorio?
+  [ ] ¿Se queda SIEMPRE ENCIMA de otras ventanas (Firefox, Archivos...)?
+  [ ] ¿NO aparece en la barra de tareas ni en el selector Alt+Tab?
+  [ ] CLICK-THROUGH: poner otra ventana DETRÁS de la mascota y hacer
+      clic justo al lado del sprite (no encima) -> debe hacer clic en
+      esa ventana de detrás, como si la mascota no estuviera ahí.
+  [ ] Arrastrar la mascota con el ratón -> se mueve pegada al cursor.
+  [ ] Modo "Con vida": ¿camina sola, se apoya en el suelo, saluda si
+      pasas el cursor por encima?
+  [ ] (Opcional) ¿Se sube/camina por el borde de otras ventanas
+      abiertas? (necesita gir1.2-wnck-3.0 instalado)
+
+
+------------------------------------------------------------
+ SI ALGO FALLA
+------------------------------------------------------------
+  - Abrir una terminal y lanzar así para ver el error:
+
+        animalinux --quit
+        animalinux --show
+
+    (los mensajes de error salen ahí mismo, en la terminal)
+
+  - "No queda siempre encima" -> revisar que python-xlib esté
+    instalado: python3 -c "import Xlib; print('ok')"
+
+  - "No camina por los bordes de otras ventanas" -> revisar Wnck:
+        python3 -c "import gi; gi.require_version('Wnck','3.0'); \
+                    from gi.repository import Wnck; print('ok')"
+
+  - Avisos tipo "Gdk-WARNING" o "libayatana-appindicator deprecated"
+    son normales, no importan.
+
+  - Si crashea al arrancar: copiar el traceback completo (el texto
+    en rojo/con "Traceback") y mandármelo tal cual.
+
+
+------------------------------------------------------------
+ AL TERMINAR
+------------------------------------------------------------
+Avísame con:
+  1) Si funcionó todo de la checklist del PASO 3, o qué falló.
+  2) Si algo falló, el mensaje de error exacto.
+  3) Qué Cinnamon/Mint es (versión: cat /etc/os-release).
+
+Con eso actualizo la memoria del proyecto y, si hace falta, arreglo
+lo que toque.
+============================================================
