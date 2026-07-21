@@ -202,8 +202,13 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         # opciones encima del sprite: la gestión se hace desde la ventana de
         # control / bandeja, no sobre la mascota.
         self._overlay = Gtk.Box()
-        self._overlay.set_halign(Gtk.Align.START)
-        self._overlay.set_valign(Gtk.Align.START)
+        # SIN halign/valign=START aquí: combinado con el Box (horizontal por
+        # defecto) es un bug real de GTK4 que le da alto=0 en la asignación
+        # aunque el tamaño natural medido sea correcto (reproducido de forma
+        # aislada), dejando el picture en 0x0 y sin dibujar nunca (do_snapshot
+        # no se llega a invocar). El Box se queda con su FILL por defecto —
+        # el posicionamiento ya lo dan los márgenes (_set_position) y el
+        # propio picture (start/start) dentro de él.
         self._overlay.set_overflow(Gtk.Overflow.VISIBLE)
         self._overlay.append(self.picture)
         self.set_child(self._overlay)
