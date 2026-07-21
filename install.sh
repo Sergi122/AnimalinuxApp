@@ -88,6 +88,23 @@ esac
 echo "   -> $DESKTOP_ENV"
 python3 -c "from animalinux import settings; settings.set_val('desktop_env', '$DESKTOP_ENV')"
 
+echo ">> Detectando barra de tareas (para que la mascota no camine debajo)..."
+FLOOR_OFFSET="$(python3 -c "
+from Xlib import display, Xatom
+try:
+    d = display.Display()
+    screen = d.screen()
+    sh = screen.height_in_pixels
+    prop = screen.root.get_full_property(d.intern_atom('_NET_WORKAREA'), Xatom.CARDINAL)
+    wy, wh = prop.value[1], prop.value[3]
+    print(max(0, sh - (wy + wh)))
+except Exception:
+    print(0)
+" 2>/dev/null)"
+FLOOR_OFFSET="${FLOOR_OFFSET:-0}"
+echo "   -> ${FLOOR_OFFSET}px libres abajo (barra de tareas u otro panel)"
+python3 -c "from animalinux import settings; settings.set_val('floor_offset_px', $FLOOR_OFFSET)"
+
 echo ">> Instalando recorte de fondo con IA (rembg). Es la descarga más pesada..."
 pip install --user --break-system-packages rembg onnxruntime || {
     echo "!! No se pudo instalar rembg. La app funciona igual, pero para"

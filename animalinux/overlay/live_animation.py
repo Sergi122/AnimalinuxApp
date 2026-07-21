@@ -257,7 +257,7 @@ class LiveAnimationMixin:
         h = int(self.anim.get("height", 100) * scale)
         self._phys_k = max(0.6, min(1.8, h / float(REF_HEIGHT)))
         self._gravity = GRAVITY * self._phys_k
-        self._floor_y = max(0, self._screen_h - h)
+        self._floor_y = max(0, self._screen_h - self._floor_offset_y - h)
         self._ground_y = self._floor_y
         self._last_interaction = GLib.get_monotonic_time()
         self._set_position(self._x, self._floor_y)

@@ -30,6 +30,7 @@ from gi.repository import Gtk, Gdk, GLib, GObject, Graphene  # noqa: E402
 
 from .live_animation import LiveAnimationMixin  # noqa: E402
 from . import _x11_hints  # noqa: E402
+from .. import settings
 
 _CSS_APPLIED = False
 
@@ -156,6 +157,11 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self._jump_vy = 0
         self._greet_ttl = 0
         self._screen_w, self._screen_h = 1920, 1080
+        # px libres bajo el área de trabajo (_NET_WORKAREA) que install.sh
+        # midió una vez: el hueco que deja la barra de tareas u otro panel
+        # anclado abajo. El suelo se calcula por encima de esto para que la
+        # mascota no camine tapada por la barra.
+        self._floor_offset_y = settings.get("floor_offset_px", 0)
 
         # física del tiro (parabólica)
         self._toss_vx = 0.0
@@ -618,7 +624,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self._overlay.queue_resize()
         self.queue_resize()
         if self.mode == "life":
-            self._floor_y = max(0, self._screen_h - h)
+            self._floor_y = max(0, self._screen_h - self._floor_offset_y - h)
             self._set_position(self._x, self._floor_y)
         else:
             self._set_position(self._x, self._y)
