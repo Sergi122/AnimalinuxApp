@@ -159,7 +159,12 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         # midió una vez: el hueco que deja la barra de tareas u otro panel
         # anclado abajo. El suelo se calcula por encima de esto para que la
         # mascota no camine tapada por la barra.
-        self._floor_offset_y = settings.get("floor_offset_px", 0)
+        # saneado: valores >120px no pueden ser una barra de tareas real (ver
+        # install.sh) — si settings.json quedó con un valor disparatado de una
+        # detección multi-monitor defectuosa, se ignora en vez de clavar la
+        # mascota en el borde superior de la pantalla.
+        floor_offset = settings.get("floor_offset_px", 0)
+        self._floor_offset_y = floor_offset if 0 <= floor_offset <= 120 else 0
 
         # física del tiro (parabólica)
         self._toss_vx = 0.0

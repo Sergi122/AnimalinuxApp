@@ -37,19 +37,30 @@ class MascotManager:
     def _refresh_platforms(self):
         if not self._platforms_busy:
             self._platforms_busy = True
-            threading.Thread(target=self._fetch_platforms, daemon=True).start()
+            threading.Thread(target=self._fetch_platforms_bg, daemon=True).start()
         return True   # seguir repitiendo
 
-    def _fetch_platforms(self):
+    def _fetch_platforms_bg(self):
+        """Hilo de fondo: SOLO hyprctl (subproceso aparte, no toca GDK/X11 —
+        seguro fuera del hilo principal). El fallback a Wnck usa GDK/libwnck,
+        que NO es thread-safe: llamarlo aquí (como se hacía antes) corrompía
+        de forma intermitente el repintado en X11 (Xfce/Cinnamon) — carrera
+        con el hilo de GTK que estaba dibujando la mascota a la vez, viéndose
+        como un parpadeo/desaparición que se autocorregía sola en el
+        siguiente frame. Por eso el fallback se reenvía al hilo principal."""
         plats = self._fetch_platforms_hyprctl()
-        if plats is None:
-            # no estamos en Hyprland (o hyprctl no existe): en X11 (GNOME,
-            # Cinnamon, MATE, Xfce...) el equivalente EWMH estándar es Wnck.
-            plats = self._fetch_platforms_wnck()
-        if plats is None:
-            plats = self.platforms        # conserva el último bueno si todo falla
-        self.platforms = plats
+        if plats is not None:
+            self.platforms = plats
+            self._platforms_busy = False
+        else:
+            GLib.idle_add(self._fetch_platforms_wnck_main)
+
+    def _fetch_platforms_wnck_main(self):
+        """Fallback Wnck: se ejecuta en el hilo principal (GLib.idle_add)."""
+        plats = self._fetch_platforms_wnck()
+        self.platforms = plats if plats is not None else self.platforms
         self._platforms_busy = False
+        return False   # no repetir (es un idle_add de una sola vez)
 
     def _fetch_platforms_hyprctl(self):
         try:

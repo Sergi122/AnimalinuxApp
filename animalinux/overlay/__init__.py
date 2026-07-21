@@ -16,7 +16,7 @@ def _select_backend():
         # app.py ya decidió forzar XWayland (Wayland sin wlr-layer-shell,
         # p.ej. GNOME/KDE): usar el backend X11 sin más comprobaciones.
         from .x11_animation import MascotWindow
-        return MascotWindow
+        return MascotWindow, "x11"
     session = os.environ.get("XDG_SESSION_TYPE", "").lower()
     is_wayland = session == "wayland" or bool(os.environ.get("WAYLAND_DISPLAY"))
     if is_wayland:
@@ -28,10 +28,10 @@ def _select_backend():
             pass  # Wayland sin wlr-layer-shell (p.ej. GNOME Wayland): cae a X11
         else:
             from .normal_animation import MascotWindow
-            return MascotWindow
+            return MascotWindow, "wayland"
     from .x11_animation import MascotWindow
-    return MascotWindow
+    return MascotWindow, "x11"
 
 
-MascotWindow = _select_backend()
-__all__ = ["MascotWindow"]
+MascotWindow, BACKEND = _select_backend()
+__all__ = ["MascotWindow", "BACKEND"]
