@@ -165,11 +165,14 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self.set_decorated(False)
         self.set_resizable(False)
 
-        # Sin layer-shell: la ventana es una GtkWindow normal. Los hints EWMH
-        # (always-on-top, skip-taskbar, skip-pager, sticky) van por
-        # ClientMessage EWMH, que solo es válido una vez la ventana está
-        # mapeada (ver _x11_hints.py).
-        self.connect("map", lambda *_: _x11_hints.apply_ewmh_hints(self))
+        # Sin layer-shell: la ventana es una GtkWindow normal. El tipo de
+        # ventana (UTILITY, sin foco automático, sin decorar) hay que
+        # fijarlo ANTES de mapear (xfwm4 lo ignora si se hace después, ver
+        # _x11_hints.py); el estado always-on-top/skip-taskbar/sticky va por
+        # ClientMessage EWMH tras el mapeo, que es cuando ese protocolo
+        # exige mandarlo.
+        self.connect("realize", lambda *_: _x11_hints.apply_ewmh_hints_early(self))
+        self.connect("map", lambda *_: _x11_hints.apply_ewmh_hints_late(self))
 
         self._load_poses()
         scale = anim.get("scale", 1.0)
@@ -529,9 +532,22 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
 
     # ---------- arranque ----------
     def start(self):
-        self.present()
+        # Tamaño fullscreen ANTES de mapear: en xfwm4 (a diferencia de
+        # Muffin/Cinnamon) una GtkWindow tipo NORMAL recién mapeada recibe
+        # una geometría/decoración "de aplicación normal" del gestor de
+        # ventanas que un set_size_request/set_default_size POSTERIOR al
+        # mapeo no siempre logra revertir del todo (se veía como una
+        # ventana chica, no fullscreen). Al pedir ya aquí el tamaño real del
+        # monitor (con la pantalla primaria como estimación previa al
+        # mapeo) evitamos depender de ese resize tardío.
         self._update_screen_size()
-        # forzar la ventana al tamaño del monitor → superficie REALMENTE fullscreen
+        self.set_size_request(self._screen_w, self._screen_h)
+        self.set_default_size(self._screen_w, self._screen_h)
+        self.present()
+        # Refinar tras mapear: el monitor real (si hay varios, o difiere del
+        # supuesto por defecto) solo se conoce con certeza una vez la
+        # superficie está asociada a uno concreto.
+        self._update_screen_size()
         self.set_size_request(self._screen_w, self._screen_h)
         self.set_default_size(self._screen_w, self._screen_h)
         self.queue_resize()

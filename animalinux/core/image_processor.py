@@ -76,11 +76,26 @@ def _clamp_size(img):
     return img
 
 
+def _install_ffmpeg_hint():
+    """El proyecto soporta tanto Arch/Hyprland como Mint/Ubuntu/Xfce; el
+    comando de instalación no es el mismo, así que se detecta el gestor de
+    paquetes disponible en vez de asumir pacman."""
+    for cmd, pkg_cmd in (
+        ("pacman", "sudo pacman -S ffmpeg"),
+        ("apt", "sudo apt install ffmpeg"),
+        ("dnf", "sudo dnf install ffmpeg"),
+        ("zypper", "sudo zypper install ffmpeg"),
+    ):
+        if shutil.which(cmd):
+            return pkg_cmd
+    return "el gestor de paquetes de tu distro (paquete 'ffmpeg')"
+
+
 def _load_video(path):
     """Extrae frames de un video usando ffmpeg (debe estar instalado)."""
     if not shutil.which("ffmpeg"):
         raise RuntimeError(
-            "ffmpeg no está instalado. Instálalo con: sudo pacman -S ffmpeg"
+            "ffmpeg no está instalado. Instálalo con: " + _install_ffmpeg_hint()
         )
     tmp = Path(tempfile.mkdtemp(prefix="animalinux_"))
     try:
