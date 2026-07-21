@@ -8,6 +8,8 @@ directamente sobre el XID de la ventana, vía python-xlib. Todo va envuelto
 en try/except: si algo falla (WM no EWMH, falta python-xlib...) la ventana
 sigue funcionando, solo pierde el barniz de "siempre encima".
 """
+import os
+
 try:
     import gi
 
@@ -16,6 +18,8 @@ try:
 except Exception:  # noqa: BLE001
     GdkX11 = None  # muy improbable (viene con gtk4), pero no debe crashear
 
+from .. import settings
+
 
 _STATE_NAMES = (
     "_NET_WM_STATE_ABOVE",
@@ -23,6 +27,45 @@ _STATE_NAMES = (
     "_NET_WM_STATE_SKIP_PAGER",
     "_NET_WM_STATE_STICKY",
 )
+
+
+def _reasserts_wm_hints_on_map() -> bool:
+    """¿El WM de este escritorio reescribe WM_HINTS a sus valores por
+    defecto (input=True) cuando GTK mapea la ventana, descartando lo que
+    apply_ewmh_hints_early escribió en 'realize'?
+
+    install.sh detecta el escritorio y guarda el resultado en
+    ~/.config/animalinux/settings.json (clave "desktop_env"). Comprobado con
+    xprop en vivo: Cinnamon/Muffin SÍ lo hace (WM_HINTS.input vuelve a 1 tras
+    el map, y el foco de teclado acaba fijo en la ventana-proxy interna de
+    GDK del propio overlay una vez que se agotan los reintentos de
+    _revert_focus — reproduce el "se congela la pantalla" original); Xfce/
+    xfwm4 NO lo hace, honra tal cual lo escrito en 'realize'. Si no hay
+    valor guardado (instalación manual sin install.sh, escritorio no
+    reconocido...) se asume que SÍ hace falta reafirmar: es el caso seguro
+    para todos los probados salvo Xfce, donde reafirmarlo de más no hace
+    ningún daño."""
+    env = settings.get("desktop_env", None) or os.environ.get(
+        "XDG_CURRENT_DESKTOP", ""
+    ).lower()
+    return "xfce" not in env
+
+
+def _set_input_false(win):
+    """WM_HINTS.input = False (ICCCM): la mascota es un overlay decorativo,
+    click-through, sin barra de título; nunca debe robar el foco de teclado.
+    GTK4 no expone un setter para esto y por defecto deja input=True. Se
+    preservan flags/campos ya puestos por GTK (p.ej. window_group) y solo se
+    apaga el input."""
+    try:
+        from Xlib import Xutil
+
+        hints = win.get_wm_hints()
+        hints.input = 0
+        hints.flags |= Xutil.InputHint
+        win.set_wm_hints(hints)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def _x11_window(gtk_window):
@@ -72,7 +115,7 @@ def apply_ewmh_hints_early(gtk_window):
         return
     dpy, win = resolved
     try:
-        from Xlib import Xatom, Xutil
+        from Xlib import Xatom
 
         # _NET_WM_BYPASS_COMPOSITOR: algunos compositores (Muffin en
         # Cinnamon) "unredirigen" automáticamente las ventanas sin decoración
@@ -101,21 +144,12 @@ def apply_ewmh_hints_early(gtk_window):
         state_atoms = [dpy.intern_atom(name) for name in _STATE_NAMES]
         win.change_property(state_atom, Xatom.ATOM, 32, state_atoms)
 
-        # WM_HINTS.input = False (ICCCM): la mascota es un overlay decorativo,
-        # click-through, sin barra de título; nunca debe robar el foco de
-        # teclado. GTK4 no expone un setter para esto y por defecto deja
-        # input=True, así que el gestor de ventanas le da foco al mapearla,
-        # dejando el teclado "muerto" para el resto del escritorio (parece
-        # que la pantalla se congela) hasta que el usuario hace clic en otra
-        # ventana. Se preservan flags/campos ya puestos por GTK (p.ej.
-        # window_group) y solo se apaga el input.
-        try:
-            hints = win.get_wm_hints()
-            hints.input = 0
-            hints.flags |= Xutil.InputHint
-            win.set_wm_hints(hints)
-        except Exception:  # noqa: BLE001
-            pass
+        # WM_HINTS.input = False: ver _set_input_false. Si el gestor de
+        # ventanas le da foco al mapearla de todos modos (Muffin, Mutter,
+        # Marco...), dejando el teclado "muerto" para el resto del
+        # escritorio, apply_ewmh_hints_late lo reafirma tras el mapeo — ver
+        # _reasserts_wm_hints_on_map.
+        _set_input_false(win)
 
         dpy.flush()
     except Exception:  # noqa: BLE001
@@ -151,14 +185,24 @@ def apply_ewmh_hints_late(gtk_window):
             )
             root.send_event(ev, event_mask=mask)
 
-        _revert_focus()
+        # En Cinnamon/GNOME/MATE (Muffin/Mutter/Marco) GTK reescribe
+        # WM_HINTS a su valor por defecto (input=True) en algún punto de su
+        # propio present()/map, descartando en silencio lo que
+        # apply_ewmh_hints_early escribió en 'realize' — confirmado en vivo
+        # con xprop. Sin reafirmarlo aquí, el foco de teclado acaba fijo en
+        # la ventana-proxy interna de GDK del propio overlay una vez que
+        # _revert_focus agota sus reintentos. Xfce/xfwm4 no lo necesita
+        # (_reasserts_wm_hints_on_map lo sabe vía el "desktop_env" que
+        # guardó install.sh), pero reafirmarlo de más ahí es inofensivo.
+        reassert_xid = win.id if _reasserts_wm_hints_on_map() else None
+        _revert_focus(reassert_xid)
 
         dpy.flush()
     except Exception:  # noqa: BLE001
         pass
 
 
-def _revert_focus():
+def _revert_focus(reassert_input_xid=None):
     """Muffin (Cinnamon) foca las ventanas normales nuevas AL MAPEARLAS,
     ignorando WM_HINTS.input y el tipo de ventana (ese campo solo evita el
     foco por click, no el foco automático al aparecer). Y lo hace de forma
@@ -166,7 +210,11 @@ def _revert_focus():
     vez, en el mismo instante en que mandamos los hints, pierde la carrera:
     Muffin lo pisa un instante después. Por eso reintentamos varias veces con
     pequeños retrasos, hasta ganarle la carrera de forma fiable, sin importar
-    cuánto tarde su gestor de foco en reaccionar."""
+    cuánto tarde su gestor de foco en reaccionar.
+
+    Si reassert_input_xid no es None, cada reintento también vuelve a poner
+    WM_HINTS.input=False en esa ventana — el mismo WM que roba el foco es el
+    que pisa este hint, así que le gana la carrera en el mismo ciclo."""
     try:
         from Xlib import X
         from Xlib import display as xlib_display
@@ -177,6 +225,9 @@ def _revert_focus():
         try:
             d = xlib_display.Display()
             d.set_input_focus(X.PointerRoot, X.RevertToPointerRoot, X.CurrentTime)
+            if reassert_input_xid is not None:
+                win = d.create_resource_object("window", reassert_input_xid)
+                _set_input_false(win)
             d.flush()
             d.close()
         except Exception:  # noqa: BLE001
