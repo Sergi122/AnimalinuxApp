@@ -76,6 +76,18 @@ esac
 echo ">> Instalando AnimaLinux..."
 pip install --user --break-system-packages .
 
+echo ">> Detectando escritorio (Cinnamon/GNOME/MATE/Xfce...)..."
+DESKTOP_ENV="$(printf '%s' "${XDG_CURRENT_DESKTOP:-${DESKTOP_SESSION:-}}" | tr '[:upper:]' '[:lower:]')"
+case "$DESKTOP_ENV" in
+    *cinnamon*) DESKTOP_ENV="cinnamon" ;;
+    *xfce*)     DESKTOP_ENV="xfce" ;;
+    *mate*)     DESKTOP_ENV="mate" ;;
+    *gnome*)    DESKTOP_ENV="gnome" ;;
+    *)          DESKTOP_ENV="unknown" ;;
+esac
+echo "   -> $DESKTOP_ENV"
+python3 -c "from animalinux import settings; settings.set_val('desktop_env', '$DESKTOP_ENV')"
+
 echo ">> Instalando recorte de fondo con IA (rembg). Es la descarga más pesada..."
 pip install --user --break-system-packages rembg onnxruntime || {
     echo "!! No se pudo instalar rembg. La app funciona igual, pero para"
