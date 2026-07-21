@@ -44,10 +44,22 @@ class LiveAnimationMixin:
 
     # ───────────────────────── utilidades ──────────────────────────────────
     def _set_pose(self, name):
-        """Idea 9: cambiar de pose reseteando el frame (sin saltos a mitad)."""
+        """Idea 9: cambiar de pose reseteando el frame (sin saltos a mitad).
+
+        Empuja la textura del frame 0 AL INSTANTE (no basta con resetear
+        _index y esperar a _anim_tick): behavior_tick (cada 60ms) y
+        _anim_tick (cada 1000/fps ms) son timers INDEPENDIENTES, así que tras
+        aterrizar (pose -> "idle") puede haber hasta un intervalo entero de
+        _anim_tick en el que la posición/squash YA cambiaron pero la textura
+        sigue siendo el último frame de la pose anterior ("jump") — un frame
+        inconsistente que en compositing por software (VMs) se nota como un
+        parpadeo justo al caer."""
         if name != self._pose:
             self._pose = name
             self._index = 0
+            frames = self._frames_for(name)
+            if frames:
+                self._paintable.set_texture(frames[0])
 
     def face_toward(self, target_cx):
         """Idea 7: girarse hacia un punto X."""

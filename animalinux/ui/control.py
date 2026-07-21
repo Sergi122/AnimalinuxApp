@@ -10,6 +10,8 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GLib, Gdk, Gio
 
 from ..core import image_processor as importer
+from ..core import gpu
+from ..overlay import BACKEND
 from ..i18n import t
 
 BG_METHODS = [
@@ -49,6 +51,28 @@ class ControlWindow(Gtk.ApplicationWindow):
         close_btn.connect("clicked", lambda _: self.close())
         topbar.append(close_btn)
         root.append(topbar)
+
+        # Aviso: sin GPU real (render por software, típico de una VM sin
+        # passthrough gráfico), el compositor de algunos gestores de
+        # ventanas X11 (xfwm4, Muffin...) puede fallar al mostrar varias
+        # mascotas fullscreen a la vez -- cada una es su propia ventana
+        # ARGB, y sin aceleración por hardware el compositor no siempre da
+        # abasto. No aplica en Wayland/Hyprland ni con GPU real: se detecta
+        # una sola vez al abrir y solo se muestra si hace falta (ver
+        # refresh()).
+        self._software_gpu = BACKEND == "x11" and gpu.is_software_rendering() is True
+        self._gpu_warning = Gtk.Label(xalign=0)
+        self._gpu_warning.add_css_class("dim-label")
+        self._gpu_warning.set_wrap(True)
+        self._gpu_warning.set_margin_start(12); self._gpu_warning.set_margin_end(12)
+        self._gpu_warning.set_margin_bottom(4)
+        self._gpu_warning.set_markup(
+            "⚠️ No se detectó aceleración gráfica por hardware: con varias "
+            "mascotas activas a la vez alguna puede parpadear o desaparecer "
+            "intermitentemente (limitación del compositor de este escritorio "
+            "sin GPU, no de AnimaLinux). Se recomienda dejar solo una activa.")
+        self._gpu_warning.set_visible(False)
+        root.append(self._gpu_warning)
 
         # pestañas
         self.notebook = Gtk.Notebook()
@@ -242,6 +266,9 @@ class ControlWindow(Gtk.ApplicationWindow):
         else:
             self.status.set_text(
                 f"{len(normals)} animación(es) GIF · {len(lives)} con vida")
+
+        active_count = sum(1 for a in anims.values() if a.get("on_desktop"))
+        self._gpu_warning.set_visible(self._software_gpu and active_count > 1)
 
         for a in normals:
             self._normal_list.append(self._make_normal_row(a))
@@ -559,6 +586,9 @@ class ControlWindow(Gtk.ApplicationWindow):
     def _on_toggle(self, aid, state):
         self.app.library.update(aid, on_desktop=state)
         self.app.set_mascot_visible(aid, state)
+        active_count = sum(
+            1 for a in self.app.library.animations.values() if a.get("on_desktop"))
+        self._gpu_warning.set_visible(self._software_gpu and active_count > 1)
         return False
 
     def _on_delete(self, aid):

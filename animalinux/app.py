@@ -65,9 +65,16 @@ class AnimaApp(Gtk.Application):
         from . import i18n
         i18n.init()        # detecta / carga idioma
         theme.apply(None)  # tema oscuro global
-        # restaurar mascotas que estaban en el escritorio
-        for anim in self.library.active():
-            self.manager.spawn(anim)
+        # restaurar mascotas que estaban en el escritorio: escalonadas (no
+        # todas de golpe). Cada mascota es una ventana fullscreen ARGB
+        # separada; crear varias en el mismo instante, justo al arrancar, se
+        # ha visto que satura al compositor en equipos con render por
+        # software (p.ej. xfwm4 sobre llvmpipe en una VM) — el resultado es
+        # que una de las mascotas queda invisible varios segundos hasta que
+        # el compositor se pone al día. Dar un respiro entre cada una evita
+        # ese pico de carga simultánea.
+        for i, anim in enumerate(self.library.active()):
+            GLib.timeout_add(i * 400, self.manager.spawn, anim)
         # Pausa por pantalla completa: DESACTIVADA por defecto. Antes esto
         # pausaba (congelaba) la mascota en cuanto otra ventana entraba en
         # fullscreen, para ahorrar GPU. Pero lo normal es querer que la mascota

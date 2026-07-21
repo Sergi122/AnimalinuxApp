@@ -97,7 +97,16 @@ try:
     sh = screen.height_in_pixels
     prop = screen.root.get_full_property(d.intern_atom('_NET_WORKAREA'), Xatom.CARDINAL)
     wy, wh = prop.value[1], prop.value[3]
-    print(max(0, sh - (wy + wh)))
+    offset = max(0, sh - (wy + wh))
+    # sh es la altura del 'screen' X11 (root), que en setups multi-monitor es
+    # la altura COMBINADA de todos los monitores, mientras que en tiempo de
+    # ejecución la mascota usa la altura de un único monitor (GDK). Si hay más
+    # de un monitor (o cualquier otra discrepancia), esta resta puede dar un
+    # valor disparatado, muy por encima de lo que mide una barra real, y eso
+    # deja a la mascota clavada en el borde superior de su monitor (fuera de
+    # donde se la espera ver). Ninguna barra de tareas real mide más de ~120px,
+    # así que se descarta (0) cualquier detección por encima de eso.
+    print(offset if offset <= 120 else 0)
 except Exception:
     print(0)
 " 2>/dev/null)"

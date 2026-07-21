@@ -161,7 +161,12 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         # midió una vez: el hueco que deja la barra de tareas u otro panel
         # anclado abajo. El suelo se calcula por encima de esto para que la
         # mascota no camine tapada por la barra.
-        self._floor_offset_y = settings.get("floor_offset_px", 0)
+        # saneado: valores >120px no pueden ser una barra de tareas real (ver
+        # install.sh) — si settings.json quedó con un valor disparatado de una
+        # detección multi-monitor defectuosa, se ignora en vez de clavar la
+        # mascota en el borde superior de la pantalla.
+        floor_offset = settings.get("floor_offset_px", 0)
+        self._floor_offset_y = floor_offset if 0 <= floor_offset <= 120 else 0
 
         # física del tiro (parabólica)
         self._toss_vx = 0.0
@@ -536,6 +541,20 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
     def _has_pose(self, pose):
         return pose in self._poses
 
+    def _win_h(self):
+        """Alto REAL pedido para la ventana: 1px más que el monitor.
+        Algunos compositores (xfwm4, Muffin) "desredirigen" automáticamente
+        cualquier ventana sin decorar que coincide EXACTAMENTE con la
+        geometría del monitor, tratándola como un juego/vídeo a pantalla
+        completa — deja de componerse un instante (se ve parpadear al
+        aterrizar de un salto, cuando hay más actividad de redibujado) hasta
+        que el compositor se estabiliza. _NET_WM_BYPASS_COMPOSITOR=2 (ver
+        _x11_hints.py) pide no hacerlo, pero no todos los compositores lo
+        respetan para ventanas normales. Pedir 1px de más rompe la
+        coincidencia exacta sin que se note (el sprite se sigue posicionando
+        con self._screen_h, que es el alto REAL del monitor)."""
+        return self._screen_h + 1
+
     # ---------- arranque ----------
     def start(self):
         # Tamaño fullscreen ANTES de mapear: en xfwm4 (a diferencia de
@@ -547,15 +566,15 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         # monitor (con la pantalla primaria como estimación previa al
         # mapeo) evitamos depender de ese resize tardío.
         self._update_screen_size()
-        self.set_size_request(self._screen_w, self._screen_h)
-        self.set_default_size(self._screen_w, self._screen_h)
+        self.set_size_request(self._screen_w, self._win_h())
+        self.set_default_size(self._screen_w, self._win_h())
         self.present()
         # Refinar tras mapear: el monitor real (si hay varios, o difiere del
         # supuesto por defecto) solo se conoce con certeza una vez la
         # superficie está asociada a uno concreto.
         self._update_screen_size()
-        self.set_size_request(self._screen_w, self._screen_h)
-        self.set_default_size(self._screen_w, self._screen_h)
+        self.set_size_request(self._screen_w, self._win_h())
+        self.set_default_size(self._screen_w, self._win_h())
         self.queue_resize()
         if self.mode == "life":
             self._enter_life()
@@ -565,6 +584,9 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         GLib.idle_add(self._update_input_region)
         # Mantener vivo el frame clock en modo CONTINUO (ver normal_animation.py
         # para el porqué: evita que la mascota se congele bajo fullscreen ajeno).
+        # (Probado desactivarlo para descartar que saturara al compositor: no
+        # arregla las desapariciones y además introduce congelados propios de
+        # la app — se mantiene activo.)
         if self._tick_id is None:
             self._tick_id = self.add_tick_callback(self._keep_clock_alive)
 
