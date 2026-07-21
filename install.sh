@@ -23,7 +23,7 @@ echo ">> Instalando dependencias del sistema ($PKG_MGR)..."
 case "$PKG_MGR" in
     pacman)
         sudo pacman -S --needed --noconfirm \
-            gtk4 python-gobject python-pillow python-xlib ffmpeg \
+            gtk4 python-gobject python-pillow python-xlib python-pip ffmpeg \
             libayatana-appindicator
         echo ">> gtk4-layer-shell (solo hace falta en Hyprland/Sway)..."
         if ! pacman -Qi gtk4-layer-shell &>/dev/null; then
@@ -44,14 +44,32 @@ case "$PKG_MGR" in
         sudo apt install -y python3 python3-gi gir1.2-gtk-4.0 python3-pip \
             python3-pil python3-xlib ffmpeg gir1.2-ayatanaappindicator3-0.1 \
             gir1.2-wnck-3.0
+        echo ">> gtk4-layer-shell (solo hace falta en Hyprland/Sway)..."
+        sudo apt install -y gir1.2-gtklayershell-0.1 || {
+            echo "!! No encontré gir1.2-gtklayershell-0.1 en tus repos."
+            echo "   Solo hace falta en Hyprland/Sway; en GNOME/Cinnamon/MATE/Xfce"
+            echo "   (X11) no afecta a la app."
+        }
         ;;
     dnf)
-        sudo dnf install -y python3 python3-gobject gtk4 python3-pillow \
-            python3-xlib ffmpeg libappindicator-gtk3 libwnck3
+        sudo dnf install -y python3 python3-gobject python3-pip gtk4 \
+            python3-pillow python3-xlib ffmpeg libappindicator-gtk3 libwnck3
+        echo ">> gtk4-layer-shell (solo hace falta en Hyprland/Sway)..."
+        sudo dnf install -y gtk4-layer-shell || {
+            echo "!! No encontré gtk4-layer-shell en tus repos."
+            echo "   Solo hace falta en Hyprland/Sway; en GNOME/Cinnamon/MATE/Xfce"
+            echo "   (X11) no afecta a la app."
+        }
         ;;
     zypper)
-        sudo zypper install -y python3 python3-gobject gtk4 python3-Pillow \
-            python3-xlib ffmpeg libwnck3
+        sudo zypper install -y python3 python3-gobject python3-pip gtk4 \
+            python3-Pillow python3-xlib ffmpeg libwnck3
+        echo ">> gtk4-layer-shell (solo hace falta en Hyprland/Sway)..."
+        sudo zypper install -y gtk4-layer-shell || {
+            echo "!! No encontré gtk4-layer-shell en tus repos."
+            echo "   Solo hace falta en Hyprland/Sway; en GNOME/Cinnamon/MATE/Xfce"
+            echo "   (X11) no afecta a la app."
+        }
         ;;
 esac
 
