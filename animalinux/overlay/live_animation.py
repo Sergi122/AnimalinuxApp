@@ -174,8 +174,10 @@ class LiveAnimationMixin:
         GLib.timeout_add_seconds(3, self._cool_down)
 
     def _start_grab(self):
-        """La mascota agarra el cursor: la región de input cubre TODA la pantalla
-        y el sprite sigue al puntero hasta soltarlo."""
+        """La mascota agarra el cursor: el sprite sigue al puntero por todo el
+        escritorio (backend X11: sondeando su posición global, ver
+        _poll_grab_cursor; sin expandir la región de input, para no bloquear
+        los clics del resto del escritorio) hasta soltarlo."""
         self._grab_ttl = 80
         self._state = "grab"
         self._grabbing = True
@@ -187,6 +189,15 @@ class LiveAnimationMixin:
         elif self._has_pose("angry"):
             self._set_pose("angry")
         self._update_input_region()
+
+    def _poll_grab_cursor(self):
+        """Sondeo activo del cursor durante el agarre por enojo (ver
+        _behavior_tick). Sin-op por defecto: el backend layer-shell
+        (Hyprland/Sway) sigue el cursor por eventos de motion sobre su
+        región de input fullscreen existente, como antes. El backend X11
+        (MascotWindow en x11_animation.py) lo sobreescribe para sondear la
+        posición global vía Xlib sin necesitar esa expansión."""
+        pass
 
     def _on_grab_motion(self, ctrl, mx, my):
         self._last_cursor_x = self._x + mx     # idea 6 (versión segura)
@@ -431,6 +442,8 @@ class LiveAnimationMixin:
                                    self._y + random.randint(-3, 3))
                 self._paintable.set_squash(1.0 + random.uniform(-0.06, 0.06),
                                            1.0 + random.uniform(-0.06, 0.06))
+            else:
+                self._poll_grab_cursor()
             self._grab_ttl -= 1
             if self._grab_ttl <= 0:
                 self._grab_ttl = 0

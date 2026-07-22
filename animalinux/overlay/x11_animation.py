@@ -147,6 +147,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self._paused = False
         self._dragging = False
         self._grabbing = False   # True mientras sigue el cursor (modo grab)
+        self._xlib_disp = None   # conexión perezosa para sondear el cursor global
 
         # estado de comportamiento
         self._state = "idle"
@@ -184,6 +185,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         # exige mandarlo.
         self.connect("realize", lambda *_: _x11_hints.apply_ewmh_hints_early(self))
         self.connect("map", lambda *_: _x11_hints.apply_ewmh_hints_late(self))
+        self.connect("map", lambda *_: _x11_hints.install_focus_guard(self))
 
         self._load_poses()
         scale = anim.get("scale", 1.0)
@@ -305,20 +307,24 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self._update_input_region()
 
     def _update_input_region(self):
-        """Limita lo clicable a la caja del sprite (o a toda la pantalla en grab,
-        para capturar el cursor en cualquier sitio). Sin esto, la ventana
-        fullscreen bloquearía todo el escritorio."""
+        """Limita lo clicable a la caja del sprite. Antes, en modo grab, esto
+        se expandía a TODA la pantalla para poder recibir eventos de motion
+        del cursor en cualquier punto — pero de paso volvía la ventana
+        (invisible, sin decorar, cubriendo el monitor entero) opaca a
+        CUALQUIER click del resto del escritorio mientras duraba el agarre
+        (~5s tras 4 toques seguidos), dejando sin efecto los clics con los
+        que el usuario intentaba llevarse el foco a otra ventana — se sentía
+        como si el teclado se hubiese quedado atrapado. Ahora el seguimiento
+        del cursor durante el agarre se hace sondeando su posición global vía
+        Xlib (ver _poll_grab_cursor), así que la región de input ya no
+        necesita cubrir más que el propio sprite en ningún estado."""
         surf = self.get_surface()
         if surf is None:
             return
         try:
             import cairo
-            if self._grabbing:
-                reg = cairo.Region(cairo.RectangleInt(
-                    0, 0, self._screen_w, self._screen_h))
-            else:
-                reg = cairo.Region(cairo.RectangleInt(
-                    self._x, self._y, self._cat_w, self._cat_h))
+            reg = cairo.Region(cairo.RectangleInt(
+                self._x, self._y, self._cat_w, self._cat_h))
             surf.set_input_region(reg)
         except Exception:  # noqa: BLE001
             pass
@@ -408,6 +414,24 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
     def _on_click(self, gesture, n_press, x, y):
         if self.mode == "life":
             self._react_to_touch()
+
+    def _poll_grab_cursor(self):
+        """Durante el agarre por enojo (no el berrinche por aburrimiento, que
+        no persigue el cursor), sigue el puntero sondeando su posición
+        GLOBAL vía Xlib en cada tick en vez de depender de eventos de motion
+        de GTK — esos solo llegan si la región de input de la ventana cubre
+        el punto, y ya no la expandimos a toda la pantalla (ver
+        _update_input_region). Reusa la lógica de anclaje de
+        _on_grab_motion pasándole coordenadas relativas al monitor."""
+        try:
+            from Xlib import display as xlib_display
+            if self._xlib_disp is None:
+                self._xlib_disp = xlib_display.Display()
+            ptr = self._xlib_disp.screen().root.query_pointer()
+            gx, gy = ptr.root_x, ptr.root_y
+        except Exception:  # noqa: BLE001
+            return
+        self._on_grab_motion(None, gx - self._mon_x, gy - self._mon_y)
 
     # ---------- poses / texturas ----------
     def _load_poses(self):

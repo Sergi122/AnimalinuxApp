@@ -202,15 +202,83 @@ def apply_ewmh_hints_late(gtk_window):
         pass
 
 
+def install_focus_guard(gtk_window):
+    """Contraataca CADA VEZ que el WM le da foco a la mascota, en el mismo
+    ciclo del bucle de eventos, en vez de pelear a ciegas con reintentos por
+    tiempo (ver _revert_focus): medido en vivo en Marco (MATE) con
+    xprop/Xlib, tras cada corrección por tiempo el WM le reafirma el foco de
+    nuevo en menos de ~20ms — un sondeo a intervalos, por denso que sea,
+    siempre deja huecos donde gana el WM antes del próximo intento (visto en
+    vivo: con reintentos cada 40ms, el foco quedaba robado en más del 90% de
+    las muestras). Seleccionando FocusChangeMask
+    sobre la ventana (y su _NET_WM_USER_TIME_WINDOW, adonde GDK a veces
+    redirige el foco X real — confirmado en vivo, es el destino más común
+    del robo) reaccionamos apenas llega el FocusIn, sin ese hueco.
+
+    Seguro de dejar instalado para toda la vida de la ventana: NO fuerza
+    nada de forma continua ni interfiere con el foco de ninguna otra
+    ventana — solo reacciona si ESTA ventana en concreto llega a tener el
+    foco, que con WM_HINTS.input=False + tipo UTILITY no debería pasar
+    nunca de forma legítima."""
+    resolved = _x11_window(gtk_window)
+    if resolved is None:
+        return
+    dpy, win = resolved
+    try:
+        from Xlib import X
+
+        watched = [win]
+        prop = win.get_full_property(
+            dpy.intern_atom("_NET_WM_USER_TIME_WINDOW"), 0)
+        if prop and prop.value:
+            watched.append(dpy.create_resource_object("window", prop.value[0]))
+        for w in watched:
+            w.change_attributes(event_mask=X.FocusChangeMask)
+        dpy.flush()
+
+        reassert_xid = win.id if _reasserts_wm_hints_on_map() else None
+
+        def on_readable(_channel, _condition):
+            try:
+                while dpy.pending_events():
+                    ev = dpy.next_event()
+                    if ev.type == X.FocusIn:
+                        dpy.set_input_focus(
+                            X.PointerRoot, X.RevertToPointerRoot, X.CurrentTime)
+                        if reassert_xid is not None:
+                            reasserted = dpy.create_resource_object(
+                                "window", reassert_xid)
+                            _set_input_false(reasserted)
+                        dpy.flush()
+            except Exception:  # noqa: BLE001
+                pass
+            return True  # seguir observando mientras viva la ventana
+
+        channel = GLib.IOChannel.unix_new(dpy.fileno())
+        GLib.io_add_watch(channel, GLib.PRIORITY_DEFAULT, GLib.IOCondition.IN,
+                           on_readable)
+        # mantener viva la conexión Xlib dedicada (si el GC se la lleva, el
+        # fd bajo el io_add_watch deja de existir y GLib empieza a fallar)
+        gtk_window._focus_guard_dpy = dpy
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def _revert_focus(reassert_input_xid=None):
-    """Muffin (Cinnamon) foca las ventanas normales nuevas AL MAPEARLAS,
-    ignorando WM_HINTS.input y el tipo de ventana (ese campo solo evita el
-    foco por click, no el foco automático al aparecer). Y lo hace de forma
-    ASÍNCRONA tras procesar el MapNotify, así que devolver el foco una sola
-    vez, en el mismo instante en que mandamos los hints, pierde la carrera:
-    Muffin lo pisa un instante después. Por eso reintentamos varias veces con
-    pequeños retrasos, hasta ganarle la carrera de forma fiable, sin importar
-    cuánto tarde su gestor de foco en reaccionar.
+    """Reafirma el foco tras el MAPEO inicial (ver apply_ewmh_hints_late):
+    Muffin/Marco (Cinnamon/MATE) puede enfocar la ventana de la mascota al
+    mapearla, de forma ASÍNCRONA un instante después del MapNotify, así que
+    devolver el foco una sola vez, en el mismo instante en que procesamos el
+    evento, pierde la carrera. Un puñado de reintentos espaciados en el
+    primer medio segundo de vida de la ventana basta para este caso (no hay
+    nada más compitiendo por el foco en ese instante). Para robos
+    POSTERIORES —el mismo problema pero disparado por un click en cualquier
+    momento de la vida de la ventana— install_focus_guard es la defensa:
+    ahí sí hace falta reaccionar en el momento exacto en vez de adivinar
+    tiempos, porque cualquier reintento a ciegas que dure varios segundos
+    corre el riesgo de pisarle el foco a OTRA ventana si el usuario hace
+    click en algo más durante esa ventana de tiempo (visto en vivo: probado
+    y descartado).
 
     Si reassert_input_xid no es None, cada reintento también vuelve a poner
     WM_HINTS.input=False en esa ventana — el mismo WM que roba el foco es el
