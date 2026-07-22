@@ -56,6 +56,7 @@ RANDOM_BRUSHES = {"texture", "watercolor", "sponge", "chalk"}
 # ── helpers ──────────────────────────────────────────────────────────────────
 from .editor_utils import pil_to_cairo as _pil_to_cairo  # noqa: E402
 from .icons import icon_image, icon_button  # noqa: E402
+from ..ui import guide_widgets as gw  # noqa: E402
 
 
 def _make_stamp(radius: int, softness: float, color, opacity: int,
@@ -1555,9 +1556,12 @@ class PaintEditor(Gtk.Window):
                 self._rebuild_strip(); self.layer_panel.rebuild()
 
         if anim_id is None:
+            # el tutorial se muestra recién tras confirmar el tamaño (ver
+            # _apply_size) — mostrar los dos diálogos a la vez hacía que se
+            # superpusieran y no se pudiera leer ninguno.
             GLib.idle_add(self._ask_canvas_size)
-
-        GLib.idle_add(self._show_tutorial)
+        else:
+            GLib.idle_add(self._show_tutorial)
 
     # ── UI ────────────────────────────────────────────────────────────────────
     def _build_ui(self):
@@ -2252,82 +2256,108 @@ class PaintEditor(Gtk.Window):
             self.save_status.set_text("Error: archivo no válido o versión incompatible")
 
     # ── tutorial ──────────────────────────────────────────────────────────────
+    _TOOLS = [
+        ("brush", "Pincel", "B"), ("eraser", "Borrador", "E"),
+        ("smudge", "Difuminar", None), ("fill", "Relleno", "G"),
+        ("gradient", "Gradiente", None), ("line", "Línea", None),
+        ("pick", "Cuentagotas", "I"), ("select", "Selección", "S"),
+        ("move", "Mover", "M"), ("wand", "Varita mágica", "W"),
+        ("rect_fill", "Rectángulo relleno", None),
+        ("outline", "Rectángulo contorno", None),
+        ("ellipse_fill", "Elipse rellena", None),
+        ("ellipse", "Elipse contorno", None),
+        ("vec_pen", "Pluma vectorial", None),
+    ]
+    _FRAME_ACTIONS = [
+        ("add", "Nuevo frame", "Ctrl+N"), ("duplicate", "Duplicar frame", "Ctrl+D"),
+        ("copy", "Copiar frame", "Ctrl+C"), ("paste", "Pegar frame", "Ctrl+V"),
+        ("trash", "Borrar frame", "Supr"), ("onion", "Papel cebolla", None),
+        ("play", "Reproducir", "Espacio"),
+    ]
+
+    @staticmethod
+    def _tool_grid(items):
+        flow = Gtk.FlowBox()
+        flow.set_selection_mode(Gtk.SelectionMode.NONE)
+        flow.set_max_children_per_line(2)
+        flow.set_column_spacing(8); flow.set_row_spacing(8)
+        flow.set_homogeneous(True)
+        for icon_name, name, tag in items:
+            flow.append(gw.item_row(gw.icon_badge(icon_image(icon_name, 18)),
+                                     name, tag_text=tag))
+        return flow
+
     def _show_tutorial(self, force=False):
         from .. import settings as _s
         if not force and _s.get("tutorial_paint_shown", False):
             return
         dlg = Gtk.Dialog(title="Editor de Pintura — Guía rápida",
                          transient_for=self, modal=True)
-        dlg.set_default_size(520, 460)
+        dlg.set_default_size(560, 680)
         box = dlg.get_content_area()
         box.set_spacing(0)
 
         sc = Gtk.ScrolledWindow(); sc.set_vexpand(True)
-        txt = Gtk.TextView(); txt.set_editable(False); txt.set_cursor_visible(False)
-        txt.set_wrap_mode(Gtk.WrapMode.WORD)
-        txt.set_margin_start(18); txt.set_margin_end(18)
-        txt.set_margin_top(14); txt.set_margin_bottom(14)
-        buf = txt.get_buffer()
-        GUIDE = (
-            "🎨  EDITOR DE PINTURA — animación con capas, estilo Clip Studio.\n"
-            "Dibuja cada fotograma con pinceles y capas, y guárdalo como pose\n"
-            "para que tu mascota lo use.\n\n"
-            "🚀  FLUJO RECOMENDADO\n"
-            "────────────────────────────────────────\n"
-            "  1. Dibuja el primer fotograma (usa capas para separar partes).\n"
-            "  2. ➕ añade fotogramas y modifica el dibujo en cada uno.\n"
-            "  3. ▶ reproduce para ver la animación.\n"
-            "  4. Escribe el nombre de la pose y «Guardar pose».\n"
-            "  5. Guarda un proyecto .alproj para seguir editando luego.\n\n"
-            "🖌️  HERRAMIENTAS  (panel izquierdo)\n"
-            "────────────────────────────────────────\n"
-            "  B  Pincel         E  Borrador\n"
-            "  F  Relleno        G  Gradiente\n"
-            "  L  Línea          I  Cuentagotas\n"
-            "  S  Selección      M  Mover\n"
-            "  W  Varita mágica  V  Pluma vectorial\n"
-            "  U  Difuminar      X  Cambiar FG ↔ BG\n\n"
-            "🔧  OPCIONES DE PINCEL  (barra superior)\n"
-            "────────────────────────────────────────\n"
-            "  Tipo de pincel — Radio — Suavidad — Opacidad\n"
-            "  [ ]  reducir / aumentar radio del pincel\n"
-            "  Simetría ↔ ↕ ✦ para dibujar en espejo\n"
-            "  Estabilizador y suavizado → trazos más limpios\n\n"
-            "🎞️  TIMELINE  (parte inferior)\n"
-            "────────────────────────────────────────\n"
-            "  ➕ Frame   → añade un nuevo fotograma\n"
-            "  ⎘ Dupl.   → duplica el frame actual\n"
-            "  ⎘ Copiar / Pegar → Ctrl+C / Ctrl+V\n"
-            "  Haz clic en un frame para ir a él\n"
-            "  👁 Papel cebolla → ver frames vecinos en rojo/azul\n"
-            "  ▶ (arriba) reproduce la animación  (Espacio)\n\n"
-            "🗂️  CAPAS  (panel derecho)\n"
-            "────────────────────────────────────────\n"
-            "  +  nueva capa      ⎘  duplicar\n"
-            "  👁  ocultar/mostrar    🔒  bloquear\n"
-            "  α  bloquear alpha (pinta solo píxeles existentes)\n"
-            "  Cada capa tiene opacidad y modo de fusión\n"
-            "  Arrastra ▲▼ para reordenar\n\n"
-            "💾  GUARDAR  (¡importante para no perder tu trabajo!)\n"
-            "────────────────────────────────────────\n"
-            "  • POSE para la mascota: escribe el nombre de la pose en\n"
-            "    el campo inferior (default, walk, idle, greet, jump…) y\n"
-            "    pulsa «💾 Guardar pose» o Ctrl+S. Aplana las capas.\n"
-            "  • PROYECTO para seguir editando: Ctrl+Shift+S guarda un\n"
-            "    .alproj con TODAS las capas intactas en\n"
-            "    ~/Documents/AnimaLinux/projects. Ábrelo con 📂 cuando\n"
-            "    quieras continuar exactamente donde lo dejaste.\n\n"
-            "↩️  DESHACER / REHACER\n"
-            "  Ctrl+Z   Ctrl+Y   (hasta 30 niveles)\n\n"
-            "🔍  ZOOM Y NAVEGACIÓN\n"
-            "  Ctrl+Scroll → zoom  |  Espacio+arrastrar → pan\n"
-            "  Ctrl+0 → ajustar zoom al lienzo\n\n"
-            "❌  CERRAR\n"
-            "  Botón ✕ (arriba a la derecha) o Ctrl+W.\n"
-            "  Te preguntará si quieres guardar antes de salir.\n"
-        )
-        buf.set_text(GUIDE)
-        sc.set_child(txt)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        content.set_margin_start(20); content.set_margin_end(20)
+        content.set_margin_top(16); content.set_margin_bottom(16)
+
+        content.append(gw.body(
+            "Editor de pintura — animación con capas, estilo Clip Studio. "
+            "Dibuja cada fotograma con pinceles y capas, y guárdalo como "
+            "pose para que tu mascota lo use."))
+
+        content.append(gw.section_title("FLUJO RECOMENDADO"))
+        steps_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        for i, step in enumerate([
+            "Dibuja el primer fotograma (usa capas para separar partes).",
+            "Añade fotogramas y modifica el dibujo en cada uno.",
+            "Reproduce (▶ o Espacio) para ver la animación.",
+            "Escribe el nombre de la pose y pulsa «Guardar pose».",
+            "Guarda un proyecto .alproj para seguir editando luego.",
+        ], start=1):
+            steps_box.append(gw.step_row(i, step))
+        content.append(steps_box)
+
+        content.append(gw.section_title("HERRAMIENTAS"))
+        content.append(self._tool_grid(self._TOOLS))
+        content.append(gw.note(
+            "Barra superior: tipo de pincel, radio, suavidad y opacidad — "
+            "[ ] cambia el radio. Simetría ↔ ↕ ✦ para dibujar en espejo. "
+            "Estabilizador y suavizado dan trazos más limpios."))
+
+        content.append(gw.section_title("TIMELINE"))
+        content.append(self._tool_grid(self._FRAME_ACTIONS))
+        content.append(gw.note(
+            "Clic en un frame para ir a él. El papel cebolla muestra los "
+            "frames vecinos en rojo/azul como guía."))
+
+        content.append(gw.section_title("CAPAS"))
+        content.append(gw.note(
+            "+ nueva capa · ⎘ duplicar · 👁 ocultar/mostrar · 🔒 bloquear · "
+            "α bloquea el alpha (pinta solo píxeles existentes). Cada capa "
+            "tiene su propia opacidad y modo de fusión; arrastrá ▲▼ para "
+            "reordenar."))
+
+        content.append(gw.section_title("GUARDAR"))
+        content.append(gw.note(
+            "POSE para la mascota: escribe el nombre (default, walk, idle, "
+            "greet, jump…) abajo y pulsa «Guardar pose» o Ctrl+S. Aplana "
+            "las capas."))
+        content.append(gw.note(
+            "PROYECTO para seguir editando: Ctrl+Shift+S guarda un .alproj "
+            "con todas las capas intactas en ~/Documents/AnimaLinux/"
+            "projects. Ábrelo con 📂 cuando quieras continuar exactamente "
+            "donde lo dejaste."))
+
+        content.append(gw.note(
+            "Deshacer/rehacer: Ctrl+Z / Ctrl+Y (hasta 30 niveles).\n"
+            "Zoom: Ctrl+Scroll · Espacio+arrastrar = pan · Ctrl+0 ajusta "
+            "al lienzo.\n"
+            "Cerrar: botón ✕ (arriba a la derecha) o Ctrl+W — te "
+            "preguntará si quieres guardar antes de salir."))
+
+        sc.set_child(content)
         box.append(sc)
 
         footer = Gtk.Box(spacing=10)
@@ -2426,10 +2456,17 @@ class PaintEditor(Gtk.Window):
     # ── tamaño lienzo ─────────────────────────────────────────────────────────
     def _ask_canvas_size(self):
         dlg = Gtk.Dialog(title="Tamaño del lienzo", transient_for=self, modal=True)
-        dlg.set_default_size(380, 280)
+        dlg.set_default_size(400, 340)
         box = dlg.get_content_area()
         box.set_spacing(8); box.set_margin_start(16); box.set_margin_end(16)
         box.set_margin_top(14); box.set_margin_bottom(14)
+
+        box.append(gw.note(
+            "El tamaño no se puede cambiar después de dibujar. 512×512 es "
+            "un buen punto de partida: da espacio para detalle a mano "
+            "alzada sin generar archivos enormes. Usa un tamaño mayor solo "
+            "si necesitás más resolución (ej. para exportar a pantalla "
+            "completa)."))
 
         box.append(Gtk.Label(label="Ancho (px):"))
         w_sp = Gtk.SpinButton(adjustment=Gtk.Adjustment(
@@ -2441,18 +2478,25 @@ class PaintEditor(Gtk.Window):
         box.append(h_sp)
 
         presets = Gtk.Box(spacing=3)
-        for lbl2,w,h in [("512²",512,512),("800×600",800,600),
-                          ("1024²",1024,1024),("1280×720",1280,720),
-                          ("1920×1080",1920,1080)]:
+        for lbl2,w,h,recommended in [("512² ★",512,512,True),("800×600",800,600,False),
+                          ("1024²",1024,1024,False),("1280×720",1280,720,False),
+                          ("1920×1080",1920,1080,False)]:
             b = Gtk.Button(label=lbl2)
+            if recommended:
+                b.set_tooltip_text("Recomendado para empezar")
             b.connect("clicked", lambda _,ww=w,hh=h: (w_sp.set_value(ww),h_sp.set_value(hh)))
             presets.append(b)
         box.append(presets)
 
+        btn_row = Gtk.Box(spacing=8, halign=Gtk.Align.END)
+        cancel = Gtk.Button(label="Cancelar")
+        cancel.connect("clicked", lambda _: (dlg.destroy(), self.close()))
+        btn_row.append(cancel)
         ok = Gtk.Button(label="Crear lienzo"); ok.add_css_class("suggested-action")
         ok.connect("clicked", lambda _: self._apply_size(
             dlg, int(w_sp.get_value()), int(h_sp.get_value())))
-        box.append(ok); dlg.present()
+        btn_row.append(ok)
+        box.append(btn_row); dlg.present()
         return False
 
     def _apply_size(self, dlg, w, h):
@@ -2465,6 +2509,7 @@ class PaintEditor(Gtk.Window):
         self._rebuild_strip(); self.layer_panel.rebuild()
         self.canvas_size_lbl.set_text(f"{w}×{h}")
         dlg.destroy()
+        self._show_tutorial()
 
     # ── exportar GIF ──────────────────────────────────────────────────────────
     def _export_gif_dialog(self):
