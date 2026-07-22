@@ -19,6 +19,7 @@ from .core.library import Library  # noqa: E402
 from .core.mascot_manager import MascotManager  # noqa: E402
 from .ui.control import ControlWindow  # noqa: E402
 from .hypr import HyprMonitor  # noqa: E402
+from .overlay import BACKEND  # noqa: E402
 from . import pack as packmod  # noqa: E402
 
 APP_ID = "dev.animalinux.App"
@@ -38,6 +39,8 @@ class AnimaApp(Gtk.Application):
         self._tray_proc = None
         self._hypr = None
         self._prox_id = None
+        self._fs_watch_id = None
+        self._fs_active = False
 
     # ------------------------------------------------------------------
     def do_command_line(self, command_line):
@@ -75,15 +78,27 @@ class AnimaApp(Gtk.Application):
         # ese pico de carga simultánea.
         for i, anim in enumerate(self.library.active()):
             GLib.timeout_add(i * 400, self.manager.spawn, anim)
-        # Pausa por pantalla completa: DESACTIVADA por defecto. Antes esto
-        # pausaba (congelaba) la mascota en cuanto otra ventana entraba en
-        # fullscreen, para ahorrar GPU. Pero lo normal es querer que la mascota
-        # siga animando sobre juegos/apps. Se reactiva con la config
-        # pause_on_fullscreen: true en library.json.
+        # Pausa por pantalla completa: el comportamiento por defecto depende
+        # del backend porque el efecto visual es distinto en cada uno.
+        #   - Wayland/layer-shell (Hyprland/Sway): la mascota vive en la capa
+        #     OVERLAY, así que se ve SIEMPRE encima, incluso sobre un juego o
+        #     vídeo a pantalla completa. Pausarla ahí se notaría (se
+        #     congelaría a la vista), así que sigue DESACTIVADO por defecto
+        #     — opt-in con pause_on_fullscreen: true en library.json.
+        #   - X11 (GNOME/KDE/Xfce/MATE/Cinnamon, o XWayland forzado): no hay
+        #     capa "overlay" real, así que una ventana fullscreen ajena
+        #     normalmente TAPA la mascota igual. Seguir animándola (frame
+        #     clock continuo + timers) sin que se vea nada es puro gasto de
+        #     batería/CPU, así que aquí queda ACTIVADO por defecto — se
+        #     desactiva con pause_on_fullscreen: false.
         self._hypr = None
-        if self.library.config.get("pause_on_fullscreen", False):
-            self._hypr = HyprMonitor(self._on_fullscreen)
-            self._hypr.start()
+        pause_cfg = self.library.config.get("pause_on_fullscreen", None)
+        if BACKEND == "wayland":
+            if pause_cfg is True:
+                self._hypr = HyprMonitor(self._on_fullscreen)
+                self._hypr.start()
+        elif pause_cfg is not False:
+            self._fs_watch_id = GLib.timeout_add(2000, self._check_fullscreen_x11)
         # bandeja (proceso aparte para no mezclar GTK3 con GTK4)
         self._launch_tray()
         # saludo entre mascotas que se cruzan (modo Vida)
@@ -109,6 +124,25 @@ class AnimaApp(Gtk.Application):
     def _on_fullscreen(self, active):
         self.manager.pause_all(active)
         return False
+
+    def _check_fullscreen_x11(self):
+        """Backend X11: sondeo liviano (sin subproceso) de si la ventana
+        activa está a pantalla completa, vía Wnck/EWMH — ya es una
+        dependencia blanda del proyecto (ver mascot_manager._fetch_platforms_wnck)."""
+        try:
+            import gi
+            gi.require_version("Wnck", "3.0")
+            from gi.repository import Wnck
+            screen = Wnck.Screen.get_default()
+            screen.force_update()
+            active = screen.get_active_window()
+            fs = bool(active and active.is_fullscreen())
+        except Exception:  # noqa: BLE001
+            fs = False
+        if fs != self._fs_active:
+            self._fs_active = fs
+            self.manager.pause_all(fs)
+        return True
 
     # ------------------------------------------------------------------
     # llamadas desde la ventana de configuración → delegan en MascotManager
@@ -201,6 +235,9 @@ class AnimaApp(Gtk.Application):
             self._prox_id = None
         if self._hypr:
             self._hypr.stop()
+        if self._fs_watch_id:
+            GLib.source_remove(self._fs_watch_id)
+            self._fs_watch_id = None
         if self._tray_proc:
             try:
                 self._tray_proc.force_exit()

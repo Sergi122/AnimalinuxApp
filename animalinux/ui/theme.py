@@ -449,13 +449,15 @@ scrollbar {{
   background-image: none;
   margin: 0;
 }}
+/* SIN min-width/min-height/border propios: en GTK4 (visto en 4.22) ese
+   min-size tan chico junto al borde le hacía calcular un tamaño interno
+   negativo para el gizmo del slider ("GtkGizmo (slider) reported min
+   width -6"). Confirmado por descarte: sacando esto desaparece el warning;
+   heredar el tamaño de Adwaita no cambia cómo se ve (verificado en pantalla). */
 scrollbar slider {{
   background-color: {WIDGET2};
   background-image: none;
   border-radius: 4px;
-  min-width: 6px;
-  min-height: 6px;
-  border: 2px solid transparent;
   background-clip: padding-box;
 }}
 scrollbar slider:hover {{

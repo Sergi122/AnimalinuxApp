@@ -35,7 +35,12 @@ class MascotManager:
         self._refresh_platforms()
 
     def _refresh_platforms(self):
-        if not self._platforms_busy:
+        # las plataformas solo las usa el modo Vida (andar/trepar por
+        # bordes de ventana); sin ninguna mascota en ese modo, lanzar un
+        # hilo + subproceso hyprctl cada tick es gasto puro (fork/exec y
+        # wakeups constantes, malo para batería en equipos modestos).
+        if not self._platforms_busy and any(
+                w.mode == "life" for w in self.mascots.values()):
             self._platforms_busy = True
             threading.Thread(target=self._fetch_platforms_bg, daemon=True).start()
         return True   # seguir repitiendo
@@ -165,6 +170,8 @@ class MascotManager:
         """Saludo entre mascotas que se cruzan (modo Vida). Idea 7: se miran,
         se saludan y luego se ALEJAN (meet) para no quedarse pegadas/trabadas."""
         life = [w for w in self.mascots.values() if w.mode == "life"]
+        if len(life) < 2:
+            return True
         for i in range(len(life)):
             for j in range(i + 1, len(life)):
                 a, b = life[i], life[j]
