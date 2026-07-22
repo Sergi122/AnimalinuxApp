@@ -1,0 +1,110 @@
+============================================================
+ PUBLICAR ANIMALINUX EN AUR — COMANDOS PASO A PASO
+============================================================
+Paquete: animalinux        Version estable: v0.3.0 (tag ya pusheado)
+Repo: https://github.com/Sergi122/AnimalinuxApp
+
+  >>> COSAS QUE DEBES REEMPLAZAR (aparecen marcadas con <<< >>>):
+      <<<TU_EMAIL>>>     = tu correo (ej: grupodetrabajodeiayanalisis@gmail.com)
+      <<<TU_USUARIO>>>   = el nombre de usuario que elijas en la web del AUR
+      <<<TU_CLAVE_SSH>>> = el texto que sale del comando "cat ~/.ssh/id_ed25519.pub"
+
+  El PKGBUILD y .SRCINFO ya estan listos (v0.3.0, sha256 verificado).
+  Solo falta tener cuenta AUR y hacer el push final.
+
+
+------------------------------------------------------------
+ PASO 1 — Ver si el registro de AUR esta abierto (en el navegador)
+------------------------------------------------------------
+Abre:   https://aur.archlinux.org/register
+
+  - Si ves el FORMULARIO            -> abierto, sigue al PASO 2.
+  - Si dice "registration is currently disabled" -> cerrado,
+    reintenta otro dia (es medida anti-spam de Arch, no fallo tuyo).
+
+
+------------------------------------------------------------
+ PASO 2 — Crear tu clave SSH (solo si no tienes ya una)
+------------------------------------------------------------
+COMANDO (pulsa Enter en todas las preguntas):
+
+    ssh-keygen -t ed25519 -C "<<<TU_EMAIL>>>"
+
+COMANDO para ver y copiar tu clave PUBLICA:
+
+    cat ~/.ssh/id_ed25519.pub
+
+  -> Copia TODO lo que imprima. Eso es <<<TU_CLAVE_SSH>>>.
+
+
+------------------------------------------------------------
+ PASO 3 — Crear la cuenta (en el navegador)
+------------------------------------------------------------
+En  https://aur.archlinux.org/register  rellena:
+    Username        ->  <<<TU_USUARIO>>>
+    Email           ->  <<<TU_EMAIL>>>
+    SSH Public Key  ->  <<<TU_CLAVE_SSH>>>
+Y confirma el email que te llega.
+
+
+------------------------------------------------------------
+ PASO 4 — Clonar el repo vacio del paquete en AUR
+------------------------------------------------------------
+COMANDO:
+
+    git clone ssh://aur@aur.archlinux.org/animalinux.git aur-animalinux
+
+  (La primera vez te preguntara si confias en el host: escribe "yes".)
+
+
+------------------------------------------------------------
+ PASO 5 — Copiar los archivos y subirlos (PUSH FINAL)
+------------------------------------------------------------
+COMANDOS (ejecutalos desde la carpeta del proyecto animalinux):
+
+    cp PKGBUILD .SRCINFO aur-animalinux/
+    cd aur-animalinux
+    git add PKGBUILD .SRCINFO
+    git commit -m "Initial import: animalinux 0.3.0"
+    git push
+
+  -> Hecho. El paquete queda en:
+     https://aur.archlinux.org/packages/animalinux
+
+
+============================================================
+ EXTRA — Subir una version nueva en el futuro (vX.Y.Z)
+============================================================
+  >>> REEMPLAZA <<<X.Y.Z>>> por la version nueva (ej: 0.4.0) en TODO.
+
+1) Cambiar la version (en la carpeta del proyecto):
+   - pyproject.toml          -> version = "<<<X.Y.Z>>>"
+   - animalinux/__init__.py   -> __version__ = "<<<X.Y.Z>>>"
+   - PKGBUILD                 -> pkgver=<<<X.Y.Z>>>
+   - .SRCINFO                 -> pkgver = <<<X.Y.Z>>>  y la linea source con v<<<X.Y.Z>>>
+
+2) Commit + tag + push:
+       git add -A
+       git commit -m "Release v<<<X.Y.Z>>>"
+       git tag -a v<<<X.Y.Z>>> -m "AnimaLinux v<<<X.Y.Z>>>"
+       git push origin main
+       git push origin v<<<X.Y.Z>>>
+
+3) Calcular el sha256 del tarball nuevo:
+       curl -sL https://github.com/Sergi122/AnimalinuxApp/archive/v<<<X.Y.Z>>>.tar.gz -o t.tar.gz
+       sha256sum t.tar.gz
+   -> Copia el hash que imprime (el primer campo).
+
+4) Pegar ese hash en PKGBUILD y .SRCINFO (sustituye al sha256 viejo),
+   luego:
+       git add PKGBUILD .SRCINFO
+       git commit -m "AUR: sha256 del tarball v<<<X.Y.Z>>>"
+       git push origin main
+
+5) Subir a AUR (igual que el PASO 5):
+       cp PKGBUILD .SRCINFO aur-animalinux/
+       cd aur-animalinux
+       git add PKGBUILD .SRCINFO
+       git commit -m "Update to <<<X.Y.Z>>>"
+       git push
+============================================================

@@ -7,4 +7,6 @@ dist/
 .eggs/
 web/
 .claude/
+.agents/
+skills-lock.json
 *.log
