@@ -511,6 +511,14 @@ class ControlWindow(Gtk.ApplicationWindow):
         except GLib.Error:
             return
         path = gfile.get_path()
+        if path and path.lower().endswith(".alpack"):
+            # el usuario eligió un pack .alpack desde un botón de GIF/vídeo/
+            # imagen (o desde "Nueva con vida" → Importar): es un error de
+            # bicicleta esperable (los botones están uno al lado del otro),
+            # no un archivo inválido — lo tratamos igual que si hubiese usado
+            # el botón "Pack", respetando el modo Vida si venía de ese flujo.
+            self._import_pack_path(path, live=getattr(self, "_pending_live", False))
+            return
         method = BG_METHODS[self.method_combo.get_selected()][1]
         live = getattr(self, "_pending_live", False)
         self.status.set_text("Procesando… (puede tardar si se usa IA)")
@@ -608,11 +616,19 @@ class ControlWindow(Gtk.ApplicationWindow):
             gfile = dialog.open_finish(result)
         except GLib.Error:
             return
+        self._import_pack_path(gfile.get_path())
+
+    def _import_pack_path(self, path, live=False):
         self.status.set_text("Importando pack…")
 
         def work():
             try:
-                self.app.import_pack(gfile.get_path())
+                aid = self.app.import_pack(path)
+                if live:
+                    # el pack ya trae sus propias poses (walk/idle/…); si el
+                    # usuario venía del flujo "con vida" lo respetamos en vez
+                    # de dejarlo en el modo "gif" por defecto de import_pack.
+                    self.app.library.update(aid, mode="life")
                 GLib.idle_add(self._pack_done)
             except Exception as e:  # noqa: BLE001
                 GLib.idle_add(self.status.set_text, f"Error con el pack: {e}")
@@ -746,6 +762,10 @@ class ControlWindow(Gtk.ApplicationWindow):
         try:
             gfile = dialog.open_finish(result)
         except GLib.Error:
+            return
+        path = gfile.get_path()
+        if path and path.lower().endswith(".alpack"):
+            self._import_pack_path(path)
             return
         cols = int(self.sheet_cols.get_value())
         self.status.set_text("Cortando spritesheet…")
