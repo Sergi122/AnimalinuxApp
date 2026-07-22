@@ -43,7 +43,13 @@ case "$PKG_MGR" in
         sudo apt update
         sudo apt install -y python3 python3-gi python3-gi-cairo \
             gir1.2-gtk-4.0 python3-pip python3-pil python3-xlib ffmpeg \
-            gir1.2-ayatanaappindicator3-0.1 gir1.2-wnck-3.0
+            gir1.2-wnck-3.0
+        echo ">> Ícono de bandeja (appindicator)..."
+        sudo apt install -y gir1.2-ayatanaappindicator3-0.1 || {
+            echo "!! No encontré gir1.2-ayatanaappindicator3-0.1 en tus repos"
+            echo "   (el nombre del paquete varía según la versión de Ubuntu/"
+            echo "   Debian). La app funciona igual, solo sin ícono de bandeja."
+        }
         echo ">> gtk4-layer-shell (solo hace falta en Hyprland/Sway)..."
         sudo apt install -y gir1.2-gtklayershell-0.1 || {
             echo "!! No encontré gir1.2-gtklayershell-0.1 en tus repos."
