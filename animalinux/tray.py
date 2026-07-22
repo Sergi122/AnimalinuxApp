@@ -58,7 +58,7 @@ def main():
 
     indicator = AppIndicator.Indicator.new(
         "animalinux",
-        "face-smile",  # icono del tema; cámbialo por uno propio si quieres
+        "animalinux",  # icono propio (mascota), instalado en hicolor/*/apps
         AppIndicator.IndicatorCategory.APPLICATION_STATUS,
     )
     indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
