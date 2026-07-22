@@ -2,7 +2,7 @@
 Name=AnimaLinux
 Comment=Mascotas animadas en el escritorio para Hyprland/Wayland
 Exec=animalinux --show
-Icon=animalinux
+Icon=face-smile
 Terminal=false
 Type=Application
 Categories=Graphics;2DGraphics;
