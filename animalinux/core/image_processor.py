@@ -91,11 +91,37 @@ def _install_ffmpeg_hint():
     return "el gestor de paquetes de tu distro (paquete 'ffmpeg')"
 
 
+MAX_VIDEO_SECONDS = 10   # los vídeos más largos hay que recortarlos antes de importar
+
+
+def _video_duration_seconds(path):
+    """Duración vía ffprobe (viene con el paquete ffmpeg). Si no se puede
+    determinar (ffprobe ausente, contenedor raro...), no bloquea el import:
+    devuelve None y _load_video sigue de largo sin el chequeo de duración."""
+    if not shutil.which("ffprobe"):
+        return None
+    try:
+        out = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+             "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
+            check=True, capture_output=True, text=True,
+        ).stdout.strip()
+        return float(out)
+    except (subprocess.CalledProcessError, ValueError):
+        return None
+
+
 def _load_video(path):
     """Extrae frames de un video usando ffmpeg (debe estar instalado)."""
     if not shutil.which("ffmpeg"):
         raise RuntimeError(
             "ffmpeg no está instalado. Instálalo con: " + _install_ffmpeg_hint()
+        )
+    duration = _video_duration_seconds(path)
+    if duration is not None and duration > MAX_VIDEO_SECONDS:
+        raise RuntimeError(
+            f"El vídeo dura {duration:.0f}s — el máximo para importar como "
+            f"mascota es {MAX_VIDEO_SECONDS}s. Recórtalo e intenta de nuevo."
         )
     tmp = Path(tempfile.mkdtemp(prefix="animalinux_"))
     try:

@@ -25,7 +25,7 @@ gi.require_version("Gtk4LayerShell", "1.0")
 from gi.repository import Gtk, Gdk, GLib, GObject, Graphene  # noqa: E402
 from gi.repository import Gtk4LayerShell as LayerShell  # noqa: E402
 
-from .live_animation import LiveAnimationMixin  # noqa: E402
+from .live_animation import LiveAnimationMixin, MANDATORY_POSES  # noqa: E402
 from .. import settings
 
 _CSS_APPLIED = False
@@ -562,6 +562,8 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         return data["flip"] if self._facing_left else data["normal"]
 
     def _has_pose(self, pose):
+        if pose not in MANDATORY_POSES and pose in self.anim.get("disabled_poses", ()):
+            return False
         return pose in self._poses
 
     # ---------- arranque ----------

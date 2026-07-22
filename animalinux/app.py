@@ -124,12 +124,6 @@ class AnimaApp(Gtk.Application):
     def set_mascot_mode(self, anim_id, mode):
         self.manager.set_mode(anim_id, mode)
 
-    def generate_life_poses(self, anim_id):
-        return self.manager.generate_life_poses(anim_id)
-
-    def _generate_pose_files(self, anim_id):
-        return self.manager.generate_pose_files(anim_id)
-
     def reload_mascot(self, anim_id):
         self.manager.reload(anim_id)
 
