@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=AnimaLinux
 Comment=Mascotas animadas en el escritorio para Hyprland/Wayland
-Exec=animalinux
+Exec=animalinux --show
 Icon=animalinux
 Terminal=false
 Type=Application
