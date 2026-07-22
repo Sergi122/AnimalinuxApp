@@ -145,15 +145,6 @@ class MascotManager:
             win.set_scale(scale)
 
     def set_mode(self, anim_id, mode):
-        # al pasar a "Vida", si solo hay la pose default, generar las poses
-        if mode == "life":
-            anim = self.library.animations.get(anim_id, {})
-            if anim.get("poses", ["default"]) == ["default"]:
-                self.generate_life_poses(anim_id)
-                win = self.mascots.get(anim_id)
-                if win and win.mode != "life":
-                    win.set_mode("life")
-                return
         win = self.mascots.get(anim_id)
         if win:
             win.set_mode(mode)
@@ -188,25 +179,6 @@ class MascotManager:
         self.mascots.clear()
 
     # ---------- generación de poses ----------
-    def generate_life_poses(self, anim_id):
-        """Hilo principal: genera y recarga la mascota."""
-        made = self.generate_pose_files(anim_id)
-        self.reload(anim_id)
-        return made
-
-    def generate_pose_files(self, anim_id):
-        """Solo disco/datos (seguro en un hilo). NO toca ventanas GTK."""
-        from . import pose_generator, image_processor
-        fd = self.library.frames_dir(anim_id)
-        base = fd / "frame_0000.png"
-        if not base.exists():
-            return []
-        made = pose_generator.generate_poses(str(base), fd)
-        for pose in made:
-            image_processor.ensure_flipped(fd / pose)
-        self.library.update(anim_id, poses=["default"] + made)
-        return made
-
     def generate_puppet_poses(self, anim_id, rig):
         from .. import puppet
         from . import image_processor

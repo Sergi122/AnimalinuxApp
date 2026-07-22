@@ -24,6 +24,12 @@ import random
 
 from gi.repository import GLib  # noqa: E402
 
+
+# Poses obligatorias: el usuario puede desactivar poses "de más" (greet,
+# kiss, angry, sleep, grab...) desde la UI, pero no estas — sin "walk"/"jump"
+# la mascota no podría moverse de forma creíble en modo Vida.
+MANDATORY_POSES = frozenset({"default", "walk", "jump"})
+
 BEHAVIOR_INTERVAL = 60      # ms entre pasos (modo Vida)
 GRAVITY = 2                 # px/tick^2 base (se escala por tamaño)
 GREET_TICKS = 25            # cuánto dura el saludo
@@ -177,17 +183,21 @@ class LiveAnimationMixin:
         """La mascota agarra el cursor: el sprite sigue al puntero por todo el
         escritorio (backend X11: sondeando su posición global, ver
         _poll_grab_cursor; sin expandir la región de input, para no bloquear
-        los clics del resto del escritorio) hasta soltarlo."""
+        los clics del resto del escritorio) hasta soltarlo. Si el usuario
+        desactivó la pose "grab" desde la UI, este comportamiento entero
+        queda desactivado (no solo el sprite) — solo reacciona con "angry"
+        si la tiene, sin perseguir el cursor."""
+        if not self._has_pose("grab"):
+            if self._has_pose("angry"):
+                self._set_pose("angry")
+            return
         self._grab_ttl = 80
         self._state = "grab"
         self._grabbing = True
         self._grab_anchor = None
         self._toss_vx = 0.0
         self._toss_vy = 0.0
-        if self._has_pose("grab"):
-            self._set_pose("grab")
-        elif self._has_pose("angry"):
-            self._set_pose("angry")
+        self._set_pose("grab")
         self._update_input_region()
 
     def _poll_grab_cursor(self):
@@ -240,6 +250,14 @@ class LiveAnimationMixin:
             self._disable_self()
 
     def _start_bored_grab(self):
+        if not self._has_pose("grab"):
+            # sin la pose "grab" el usuario no quiere el berrinche de agarrar
+            # el ratón ni que se bloquee el teclado — la cuenta hacia "se
+            # desactiva sola" sigue igual (no depende de _bored_grab, ver
+            # _check_boredom), solo se salta el show.
+            if self._has_pose("angry"):
+                self._set_pose("angry")
+            return
         _g, dur, _d = self._bored_cfg()
         self._bored_grab = True
         # NO se agranda (escalar el bitmap se ve pixelado): el drama es el
@@ -383,29 +401,48 @@ class LiveAnimationMixin:
         self._lean_to(-self._dir * 8)
         self._set_pose("jump" if self._has_pose("jump") else "default")
 
-    def trigger_greet(self):
-        """Saludar. NO cuenta como atención del usuario (puede venir de otra
-        mascota), pero sí saca del sueño."""
+    def trigger_greet(self, pose=None, fallback_jump=True):
+        """Saludar — o mandarle un beso al USUARIO (nunca a otra mascota, ver
+        meet()) si el pack trae la pose "kiss": sale al azar cuando el
+        cursor pasa por encima (atención real del usuario), como gesto de
+        cariño típico de mascota estilo anime. NO cuenta como atención del
+        usuario (puede venir de otra mascota vía meet(), que fuerza
+        "greet"), pero sí saca del sueño. fallback_jump=False (usado por
+        meet()) evita el salto de reserva cuando no hay pose de saludo."""
         if self._state == "sleep":
             self._state = "rest"
             self._rest_ttl = random.randint(6, 14)
         if self._greet_ttl > 0 or self._greet_cd > 0:
             return
-        if self._has_pose("greet"):
+        if pose is None:
+            pose = ("kiss" if self._has_pose("kiss") and random.random() < 0.35
+                     else "greet")
+        elif pose != "greet" and not self._has_pose(pose):
+            pose = "greet"
+        if self._has_pose(pose):
             self._greet_ttl = GREET_TICKS
-            self._set_pose("greet")
-        elif self._state != "jump":
+            self._set_pose(pose)
+        elif fallback_jump and self._state != "jump":
             self._start_jump()
+        elif self._retreat_from is not None:
+            # sin pose de saludo y sin salto de reserva (mascotas
+            # encontrándose, ver meet()): nada dramático, un tick y a
+            # retirarse — así no queda "pegada" esperando un saludo que
+            # nunca llega ni salta rarísimo al cruzarse con otra.
+            self._greet_ttl = 1
 
     def meet(self, other_cx):
         """Idea 7: encuentro con otra mascota → mirarse, saludar y retirarse
-        (para no quedarse pegadas / 'trabadas')."""
+        (para no quedarse pegadas / 'trabadas'). Siempre "greet": el beso
+        ("kiss") es un gesto para el usuario, no entre mascotas. Sin salto de
+        reserva si "greet" está desactivada — dos mascotas saltando al
+        cruzarse se ve como si se hubiesen bugueado."""
         if (self._greet_cd > 0 or self._greet_ttl > 0 or self._bored_grab or
                 self._state in ("grab", "toss", "jump", "falling", "to_climb")):
             return
         self.face_toward(other_cx)
         self._retreat_from = other_cx
-        self.trigger_greet()
+        self.trigger_greet("greet", fallback_jump=False)
 
     def _land(self, ny):
         self._squash(1.22, 0.82)

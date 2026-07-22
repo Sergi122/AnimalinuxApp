@@ -21,6 +21,7 @@ Estructura del JSON:
 Los frames .png viven en  DATA_DIR/animations/<id>/frame_0000.png ...
 """
 import json
+import shutil
 import uuid
 from .. import paths
 
@@ -74,12 +75,13 @@ class Library:
 
     def remove(self, anim_id):
         self.animations.pop(anim_id, None)
-        # borrar los frames del disco
+        # borrar los frames del disco (incluye subcarpetas de poses: walk/,
+        # greet/, kiss/... rmtree en vez de iterdir+unlink porque este
+        # último no borra directorios y cortaba la función a mitad de
+        # camino con IsADirectoryError, dejando el borrado sin guardar)
         d = paths.ANIMATIONS_DIR / anim_id
         if d.exists():
-            for f in d.iterdir():
-                f.unlink()
-            d.rmdir()
+            shutil.rmtree(d, ignore_errors=True)
         self.save()
 
     def update(self, anim_id, **kwargs):

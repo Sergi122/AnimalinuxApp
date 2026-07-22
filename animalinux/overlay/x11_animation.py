@@ -28,7 +28,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, GLib, GObject, Graphene  # noqa: E402
 
-from .live_animation import LiveAnimationMixin  # noqa: E402
+from .live_animation import LiveAnimationMixin, MANDATORY_POSES  # noqa: E402
 from . import _x11_hints  # noqa: E402
 from .. import settings
 
@@ -563,6 +563,8 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         return data["flip"] if self._facing_left else data["normal"]
 
     def _has_pose(self, pose):
+        if pose not in MANDATORY_POSES and pose in self.anim.get("disabled_poses", ()):
+            return False
         return pose in self._poses
 
     def _win_h(self):

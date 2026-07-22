@@ -12,12 +12,13 @@ from gi.repository import Gtk, GLib, Gdk, Gio
 from ..core import image_processor as importer
 from ..core import gpu
 from ..overlay import BACKEND
+from ..overlay.live_animation import MANDATORY_POSES
 from ..i18n import t
 
 BG_METHODS = [
-    ("IA (recorte limpio)", "ai"),
-    ("Color de fondo (rápido)", "chroma"),
-    ("Ninguno (ya transparente)", "none"),
+    ("bg_ai", "ai"),
+    ("bg_chroma", "chroma"),
+    ("bg_none", "none"),
 ]
 
 
@@ -66,11 +67,7 @@ class ControlWindow(Gtk.ApplicationWindow):
         self._gpu_warning.set_wrap(True)
         self._gpu_warning.set_margin_start(12); self._gpu_warning.set_margin_end(12)
         self._gpu_warning.set_margin_bottom(4)
-        self._gpu_warning.set_markup(
-            "⚠️ No se detectó aceleración gráfica por hardware: con varias "
-            "mascotas activas a la vez alguna puede parpadear o desaparecer "
-            "intermitentemente (limitación del compositor de este escritorio "
-            "sin GPU, no de AnimaLinux). Se recomienda dejar solo una activa.")
+        self._gpu_warning.set_markup(GLib.markup_escape_text(t("gpu_warning")))
         self._gpu_warning.set_visible(False)
         root.append(self._gpu_warning)
 
@@ -112,22 +109,17 @@ class ControlWindow(Gtk.ApplicationWindow):
         btn.connect("clicked", lambda _: self._ask_create(life=False))
         box.append(btn)
 
-        # Fila 1: importar video/gif + pack
+        # Fila 1: importar video/gif (los packs .alpack son solo para
+        # animaciones "con vida" — ver _build_vida_tab)
         imp1 = Gtk.Box(spacing=6)
         imp1.set_margin_bottom(2)
-        imp1.append(Gtk.Label(label="Importar:"))
-        gif_btn = Gtk.Button(label="🎞 GIF / WebP / APNG")
-        gif_btn.set_tooltip_text("Importa un GIF animado, WebP o APNG como mascota")
+        imp1.append(Gtk.Label(label=t("import_label")))
+        gif_btn = Gtk.Button(label=t("import_gif"))
         gif_btn.connect("clicked", lambda _: self._import_media("gif"))
         imp1.append(gif_btn)
-        mp4_btn = Gtk.Button(label="🎬 MP4 / WebM / MOV")
-        mp4_btn.set_tooltip_text("Importa un vídeo corto como mascota (extrae los frames)")
+        mp4_btn = Gtk.Button(label=t("import_video"))
         mp4_btn.connect("clicked", lambda _: self._import_media("video"))
         imp1.append(mp4_btn)
-        pack_btn = Gtk.Button(label=t("pack_btn"))
-        pack_btn.set_tooltip_text("Instala un pack .alpack exportado desde AnimaLinux")
-        pack_btn.connect("clicked", self._on_import_pack)
-        imp1.append(pack_btn)
         box.append(imp1)
 
         # Fila 2: spritesheet
@@ -146,7 +138,7 @@ class ControlWindow(Gtk.ApplicationWindow):
         bg = Gtk.Box(spacing=6)
         bg.append(Gtk.Label(label=t("bg_method")))
         self.method_combo = Gtk.DropDown.new_from_strings(
-            [m[0] for m in BG_METHODS])
+            [t(m[0]) for m in BG_METHODS])
         self.method_combo.set_selected(0)
         bg.append(self.method_combo)
         box.append(bg)
@@ -213,11 +205,13 @@ class ControlWindow(Gtk.ApplicationWindow):
         btn_row = Gtk.Box(spacing=8, homogeneous=True)
         btn_row.set_margin_top(8)
 
-        def _opt(icon, title, desc, cb):
+        def _opt(icon_name, title, desc, cb):
             vb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
             vb.set_margin_top(8); vb.set_margin_bottom(8)
             vb.set_margin_start(4); vb.set_margin_end(4)
-            vb.append(Gtk.Label(label=icon))
+            icon = Gtk.Image.new_from_icon_name(icon_name)
+            icon.set_pixel_size(22)
+            vb.append(icon)
             tl = Gtk.Label(label=title)
             tl.set_markup(f"<b>{title}</b>")
             vb.append(tl)
@@ -230,13 +224,17 @@ class ControlWindow(Gtk.ApplicationWindow):
             b.connect("clicked", lambda _: (dialog.destroy(), cb()))
             return b
 
-        btn_row.append(_opt("📥", t("btn_import"), t("btn_import_desc"),
-                            lambda: self._start_import(life=life)))
-        btn_row.append(_opt("🎨", t("btn_pixel"),  t("btn_pixel_desc"),
+        btn_row.append(_opt(
+            "document-open-symbolic", t("btn_import"),
+            t("btn_import_desc_vida") if life else t("btn_import_desc"),
+            lambda: self._start_import(life=life)))
+        btn_row.append(_opt("applications-graphics-symbolic", t("btn_pixel"),
+                            t("btn_pixel_desc"),
                             lambda: self.app.show_pixel_editor(guided=life)))
-        btn_row.append(_opt("🖌️", t("btn_paint"),  t("btn_paint_desc"),
+        btn_row.append(_opt("edit-symbolic", t("btn_paint"), t("btn_paint_desc"),
                             lambda: self.app.show_paint_editor(guided=life)))
-        btn_row.append(_opt("📁", t("btn_continue"), t("btn_continue_desc"),
+        btn_row.append(_opt("folder-open-symbolic", t("btn_continue"),
+                            t("btn_continue_desc"),
                             lambda: self._show_projects_dialog()))
         box.append(btn_row)
         dialog.present()
@@ -297,7 +295,7 @@ class ControlWindow(Gtk.ApplicationWindow):
         sw = Gtk.Switch()
         sw.set_active(anim.get("on_desktop", False))
         sw.set_halign(Gtk.Align.END)
-        sw.set_tooltip_text("Mostrar en escritorio")
+        sw.set_tooltip_text(t("show_desktop"))
         sw.connect("state-set",
                    lambda s, st, aid=anim["id"]: self._on_toggle(aid, st))
         col.append(sw)
@@ -307,26 +305,23 @@ class ControlWindow(Gtk.ApplicationWindow):
         # su propia animación y no se edita frame a frame → no se muestra Editar.
         if not anim.get("source_animated"):
             edit_r = Gtk.Box(spacing=4)
-            b1 = Gtk.Button(label="🎨 Editar")
-            b1.set_tooltip_text("Editar frames con editor de píxeles")
+            b1 = Gtk.Button(label=t("edit_pixel"))
             b1.connect("clicked",
                        lambda _, aid=anim["id"]: self.app.show_pixel_editor(
                            anim_id=aid, pose="default"))
-            b2 = Gtk.Button(label="🖌️ Editar")
-            b2.set_tooltip_text("Editar frames con editor de dibujo libre")
+            b2 = Gtk.Button(label=t("edit_paint"))
             b2.connect("clicked",
                        lambda _, aid=anim["id"]: self.app.show_paint_editor(
                            anim_id=aid, pose="default"))
             edit_r.append(b1); edit_r.append(b2)
             col.append(edit_r)
 
-        exp_btn = Gtk.Button(label="📦 Exportar")
-        exp_btn.set_tooltip_text("Exportar como pack .alpack para compartir")
+        exp_btn = Gtk.Button(label=t("export"))
         exp_btn.connect("clicked",
                         lambda _, aid=anim["id"]: self._on_export_pack(aid))
         col.append(exp_btn)
 
-        del_btn = Gtk.Button(label="🗑 Eliminar")
+        del_btn = Gtk.Button(label=t("delete"))
         del_btn.add_css_class("destructive-action")
         del_btn.connect("clicked", lambda _, aid=anim["id"]: self._on_delete(aid))
         col.append(del_btn)
@@ -351,18 +346,15 @@ class ControlWindow(Gtk.ApplicationWindow):
         info.append(self._editable_name(anim))
         info.append(self._fps_scale_row(anim))
 
-        poses = anim.get("poses", ["default"])
-        plbl = Gtk.Label(label="Poses: " + " · ".join(poses), xalign=0)
-        plbl.add_css_class("dim-label")
-        info.append(plbl)
+        info.append(self._pose_toggles_row(anim))
 
         add_r = Gtk.Box(spacing=4)
-        add_r.append(Gtk.Label(label="Añadir pose:"))
-        ap1 = Gtk.Button(label="🎨 Píxeles")
+        add_r.append(Gtk.Label(label=t("add_pose")))
+        ap1 = Gtk.Button(label=t("add_pose_pixel"))
         ap1.connect("clicked",
                     lambda _, aid=anim["id"]: self.app.show_pixel_editor(
                         anim_id=aid, guided=True))
-        ap2 = Gtk.Button(label="🖌️ Libre")
+        ap2 = Gtk.Button(label=t("add_pose_paint"))
         ap2.connect("clicked",
                     lambda _, aid=anim["id"]: self.app.show_paint_editor(
                         anim_id=aid, guided=True))
@@ -375,16 +367,16 @@ class ControlWindow(Gtk.ApplicationWindow):
         sw = Gtk.Switch()
         sw.set_active(anim.get("on_desktop", False))
         sw.set_halign(Gtk.Align.END)
-        sw.set_tooltip_text("Mostrar en escritorio")
+        sw.set_tooltip_text(t("show_desktop"))
         sw.connect("state-set",
                    lambda s, st, aid=anim["id"]: self._on_toggle(aid, st))
         col.append(sw)
 
-        exp = Gtk.Button(label="📦 Exportar")
+        exp = Gtk.Button(label=t("export"))
         exp.connect("clicked", lambda _, aid=anim["id"]: self._on_export_pack(aid))
         col.append(exp)
 
-        del_btn = Gtk.Button(label="🗑 Eliminar")
+        del_btn = Gtk.Button(label=t("delete"))
         del_btn.add_css_class("destructive-action")
         del_btn.connect("clicked", lambda _, aid=anim["id"]: self._on_delete(aid))
         col.append(del_btn)
@@ -448,7 +440,7 @@ class ControlWindow(Gtk.ApplicationWindow):
 
     def _fps_scale_row(self, anim):
         row = Gtk.Box(spacing=6)
-        row.append(Gtk.Label(label="FPS:"))
+        row.append(Gtk.Label(label=t("fps_label")))
         adj = Gtk.Adjustment(value=anim.get("fps", 12), lower=1, upper=60,
                              step_increment=1)
         spin = Gtk.SpinButton(adjustment=adj)
@@ -466,6 +458,53 @@ class ControlWindow(Gtk.ApplicationWindow):
                         aid, round(s.get_value(), 1)))
         row.append(ssp)
         return row
+
+    def _pose_toggles_row(self, anim):
+        """Chips «Poses:» con un checkbutton por pose OPCIONAL (greet, kiss,
+        angry, sleep, grab...) para que el usuario decida cuáles usa la
+        mascota en modo Vida sin borrar el dibujo — solo se guarda en
+        "disabled_poses". "default"/"walk"/"jump" son obligatorias (ver
+        MANDATORY_POSES): sin ellas la mascota no se movería de forma
+        creíble, así que ni se muestran como desactivables."""
+        poses = [p for p in anim.get("poses", ["default"])
+                 if p not in MANDATORY_POSES]
+
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        lbl = Gtk.Label(label=t("active_poses"), xalign=0)
+        lbl.add_css_class("dim-label")
+        outer.append(lbl)
+
+        if not poses:
+            hint = Gtk.Label(label=t("active_poses_hint"), xalign=0)
+            hint.add_css_class("dim-label")
+            outer.append(hint)
+            return outer
+
+        flow = Gtk.FlowBox()
+        flow.set_selection_mode(Gtk.SelectionMode.NONE)
+        flow.set_max_children_per_line(6)
+        flow.set_row_spacing(2)
+        flow.set_column_spacing(10)
+
+        disabled = set(anim.get("disabled_poses", []))
+        for pose in poses:
+            chk = Gtk.CheckButton(label=pose)
+            chk.set_active(pose not in disabled)
+            chk.set_tooltip_text(f"Usar la pose «{pose}» en modo Vida")
+            chk.connect("toggled", self._on_pose_toggled, anim["id"], pose)
+            flow.append(chk)
+        outer.append(flow)
+        return outer
+
+    def _on_pose_toggled(self, chk, anim_id, pose):
+        anim = self.app.library.animations.get(anim_id, {})
+        disabled = set(anim.get("disabled_poses", []))
+        if chk.get_active():
+            disabled.discard(pose)
+        else:
+            disabled.add(pose)
+        self.app.library.update(anim_id, disabled_poses=sorted(disabled))
+        self.app.reload_mascot(anim_id)
 
     # ── Importar GIF / MP4 directo desde el tab Normal ───────────────────────
     def _import_media(self, kind="gif"):
@@ -500,9 +539,17 @@ class ControlWindow(Gtk.ApplicationWindow):
     def _start_import(self, life=False):
         self._pending_live = life
         dialog = Gtk.FileDialog()
-        dialog.set_title(
-            "Sube una imagen para darle vida" if life
-            else "Elige una animación (GIF, WebP, APNG, PNG, MP4…)")
+        if life:
+            dialog.set_title("Elige un pack .alpack")
+            f = Gtk.FileFilter()
+            f.set_name("Pack de AnimaLinux (.alpack)")
+            f.add_pattern("*.alpack")
+            store = Gio.ListStore.new(Gtk.FileFilter)
+            store.append(f)
+            dialog.set_filters(store)
+            dialog.set_default_filter(f)
+        else:
+            dialog.set_title("Elige una animación (GIF, WebP, APNG, PNG, MP4…)")
         dialog.open(self, None, self._on_file_chosen)
 
     def _on_file_chosen(self, dialog, result):
@@ -513,11 +560,10 @@ class ControlWindow(Gtk.ApplicationWindow):
         path = gfile.get_path()
         if path and path.lower().endswith(".alpack"):
             # el usuario eligió un pack .alpack desde un botón de GIF/vídeo/
-            # imagen (o desde "Nueva con vida" → Importar): es un error de
-            # bicicleta esperable (los botones están uno al lado del otro),
-            # no un archivo inválido — lo tratamos igual que si hubiese usado
-            # el botón "Pack", respetando el modo Vida si venía de ese flujo.
-            self._import_pack_path(path, live=getattr(self, "_pending_live", False))
+            # imagen: es un error de bicicleta esperable (los botones están
+            # uno al lado del otro), no un archivo inválido — se importa
+            # igual, siempre como "con vida" (ver _import_pack_path).
+            self._import_pack_path(path)
             return
         method = BG_METHODS[self.method_combo.get_selected()][1]
         live = getattr(self, "_pending_live", False)
@@ -562,19 +608,19 @@ class ControlWindow(Gtk.ApplicationWindow):
         return False
 
     def _ask_guided_editor(self, aid):
-        dialog = Gtk.Dialog(title="¿Con qué editor crear las poses?",
+        dialog = Gtk.Dialog(title=t("guided_editor_title"),
                             transient_for=self, modal=True)
         dialog.set_default_size(320, 160)
         box = dialog.get_content_area()
         box.set_spacing(10); box.set_margin_start(16); box.set_margin_end(16)
         box.set_margin_top(14); box.set_margin_bottom(14)
-        box.append(Gtk.Label(label="Elige el editor para crear las poses de vida:"))
+        box.append(Gtk.Label(label=t("guided_editor_desc")))
         row = Gtk.Box(spacing=8, homogeneous=True)
-        b1 = Gtk.Button(label="🎨 Píxel art")
+        b1 = Gtk.Button(label=t("btn_pixel"))
         b1.connect("clicked", lambda _: (dialog.destroy(),
                                          self.app.show_pixel_editor(anim_id=aid,
                                                                     guided=True)))
-        b2 = Gtk.Button(label="🖌️ Dibujo libre")
+        b2 = Gtk.Button(label=t("btn_paint"))
         b2.connect("clicked", lambda _: (dialog.destroy(),
                                          self.app.show_paint_editor(anim_id=aid,
                                                                     guided=True)))
@@ -606,29 +652,16 @@ class ControlWindow(Gtk.ApplicationWindow):
 
 
     # ── Packs ────────────────────────────────────────────────────────────────
-    def _on_import_pack(self, _btn):
-        dialog = Gtk.FileDialog()
-        dialog.set_title("Elige un pack .alpack")
-        dialog.open(self, None, self._on_pack_chosen)
-
-    def _on_pack_chosen(self, dialog, result):
-        try:
-            gfile = dialog.open_finish(result)
-        except GLib.Error:
-            return
-        self._import_pack_path(gfile.get_path())
-
-    def _import_pack_path(self, path, live=False):
+    def _import_pack_path(self, path):
         self.status.set_text("Importando pack…")
 
         def work():
             try:
                 aid = self.app.import_pack(path)
-                if live:
-                    # el pack ya trae sus propias poses (walk/idle/…); si el
-                    # usuario venía del flujo "con vida" lo respetamos en vez
-                    # de dejarlo en el modo "gif" por defecto de import_pack.
-                    self.app.library.update(aid, mode="life")
+                # los packs .alpack son siempre animaciones "con vida" (traen
+                # sus propias poses walk/idle/greet/...) — nunca quedan en
+                # modo "gif", venga la importación de donde venga.
+                self.app.library.update(aid, mode="life")
                 GLib.idle_add(self._pack_done)
             except Exception as e:  # noqa: BLE001
                 GLib.idle_add(self.status.set_text, f"Error con el pack: {e}")
@@ -691,7 +724,7 @@ class ControlWindow(Gtk.ApplicationWindow):
 
     def _show_folder_result(self, aid, poses_encontradas, problemas):
         from .. import folderimport as fi
-        dlg = Gtk.Dialog(title="Mascota importada", transient_for=self, modal=True)
+        dlg = Gtk.Dialog(title=t("mascot_imported"), transient_for=self, modal=True)
         dlg.set_default_size(460, 420)
         box = dlg.get_content_area()
         box.set_spacing(0)
@@ -740,12 +773,12 @@ class ControlWindow(Gtk.ApplicationWindow):
         ftr.set_margin_top(8); ftr.set_margin_bottom(10)
         ftr.set_halign(Gtk.Align.END)
 
-        edit_btn = Gtk.Button(label="✏  Añadir poses en editor")
+        edit_btn = Gtk.Button(label=t("add_poses_editor"))
         edit_btn.connect("clicked", lambda _: (dlg.close(),
             self._ask_guided_editor(aid)))
         ftr.append(edit_btn)
 
-        ok = Gtk.Button(label="✓  Listo")
+        ok = Gtk.Button(label=t("done_btn"))
         ok.add_css_class("suggested-action")
         ok.connect("clicked", lambda _: dlg.close())
         ftr.append(ok)
@@ -820,7 +853,9 @@ class ControlWindow(Gtk.ApplicationWindow):
                 row_box.set_margin_start(12); row_box.set_margin_end(12)
                 row_box.set_margin_top(10); row_box.set_margin_bottom(10)
 
-                icon = Gtk.Label(label="📁"); icon.set_size_request(32, -1)
+                icon = Gtk.Image.new_from_icon_name("folder-symbolic")
+                icon.set_pixel_size(20)
+                icon.set_size_request(32, -1)
                 row_box.append(icon)
 
                 info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
@@ -932,37 +967,26 @@ class ControlWindow(Gtk.ApplicationWindow):
         txt.set_margin_start(18); txt.set_margin_end(18)
         txt.set_margin_top(14); txt.set_margin_bottom(14)
         buf = txt.get_buffer()
+        SEP = "─" * 42 + "\n"
         GUIDE = (
-            "✨  POSES NECESARIAS\n"
-            "════════════════════════════════════════\n"
-            "Una animación «con vida» se compone de varias\n"
-            "poses. La app elige la correcta según lo que\n"
-            "hace la mascota en pantalla.\n\n"
-            "  Nombre       Cuadros  Para qué sirve\n"
-            "  ──────────   ───────  ──────────────────────\n"
-            "  default      1-2      Pose base / parada\n"
-            "  idle         4-6      Respirar / quieta\n"
-            "  walk         6-8      Caminar\n"
-            "  greet        6        Saludar al acercarse\n"
-            "  jump         6        Saltar (squash/stretch)\n"
-            "  angry        6        Enojo / voltear\n"
-            "  grab         6        Agarrar el ratón (4 clicks)\n\n"
-            "Solo «default» es obligatoria. Las demás son\n"
-            "opcionales — la app usa «default» si faltan.\n\n"
-            "🖌️  CÓMO CREAR LAS POSES\n"
-            "════════════════════════════════════════\n"
-            "1. Pulsa «➕ Nueva animación con vida»\n"
-            "2. Elige si importar gif/imagen o dibujar\n"
-            "3. En el editor, escribe el nombre de la pose\n"
-            "   en el campo inferior (ej: walk)\n"
-            "4. Dibuja los frames de esa acción\n"
-            "5. Pulsa «💾 Guardar pose»  o  Ctrl+S\n"
-            "6. El editor te sugiere la siguiente pose\n\n"
-            "📁  IMPORTAR DESDE CARPETA\n"
-            "════════════════════════════════════════\n"
-            "Si ya tienes los PNGs listos, usa\n"
-            "«Importar → Carpeta de mascota».\n\n"
-            "Estructura esperada:\n\n"
+            f"{t('guide_title_poses')}\n{SEP}"
+            f"{t('guide_intro')}\n\n"
+            f"  {t('guide_pose_default')}\n"
+            f"  {t('guide_pose_idle')}\n"
+            f"  {t('guide_pose_walk')}\n"
+            f"  {t('guide_pose_greet')}\n"
+            f"  {t('guide_pose_kiss')}\n"
+            f"  {t('guide_pose_jump')}\n"
+            f"  {t('guide_pose_angry')}\n"
+            f"  {t('guide_pose_grab')}\n\n"
+            f"{t('guide_only_default')}\n\n"
+            f"{t('guide_title_create')}\n{SEP}"
+            f"{t('guide_create_intro')}\n\n"
+            f"{t('guide_steps')}\n\n"
+            f"{t('guide_add_existing')}\n\n"
+            f"{t('guide_title_folder')}\n{SEP}"
+            f"{t('guide_folder_intro')}\n\n"
+            # nombres de carpeta LITERALES que la app espera — no se traducen
             "  mi_mascota/\n"
             "  ├── default/\n"
             "  │   ├── frame_0000.png\n"
@@ -975,12 +999,11 @@ class ControlWindow(Gtk.ApplicationWindow):
             "  ├── walk/\n"
             "  │   └── frame_0000.png … frame_0007.png\n"
             "  ├── greet/\n"
+            "  ├── kiss/\n"
             "  ├── jump/\n"
             "  ├── angry/\n"
             "  └── grab/\n\n"
-            "Los PNGs deben tener fondo transparente (RGBA).\n"
-            "El tamaño de todos los frames de una pose\n"
-            "debe ser igual.\n"
+            f"{t('guide_png_note')}\n"
         )
         buf.set_text(GUIDE)
         sc.set_child(txt)
@@ -990,7 +1013,7 @@ class ControlWindow(Gtk.ApplicationWindow):
         footer.set_margin_start(14); footer.set_margin_end(14)
         footer.set_margin_top(8); footer.set_margin_bottom(10)
         footer.set_halign(Gtk.Align.END)
-        ok = Gtk.Button(label="✓  Entendido")
+        ok = Gtk.Button(label=t("understood_btn"))
         ok.add_css_class("suggested-action")
         ok.connect("clicked", lambda _: dlg.destroy())
         footer.append(ok)

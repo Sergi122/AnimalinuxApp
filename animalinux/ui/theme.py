@@ -5,18 +5,24 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk
 
-# Paleta (UI v2 — acento #7B61FF, fondo #1a1a2e)
-BG      = "#1a1a2e"   # fondo general — azul noche muy oscuro
-PANEL   = "#16213e"   # paneles laterales / cards — azul profundo
-WIDGET  = "#243352"   # fondo de widgets (botones, entradas)
-WIDGET2 = "#33476b"   # hover / resaltado leve
-ACCENT  = "#7B61FF"   # morado/violeta (acento principal del spec)
-ACCENT2 = "#9079ff"   # hover del acento
-TEXT    = "#cdd6f4"   # texto principal — blanco azulado
-TEXT2   = "#a6adc8"   # texto secundario
-BORDER  = "#45475a"   # borde estándar
-RED     = "#f38ba8"   # destructivo
-GREEN   = "#a6e3a1"   # confirmación
+# Paleta (UI v3 — blanco y negro, look profesional/minimal)
+BG       = "#0d0d0f"   # fondo general — casi negro
+BG2      = "#08080a"   # capas recesadas (previews, chrome de editores) — más oscuro que BG
+PANEL    = "#1c1c1f"   # paneles laterales / diálogos / cards
+WIDGET   = "#242427"   # fondo de widgets (botones, entradas)
+WIDGET2  = "#323236"   # hover / resaltado leve
+ACCENT   = "#f2f2f2"   # blanco roto — acento principal (antes violeta)
+ACCENT2  = "#ffffff"   # blanco puro — hover del acento
+ON_ACCENT = "#0d0d0f"  # texto/ícono sobre fondos de acento (claros)
+TEXT     = "#f0f0f2"   # texto principal — casi blanco
+TEXT2    = "#9a9a9e"   # texto secundario — gris medio
+BORDER   = "#3a3a3e"   # borde estándar
+BORDER2  = "#54545a"   # borde hover
+MUTED    = "#5c5c62"   # texto/borde deshabilitado
+RED      = "#e08a8a"   # destructivo (desaturado, coherente con el gris)
+RED_BG   = "#3a2020"
+RED_BG_HOVER = "#4d2a2a"
+GREEN    = "#a8d0ac"   # confirmación (desaturado)
 
 _CSS = f"""
 /* ═══════════════════════════════════════════════
@@ -137,7 +143,7 @@ button label {{
 button:hover {{
   background-color: {WIDGET2};
   background-image: none;
-  border-color: #6c7086;
+  border-color: {BORDER2};
   color: #ffffff;
 }}
 button:hover > label,
@@ -148,22 +154,22 @@ button:active {{
   background-color: {ACCENT};
   background-image: none;
   border-color: {ACCENT2};
-  color: #ffffff;
+  color: {ON_ACCENT};
 }}
 button:active > label,
 button:active label {{
-  color: #ffffff;
+  color: {ON_ACCENT};
 }}
 button:disabled {{
   background-color: {PANEL};
   background-image: none;
-  color: #585b70;
-  border-color: #313244;
+  color: {MUTED};
+  border-color: {BORDER};
   opacity: 0.6;
 }}
 button:disabled > label,
 button:disabled label {{
-  color: #585b70;
+  color: {MUTED};
 }}
 
 /* acción principal */
@@ -171,29 +177,29 @@ button.suggested-action {{
   background-color: {ACCENT};
   background-image: none;
   box-shadow: none;
-  color: #ffffff;
+  color: {ON_ACCENT};
   border-color: {ACCENT2};
   font-weight: bold;
 }}
 button.suggested-action > label,
 button.suggested-action label {{
-  color: #ffffff;
+  color: {ON_ACCENT};
   font-weight: bold;
 }}
 button.suggested-action:hover {{
   background-color: {ACCENT2};
   background-image: none;
-  border-color: #b4a4ff;
-  color: #ffffff;
+  border-color: {ACCENT2};
+  color: {ON_ACCENT};
 }}
 button.suggested-action:hover > label,
 button.suggested-action:hover label {{
-  color: #ffffff;
+  color: {ON_ACCENT};
 }}
 
 /* acción destructiva */
 button.destructive-action {{
-  background-color: #5c2230;
+  background-color: {RED_BG};
   background-image: none;
   box-shadow: none;
   color: {RED};
@@ -206,7 +212,7 @@ button.destructive-action label {{
   font-weight: bold;
 }}
 button.destructive-action:hover {{
-  background-color: #7c2e40;
+  background-color: {RED_BG_HOVER};
   background-image: none;
   color: #ffffff;
 }}
@@ -244,23 +250,23 @@ togglebutton:hover label {{
 togglebutton:checked {{
   background-color: {ACCENT};
   background-image: none;
-  color: #ffffff;
+  color: {ON_ACCENT};
   border-color: {ACCENT2};
   font-weight: bold;
 }}
 togglebutton:checked > label,
 togglebutton:checked label {{
-  color: #ffffff;
+  color: {ON_ACCENT};
   font-weight: bold;
 }}
 togglebutton:checked:hover {{
   background-color: {ACCENT2};
   background-image: none;
-  color: #ffffff;
+  color: {ON_ACCENT};
 }}
 togglebutton:checked:hover > label,
 togglebutton:checked:hover label {{
-  color: #ffffff;
+  color: {ON_ACCENT};
 }}
 
 /* ── entradas de texto ── */
@@ -287,7 +293,7 @@ spinbutton:focus {{
   box-shadow: none;
 }}
 entry placeholder {{
-  color: #585b70;
+  color: {MUTED};
 }}
 spinbutton button {{
   background-color: {WIDGET};
@@ -401,11 +407,11 @@ listview > row:hover label {{
 listview > row:selected {{
   background-color: {ACCENT};
   background-image: none;
-  color: #ffffff;
+  color: {ON_ACCENT};
 }}
 listview > row:selected > label,
 listview > row:selected label {{
-  color: #ffffff;
+  color: {ON_ACCENT};
   font-weight: bold;
 }}
 
@@ -432,9 +438,9 @@ scale slider {{
   min-height: 15px;
 }}
 scale slider:hover {{
-  background-color: #c4b5fd;
+  background-color: {ACCENT2};
   background-image: none;
-  border-color: {ACCENT2};
+  border-color: {TEXT2};
 }}
 
 /* ── scrollbars ── */
@@ -486,7 +492,7 @@ listbox > row:selected {{
   background-image: none;
 }}
 listbox > row:selected label {{
-  color: #ffffff;
+  color: {ON_ACCENT};
 }}
 /* notebook (pestañas) */
 notebook > header {{
@@ -506,14 +512,14 @@ notebook > header > tabs > tab {{
 notebook > header > tabs > tab:checked {{
   background-color: {ACCENT};
   background-image: none;
-  color: #ffffff;
+  color: {ON_ACCENT};
   border-color: {ACCENT};
 }}
 notebook > header > tabs > tab label {{
   color: {TEXT};
 }}
 notebook > header > tabs > tab:checked label {{
-  color: #ffffff;
+  color: {ON_ACCENT};
   font-weight: bold;
 }}
 notebook > stack {{
@@ -540,6 +546,32 @@ switch slider {{
   min-height: 20px;
   margin: 2px;
 }}
+/* el track queda blanco al activarse: la perilla pasa a oscura para que
+   se siga distinguiendo (blanco sobre blanco sería invisible) */
+switch:checked slider {{
+  background-color: {ON_ACCENT};
+  background-image: none;
+}}
+
+/* checkbutton (chips de "poses activas") */
+checkbutton check {{
+  background-color: {WIDGET2};
+  background-image: none;
+  border-radius: 4px;
+  min-width: 16px;
+  min-height: 16px;
+  border: 1px solid {BORDER};
+  color: {ON_ACCENT};
+}}
+checkbutton check:checked {{
+  background-color: {ACCENT};
+  background-image: none;
+  border-color: {ACCENT};
+  color: {ON_ACCENT};
+}}
+checkbutton label {{
+  font-size: 12px;
+}}
 
 /* ── frame ── */
 frame {{
@@ -565,7 +597,7 @@ separator {{
 
 /* ── tarjeta (capa activa) ── */
 .card {{
-  background-color: #1e1b38;
+  background-color: {WIDGET};
   background-image: none;
   border: 2px solid {ACCENT};
   border-radius: 6px;
@@ -601,14 +633,14 @@ button.frame-thumb label {{
 button.frame-thumb:hover {{
   background-color: {WIDGET2};
   background-image: none;
-  border-color: #6c7086;
+  border-color: {BORDER2};
 }}
 button.frame-thumb:hover > label,
 button.frame-thumb:hover label {{
   color: #ffffff;
 }}
 button.frame-thumb.suggested-action {{
-  background-color: #2d2b5e;
+  background-color: {WIDGET2};
   background-image: none;
   border: 2px solid {ACCENT};
 }}
@@ -619,21 +651,21 @@ button.frame-thumb.suggested-action label {{
 }}
 
 /* ═══════════════════════════════════════════════
-   CARDS de mascota (ventana de control, UI v2)
-   acento #7B61FF · fondo #1a1a2e · card #16213e
+   CARDS de mascota (ventana de control)
+   acento neutro (blanco) · fondo casi negro
    ═══════════════════════════════════════════════ */
 .mascot-card {{
-  background-color: #16213e;
+  background-color: {PANEL};
   background-image: none;
-  border: 1px solid #243352;
+  border: 1px solid {WIDGET};
   border-radius: 12px;
   padding: 10px;
 }}
 .mascot-card:hover {{
-  border-color: #7B61FF;
+  border-color: {ACCENT};
 }}
 .mascot-card.card-life {{
-  border-left: 3px solid #7B61FF;
+  border-left: 3px solid {ACCENT};
 }}
 .card-title {{
   font-weight: bold;
@@ -649,30 +681,30 @@ entry.card-title {{
 }}
 entry.card-title:focus {{
   background-color: {WIDGET};
-  border: 1px solid #7B61FF;
+  border: 1px solid {ACCENT};
 }}
 .card-meta {{
   color: {TEXT2};
   font-size: 0.9em;
 }}
 .card-preview {{
-  background-color: #0e1730;
-  border: 1px solid #243352;
+  background-color: {BG2};
+  border: 1px solid {WIDGET};
   border-radius: 8px;
 }}
 button.accent {{
-  background-color: #7B61FF;
+  background-color: {ACCENT};
   background-image: none;
   border: none;
-  color: #ffffff;
+  color: {ON_ACCENT};
 }}
 button.accent:hover {{
-  background-color: #9079ff;
+  background-color: {ACCENT2};
   background-image: none;
 }}
 button.accent > label,
 button.accent label {{
-  color: #ffffff;
+  color: {ON_ACCENT};
 }}
 .section-head {{
   font-weight: bold;
@@ -684,28 +716,28 @@ button.accent label {{
    EDITORES — chrome profesional tipo Clip Studio Paint
    ═══════════════════════════════════════════════ */
 .editor-toolbar {{
-  background-color: #14142a;
+  background-color: {BG2};
   background-image: none;
-  border-bottom: 1px solid #2a2a45;
+  border-bottom: 1px solid {BORDER};
   padding: 4px 6px;
 }}
 .editor-panel {{
-  background-color: #14142a;
+  background-color: {BG2};
   background-image: none;
-  border-right: 1px solid #2a2a45;
+  border-right: 1px solid {BORDER};
 }}
 .editor-panel.right {{
   border-right: none;
-  border-left: 1px solid #2a2a45;
+  border-left: 1px solid {BORDER};
 }}
 .editor-statusbar {{
-  background-color: #14142a;
+  background-color: {BG2};
   background-image: none;
-  border-top: 1px solid #2a2a45;
+  border-top: 1px solid {BORDER};
   color: {TEXT2};
 }}
 .panel-head {{
-  color: #8b8fa7;
+  color: {TEXT2};
   font-size: 0.75em;
   font-weight: bold;
   margin: 6px 2px 2px 2px;
@@ -721,19 +753,20 @@ button.tool-btn {{
   min-height: 18px;
 }}
 button.tool-btn:hover {{
-  background-color: #243352;
+  background-color: {WIDGET};
 }}
 button.tool-btn:checked,
 button.tool-btn.active {{
-  background-color: #7B61FF;
+  background-color: {ACCENT};
   background-image: none;
-  border-color: #9079ff;
+  border-color: {ACCENT2};
+  color: {ON_ACCENT};
 }}
 /* botón de cerrar (X): rojo al pasar el ratón */
 button.close-btn:hover {{
-  background-color: #e05260;
+  background-color: {RED_BG_HOVER};
   background-image: none;
-  border-color: #f06a78;
+  border-color: {RED};
 }}
 button.close-btn:hover label,
 button.close-btn:hover > label {{
@@ -741,22 +774,22 @@ button.close-btn:hover > label {{
 }}
 /* línea de tiempo / tira de fotogramas */
 .timeline {{
-  background-color: #101023;
+  background-color: {BG2};
   background-image: none;
 }}
 button.frame-cell {{
-  background-color: #1b1b34;
+  background-color: {WIDGET};
   background-image: none;
-  border: 1px solid #2a2a45;
+  border: 1px solid {BORDER};
   border-radius: 7px;
   padding: 3px;
 }}
 button.frame-cell:hover {{
-  border-color: #7B61FF;
+  border-color: {ACCENT};
 }}
 button.frame-cell.current {{
-  border: 2px solid #7B61FF;
-  background-color: #241f45;
+  border: 2px solid {ACCENT};
+  background-color: {WIDGET2};
 }}
 button.frame-cell label {{
   color: {TEXT2};
