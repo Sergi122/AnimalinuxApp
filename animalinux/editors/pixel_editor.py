@@ -26,6 +26,7 @@ except ImportError:
     _NP = False
 
 from .icons import icon_image, icon_button  # noqa: E402
+from ..ui import guide_widgets as gw  # noqa: E402
 
 # ── constantes ───────────────────────────────────────────────────────────────
 ZOOM_STEPS  = [1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 32]
@@ -796,9 +797,12 @@ class PixelEditor(Gtk.Window):
                 self._rebuild_strip()
 
         if anim_id is None:
+            # el tutorial se muestra recién tras confirmar el tamaño (ver
+            # _apply_canvas_size) — mostrar los dos diálogos a la vez hacía
+            # que se superpusieran y no se pudiera leer ninguno.
             GLib.idle_add(self._ask_canvas_size)
-
-        GLib.idle_add(self._show_tutorial)
+        else:
+            GLib.idle_add(self._show_tutorial)
 
     # ── UI ────────────────────────────────────────────────────────────────────
     def _build_ui(self):
@@ -1244,72 +1248,92 @@ class PixelEditor(Gtk.Window):
         self._rebuild_strip()
 
     # ── tutorial ──────────────────────────────────────────────────────────────
+    _TOOLS = [
+        ("pencil", "Lápiz", "B"), ("eraser", "Borrador", "E"),
+        ("fill", "Relleno", "F"), ("replace", "Reemplazar color", "R"),
+        ("outline", "Rectángulo", "O"), ("line", "Línea", "L"),
+        ("ellipse", "Elipse (contorno)", "C"), ("ellipse_fill", "Elipse (relleno)", "V"),
+        ("dither", "Dithering", "D"), ("wand", "Varita mágica", "W"),
+        ("select", "Selección", "S"), ("move", "Mover selección", "M"),
+        ("pick", "Cuentagotas", "I"),
+    ]
+    _FRAME_ACTIONS = [
+        ("add", "Nuevo frame", None), ("duplicate", "Duplicar frame", None),
+        ("onion", "Papel cebolla", None), ("copy", "Copiar frame", "Ctrl+C"),
+        ("paste", "Pegar frame", "Ctrl+V"), ("play", "Reproducir", "Espacio"),
+    ]
+
+    @staticmethod
+    def _tool_grid(items):
+        flow = Gtk.FlowBox()
+        flow.set_selection_mode(Gtk.SelectionMode.NONE)
+        flow.set_max_children_per_line(2)
+        flow.set_column_spacing(8); flow.set_row_spacing(8)
+        flow.set_homogeneous(True)
+        for icon_name, name, tag in items:
+            flow.append(gw.item_row(gw.icon_badge(icon_image(icon_name, 18)),
+                                     name, tag_text=tag))
+        return flow
+
     def _show_tutorial(self, force=False):
         from .. import settings as _s
         if not force and _s.get("tutorial_pixel_shown", False):
             return
         dlg = Gtk.Dialog(title="Editor de Píxeles — Guía rápida",
                          transient_for=self, modal=True)
-        dlg.set_default_size(500, 430)
+        dlg.set_default_size(560, 660)
         box = dlg.get_content_area()
         box.set_spacing(0)
 
         sc = Gtk.ScrolledWindow(); sc.set_vexpand(True)
-        txt = Gtk.TextView(); txt.set_editable(False); txt.set_cursor_visible(False)
-        txt.set_wrap_mode(Gtk.WrapMode.WORD)
-        txt.set_margin_start(18); txt.set_margin_end(18)
-        txt.set_margin_top(14); txt.set_margin_bottom(14)
-        buf = txt.get_buffer()
-        GUIDE = (
-            "✏️  EDITOR DE PÍXELES — pixel art animado, estilo Aseprite.\n"
-            "Dibuja punto a punto cada fotograma y guárdalo como pose para\n"
-            "que tu mascota lo use.\n\n"
-            "🚀  FLUJO RECOMENDADO\n"
-            "────────────────────────────────────────\n"
-            "  1. Elige el tamaño del lienzo (16², 32², 64²…).\n"
-            "  2. Dibuja el primer fotograma con la paleta y el lápiz.\n"
-            "  3. ➕ añade fotogramas; usa el 👁 papel cebolla como guía.\n"
-            "  4. ▶ reproduce para revisar el movimiento.\n"
-            "  5. Escribe el nombre de la pose y «Guardar pose».\n\n"
-            "✏️  HERRAMIENTAS  (panel izquierdo)\n"
-            "────────────────────────────────────────\n"
-            "  B  Lápiz          E  Borrador\n"
-            "  F  Relleno        R  Reemplazar color\n"
-            "  O  Outline rect   L  Línea\n"
-            "  C  Elipse ○       V  Elipse ●\n"
-            "  D  Dithering      W  Varita mágica\n"
-            "  S  Selección      M  Mover selección\n"
-            "  I  Cuentagotas\n"
-            "  [ ]  tamaño del lápiz\n\n"
-            "🎨  PALETA DE COLORES  (panel izquierdo)\n"
-            "────────────────────────────────────────\n"
-            "  Clic izq. → color primario (FG)\n"
-            "  El color 2 se usa en Dithering\n\n"
-            "🔁  SIMETRÍA  (toolbar)\n"
-            "────────────────────────────────────────\n"
-            "  ↔ Horizontal  ↕ Vertical  ✦ Ambas\n"
-            "  Ideal para cuerpos y caras simétricas.\n\n"
-            "🎞️  FRAMES  (panel derecho)\n"
-            "────────────────────────────────────────\n"
-            "  ➕ Nuevo frame    ⎘ Duplicar\n"
-            "  👁 Papel cebolla  Ctrl+C/V copiar/pegar\n"
-            "  Clic en un frame para ir a él\n"
-            "  ▶ reproducir animación  (Espacio)\n\n"
-            "💾  GUARDAR  (¡no pierdas tu trabajo!)\n"
-            "────────────────────────────────────────\n"
-            "  Escribe el nombre de la pose abajo\n"
-            "  (ej: default, walk, idle, greet, jump…)\n"
-            "  → «💾 Guardar pose» o Ctrl+S.\n"
-            "  Guarda cada pose antes de cerrar para poder seguir\n"
-            "  ampliando la animación más tarde.\n\n"
-            "🔍  ZOOM\n"
-            "  +/-  o  Ctrl+Scroll  |  botón medio = pan\n\n"
-            "❌  CERRAR\n"
-            "  Botón ✕ (arriba a la derecha) o Ctrl+W.\n"
-            "  Te preguntará si quieres guardar antes de salir.\n"
-        )
-        buf.set_text(GUIDE)
-        sc.set_child(txt)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        content.set_margin_start(20); content.set_margin_end(20)
+        content.set_margin_top(16); content.set_margin_bottom(16)
+
+        content.append(gw.body(
+            "Editor de píxeles — pixel art animado, estilo Aseprite. Dibuja "
+            "punto a punto cada fotograma y guárdalo como pose para que tu "
+            "mascota lo use."))
+
+        content.append(gw.section_title("FLUJO RECOMENDADO"))
+        steps_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        for i, step in enumerate([
+            "Elige el tamaño del lienzo (16², 32², 64²…).",
+            "Dibuja el primer fotograma con la paleta y el lápiz.",
+            "Añade fotogramas; usa el papel cebolla como guía.",
+            "Reproduce (▶ o Espacio) para revisar el movimiento.",
+            "Escribe el nombre de la pose y pulsa «Guardar pose».",
+        ], start=1):
+            steps_box.append(gw.step_row(i, step))
+        content.append(steps_box)
+
+        content.append(gw.section_title("HERRAMIENTAS"))
+        content.append(self._tool_grid(self._TOOLS))
+        content.append(gw.note(
+            "[ ]  cambia el tamaño del lápiz. Clic izquierdo usa el color "
+            "primario; el color 2 se usa en Dithering."))
+
+        content.append(gw.section_title("SIMETRÍA"))
+        content.append(gw.note(
+            "↔ Horizontal · ↕ Vertical · ✦ Ambas — ideal para cuerpos y "
+            "caras simétricas."))
+
+        content.append(gw.section_title("FRAMES"))
+        content.append(self._tool_grid(self._FRAME_ACTIONS))
+
+        content.append(gw.section_title("GUARDAR"))
+        content.append(gw.note(
+            "Escribe el nombre de la pose abajo (ej: default, walk, idle, "
+            "greet, jump…) y pulsa «Guardar pose» o Ctrl+S. Guarda cada "
+            "pose antes de cerrar para poder seguir ampliando la "
+            "animación más tarde."))
+
+        content.append(gw.note(
+            "Zoom: +/- o Ctrl+Scroll · botón medio = pan.\n"
+            "Cerrar: botón ✕ (arriba a la derecha) o Ctrl+W — te "
+            "preguntará si quieres guardar antes de salir."))
+
+        sc.set_child(content)
         box.append(sc)
 
         footer = Gtk.Box(spacing=10)
@@ -1409,10 +1433,16 @@ class PixelEditor(Gtk.Window):
     # ── tamaño lienzo ─────────────────────────────────────────────────────────
     def _ask_canvas_size(self):
         dlg = Gtk.Dialog(title="Tamaño del lienzo", transient_for=self, modal=True)
-        dlg.set_default_size(340,230)
+        dlg.set_default_size(360, 320)
         box = dlg.get_content_area()
         box.set_spacing(8); box.set_margin_start(16); box.set_margin_end(16)
         box.set_margin_top(14); box.set_margin_bottom(14)
+
+        box.append(gw.note(
+            "El tamaño no se puede cambiar después de dibujar. 64×64 es un "
+            "buen punto de partida para mascotas de escritorio: se ve nítido "
+            "a tamaño real sin pedir demasiados píxeles por fotograma. Usa "
+            "un tamaño mayor solo si quieres más detalle."))
 
         box.append(Gtk.Label(label="Ancho (px):"))
         w_sp = Gtk.SpinButton(
@@ -1424,17 +1454,25 @@ class PixelEditor(Gtk.Window):
         box.append(h_sp)
 
         presets = Gtk.Box(spacing=4)
-        for lbl,w,h in [("16²",16,16),("32²",32,32),("64²",64,64),
-                         ("128²",128,128),("64×96",64,96)]:
+        for lbl,w,h,recommended in [("16²",16,16,False),("32²",32,32,False),
+                         ("64² ★",64,64,True),
+                         ("128²",128,128,False),("64×96",64,96,False)]:
             b = Gtk.Button(label=lbl)
+            if recommended:
+                b.set_tooltip_text("Recomendado para mascotas de escritorio")
             b.connect("clicked", lambda _,ww=w,hh=h: (w_sp.set_value(ww),h_sp.set_value(hh)))
             presets.append(b)
         box.append(presets)
 
+        btn_row = Gtk.Box(spacing=8, halign=Gtk.Align.END)
+        cancel = Gtk.Button(label="Cancelar")
+        cancel.connect("clicked", lambda _: (dlg.destroy(), self.close()))
+        btn_row.append(cancel)
         ok = Gtk.Button(label="Crear lienzo"); ok.add_css_class("suggested-action")
         ok.connect("clicked", lambda _: self._apply_canvas_size(
             dlg, int(w_sp.get_value()), int(h_sp.get_value())))
-        box.append(ok); dlg.present()
+        btn_row.append(ok)
+        box.append(btn_row); dlg.present()
         return False
 
     def _apply_canvas_size(self, dlg, w, h):
@@ -1445,6 +1483,7 @@ class PixelEditor(Gtk.Window):
         self.canvas._surf_cache.clear(); self.canvas._surf_dirty = {0}
         self.canvas._update_size_req()
         self._rebuild_strip(); dlg.destroy()
+        self._show_tutorial()
 
     # ── exportar GIF ──────────────────────────────────────────────────────────
     def _export_gif_dialog(self):

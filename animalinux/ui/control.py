@@ -14,6 +14,13 @@ from ..core import gpu
 from ..overlay import BACKEND
 from ..overlay.live_animation import MANDATORY_POSES
 from ..i18n import t
+from . import guide_widgets as gw
+
+# orden de presentación en la guía de poses + emoji ilustrativo de cada una
+POSE_GUIDE_ORDER = (
+    ("default", "🧍"), ("idle", "💤"), ("walk", "🚶"), ("greet", "👋"),
+    ("kiss", "😘"), ("jump", "🦘"), ("angry", "😠"), ("grab", "✊"),
+)
 
 BG_METHODS = [
     ("bg_ai", "ai"),
@@ -237,6 +244,13 @@ class ControlWindow(Gtk.ApplicationWindow):
                             t("btn_continue_desc"),
                             lambda: self._show_projects_dialog()))
         box.append(btn_row)
+
+        footer = Gtk.Box(); footer.set_halign(Gtk.Align.END)
+        footer.set_margin_top(6)
+        cancel_btn = Gtk.Button(label=t("cancel"))
+        cancel_btn.connect("clicked", lambda _: dialog.destroy())
+        footer.append(cancel_btn)
+        box.append(footer)
         dialog.present()
 
     # ── Previews animadas ─────────────────────────────────────────────────────
@@ -626,6 +640,13 @@ class ControlWindow(Gtk.ApplicationWindow):
                                                                     guided=True)))
         row.append(b1); row.append(b2)
         box.append(row)
+
+        footer = Gtk.Box(); footer.set_halign(Gtk.Align.END)
+        footer.set_margin_top(4)
+        cancel_btn = Gtk.Button(label=t("cancel"))
+        cancel_btn.connect("clicked", lambda _: dialog.destroy())
+        footer.append(cancel_btn)
+        box.append(footer)
         dialog.present()
 
     # ── Handlers comunes ─────────────────────────────────────────────────────
@@ -954,59 +975,80 @@ class ControlWindow(Gtk.ApplicationWindow):
         dlg.present()
 
     # ── Ayuda poses "Con vida" ───────────────────────────────────────────────
+    @staticmethod
+    def _guide_pose_row(emoji, name, desc, mandatory):
+        tag = t("badge_mandatory") if mandatory else t("badge_optional")
+        return gw.item_row(gw.emoji_badge(emoji), name, desc,
+                            tag_text=tag,
+                            tag_kind="mandatory" if mandatory else "optional",
+                            highlight=mandatory)
+
+    @staticmethod
+    def _guide_folder_tree():
+        # nombres de carpeta LITERALES que la app espera — no se traducen
+        entries = [
+            ("default", "default" in MANDATORY_POSES, "frame_0000.png, frame_0001.png…"),
+            ("idle", "idle" in MANDATORY_POSES, "frame_0000.png … frame_0003.png"),
+            ("walk", "walk" in MANDATORY_POSES, "frame_0000.png … frame_0007.png"),
+            ("greet", "greet" in MANDATORY_POSES, None), ("kiss", "kiss" in MANDATORY_POSES, None),
+            ("jump", "jump" in MANDATORY_POSES, None), ("angry", "angry" in MANDATORY_POSES, None),
+            ("grab", "grab" in MANDATORY_POSES, None),
+        ]
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
+        box.add_css_class("folder-tree")
+        root = Gtk.Label(label="📁 mi_mascota/", xalign=0)
+        box.append(root)
+        for name, required, frames in entries:
+            lbl = Gtk.Label(label=f"   📁 {name}/", xalign=0)
+            if required:
+                lbl.add_css_class("folder-required")
+            box.append(lbl)
+            if frames:
+                sub = Gtk.Label(label=f"      🖼 {frames}", xalign=0)
+                sub.add_css_class("dim-label")
+                box.append(sub)
+        return box
+
     def _show_vida_help(self):
         dlg = Gtk.Dialog(title="Guía: Animaciones con vida",
                          transient_for=self, modal=True)
-        dlg.set_default_size(500, 560)
+        dlg.set_default_size(520, 620)
         box = dlg.get_content_area()
         box.set_spacing(0)
 
         sc = Gtk.ScrolledWindow(); sc.set_vexpand(True)
-        txt = Gtk.TextView(); txt.set_editable(False); txt.set_cursor_visible(False)
-        txt.set_wrap_mode(Gtk.WrapMode.WORD)
-        txt.set_margin_start(18); txt.set_margin_end(18)
-        txt.set_margin_top(14); txt.set_margin_bottom(14)
-        buf = txt.get_buffer()
-        SEP = "─" * 42 + "\n"
-        GUIDE = (
-            f"{t('guide_title_poses')}\n{SEP}"
-            f"{t('guide_intro')}\n\n"
-            f"  {t('guide_pose_default')}\n"
-            f"  {t('guide_pose_idle')}\n"
-            f"  {t('guide_pose_walk')}\n"
-            f"  {t('guide_pose_greet')}\n"
-            f"  {t('guide_pose_kiss')}\n"
-            f"  {t('guide_pose_jump')}\n"
-            f"  {t('guide_pose_angry')}\n"
-            f"  {t('guide_pose_grab')}\n\n"
-            f"{t('guide_only_default')}\n\n"
-            f"{t('guide_title_create')}\n{SEP}"
-            f"{t('guide_create_intro')}\n\n"
-            f"{t('guide_steps')}\n\n"
-            f"{t('guide_add_existing')}\n\n"
-            f"{t('guide_title_folder')}\n{SEP}"
-            f"{t('guide_folder_intro')}\n\n"
-            # nombres de carpeta LITERALES que la app espera — no se traducen
-            "  mi_mascota/\n"
-            "  ├── default/\n"
-            "  │   ├── frame_0000.png\n"
-            "  │   └── frame_0001.png\n"
-            "  ├── idle/\n"
-            "  │   ├── frame_0000.png\n"
-            "  │   ├── frame_0001.png\n"
-            "  │   ├── frame_0002.png\n"
-            "  │   └── frame_0003.png\n"
-            "  ├── walk/\n"
-            "  │   └── frame_0000.png … frame_0007.png\n"
-            "  ├── greet/\n"
-            "  ├── kiss/\n"
-            "  ├── jump/\n"
-            "  ├── angry/\n"
-            "  └── grab/\n\n"
-            f"{t('guide_png_note')}\n"
-        )
-        buf.set_text(GUIDE)
-        sc.set_child(txt)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        content.set_margin_start(20); content.set_margin_end(20)
+        content.set_margin_top(16); content.set_margin_bottom(16)
+
+        content.append(gw.body(t("guide_intro")))
+
+        content.append(gw.section_title(t("guide_title_poses")))
+        poses_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        for key, emoji in POSE_GUIDE_ORDER:
+            raw = t(f"guide_pose_{key}")
+            name, _, desc = raw.partition(" — ")
+            poses_box.append(self._guide_pose_row(
+                emoji, name, desc, mandatory=(key in MANDATORY_POSES)))
+        content.append(poses_box)
+        content.append(gw.note(t("guide_only_default")))
+
+        content.append(gw.section_title(t("guide_title_create")))
+        content.append(gw.body(t("guide_create_intro")))
+        steps_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        for i, line in enumerate(t("guide_steps").split("\n"), start=1):
+            text = line.split(".", 1)[1].strip() if "." in line[:3] else line
+            steps_box.append(gw.step_row(i, text))
+        content.append(steps_box)
+        content.append(gw.note(t("guide_add_existing")))
+
+        content.append(gw.section_title(t("guide_title_folder")))
+        folder_intro = t("guide_folder_intro").split("\n\n")[0]
+        content.append(gw.body(folder_intro))
+        content.append(self._guide_folder_tree())
+        content.append(gw.note(t("guide_png_note")))
+
+        sc.set_child(content)
         box.append(sc)
 
         footer = Gtk.Box()

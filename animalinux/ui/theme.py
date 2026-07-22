@@ -800,6 +800,94 @@ button.frame-cell label {{
 button.frame-cell.current label {{
   color: #ffffff;
 }}
+
+/* ═══════════════════════════════════════════════
+   GUÍA DE POSES — diálogo "¿Cómo crear poses?"
+   ═══════════════════════════════════════════════ */
+.pose-row {{
+  background-color: {PANEL};
+  background-image: none;
+  border: 1px solid {WIDGET};
+  border-radius: 10px;
+  padding: 8px 10px;
+}}
+.pose-row:hover {{
+  border-color: {ACCENT};
+}}
+.pose-row.pose-mandatory {{
+  border-left: 3px solid {ACCENT};
+}}
+.pose-emoji {{
+  font-size: 1.5em;
+  min-width: 34px;
+  min-height: 34px;
+}}
+.pose-emoji-badge {{
+  background-color: {WIDGET};
+  background-image: none;
+  border-radius: 999px;
+}}
+.pose-name {{
+  font-weight: bold;
+  font-family: monospace;
+  color: #ffffff;
+}}
+.pose-desc {{
+  color: {TEXT2};
+  font-size: 0.92em;
+}}
+.badge {{
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 0.78em;
+  font-weight: bold;
+}}
+.badge-mandatory {{
+  background-color: {ACCENT};
+  background-image: none;
+  color: {ON_ACCENT};
+}}
+.badge-optional {{
+  background-color: {WIDGET};
+  background-image: none;
+  color: {TEXT2};
+  border: 1px solid {BORDER};
+}}
+.step-num {{
+  background-color: {ACCENT};
+  background-image: none;
+  color: {ON_ACCENT};
+  border-radius: 999px;
+  min-width: 24px;
+  min-height: 24px;
+  font-weight: bold;
+  font-size: 0.85em;
+}}
+.step-text {{
+  color: {TEXT};
+}}
+.folder-tree {{
+  background-color: {BG2};
+  background-image: none;
+  border: 1px solid {BORDER};
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: {TEXT2};
+  font-family: monospace;
+  font-size: 0.92em;
+}}
+.folder-tree .folder-required {{
+  color: {GREEN};
+}}
+.note-box {{
+  background-color: {WIDGET};
+  background-image: none;
+  border-left: 3px solid {ACCENT};
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: {TEXT2};
+  font-size: 0.92em;
+}}
 """
 
 _provider: Gtk.CssProvider | None = None
