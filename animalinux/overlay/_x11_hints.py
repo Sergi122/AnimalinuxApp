@@ -34,17 +34,17 @@ def _reasserts_wm_hints_on_map() -> bool:
     defecto (input=True) cuando GTK mapea la ventana, descartando lo que
     apply_ewmh_hints_early escribió en 'realize'?
 
-    install.sh detecta el escritorio y guarda el resultado en
-    ~/.config/animalinux/settings.json (clave "desktop_env"). Comprobado con
-    xprop en vivo: Cinnamon/Muffin SÍ lo hace (WM_HINTS.input vuelve a 1 tras
-    el map, y el foco de teclado acaba fijo en la ventana-proxy interna de
-    GDK del propio overlay una vez que se agotan los reintentos de
-    _revert_focus — reproduce el "se congela la pantalla" original); Xfce/
-    xfwm4 NO lo hace, honra tal cual lo escrito en 'realize'. Si no hay
-    valor guardado (instalación manual sin install.sh, escritorio no
-    reconocido...) se asume que SÍ hace falta reafirmar: es el caso seguro
-    para todos los probados salvo Xfce, donde reafirmarlo de más no hace
-    ningún daño."""
+    install.sh detecta el escritorio (cinnamon/xfce/mate/gnome/kde/unknown) y
+    guarda el resultado en ~/.config/animalinux/settings.json (clave
+    "desktop_env"). Comprobado con xprop en vivo: Cinnamon/Muffin SÍ lo hace
+    (WM_HINTS.input vuelve a 1 tras el map, y el foco de teclado acaba fijo
+    en la ventana-proxy interna de GDK del propio overlay una vez que se
+    agotan los reintentos de _revert_focus — reproduce el "se congela la
+    pantalla" original); Xfce/xfwm4 NO lo hace, honra tal cual lo escrito en
+    'realize'. Si no hay valor guardado, o es un escritorio sin confirmar en
+    vivo (kde/unknown), se asume que SÍ hace falta reafirmar: es el caso
+    seguro para todos los probados salvo Xfce, donde reafirmarlo de más no
+    hace ningún daño."""
     env = settings.get("desktop_env", None) or os.environ.get(
         "XDG_CURRENT_DESKTOP", ""
     ).lower()

@@ -84,6 +84,7 @@ case "$DESKTOP_ENV" in
     *xfce*)     DESKTOP_ENV="xfce" ;;
     *mate*)     DESKTOP_ENV="mate" ;;
     *gnome*)    DESKTOP_ENV="gnome" ;;
+    *kde*)      DESKTOP_ENV="kde" ;;
     *)          DESKTOP_ENV="unknown" ;;
 esac
 echo "   -> $DESKTOP_ENV"
