@@ -9,6 +9,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GLib, Gdk, Gio
 
+from .. import __version__
 from ..core import image_processor as importer
 from ..core import gpu
 from ..overlay import BACKEND
@@ -50,6 +51,13 @@ class ControlWindow(Gtk.ApplicationWindow):
         self.status.add_css_class("dim-label")
         self.status.set_hexpand(True)
         topbar.append(self.status)
+        news_lbl = Gtk.Label()
+        news_lbl.add_css_class("dim-label")
+        news_lbl.set_use_markup(True)
+        news_lbl.set_markup(
+            '<a href="https://animalinux.web.app/#cambios">📰 Novedades</a>')
+        news_lbl.set_tooltip_text("Ver la última actualización y el historial de cambios")
+        topbar.append(news_lbl)
         cfg_btn = Gtk.Button(label=t("settings_title"))
         cfg_btn.set_tooltip_text(t("lang_label"))
         cfg_btn.connect("clicked", lambda _: self._show_settings_dialog())
@@ -103,6 +111,12 @@ class ControlWindow(Gtk.ApplicationWindow):
             'animalinux-community.web.app</a>')
         footer.append(web)
         root.append(footer)
+
+        version_lbl = Gtk.Label(label=f"AnimaLinux v{__version__}")
+        version_lbl.add_css_class("dim-label")
+        version_lbl.set_halign(Gtk.Align.CENTER)
+        version_lbl.set_margin_bottom(6)
+        root.append(version_lbl)
 
         self.refresh()
 
