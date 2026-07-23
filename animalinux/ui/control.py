@@ -20,6 +20,7 @@ from . import guide_widgets as gw
 POSE_GUIDE_ORDER = (
     ("default", "🧍"), ("idle", "💤"), ("walk", "🚶"), ("greet", "👋"),
     ("kiss", "😘"), ("jump", "🦘"), ("angry", "😠"), ("grab", "✊"),
+    ("fall", "💫"),
 )
 
 BG_METHODS = [
@@ -992,7 +993,7 @@ class ControlWindow(Gtk.ApplicationWindow):
             ("walk", "walk" in MANDATORY_POSES, "frame_0000.png … frame_0007.png"),
             ("greet", "greet" in MANDATORY_POSES, None), ("kiss", "kiss" in MANDATORY_POSES, None),
             ("jump", "jump" in MANDATORY_POSES, None), ("angry", "angry" in MANDATORY_POSES, None),
-            ("grab", "grab" in MANDATORY_POSES, None),
+            ("grab", "grab" in MANDATORY_POSES, None), ("fall", "fall" in MANDATORY_POSES, None),
         ]
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
         box.add_css_class("folder-tree")

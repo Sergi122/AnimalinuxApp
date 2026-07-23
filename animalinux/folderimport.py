@@ -9,9 +9,11 @@ Formato esperado:
         idle/                      <- Respirar / quieta
         walk/                      <- Caminar
         greet/                     <- Saludar al acercarse
+        kiss/                      <- Le manda un beso al usuario (en vez de greet)
         jump/                      <- Saltar
         angry/                     <- Enojo
         grab/                      <- Agarra el ratón (tras 4 clicks)
+        fall/                      <- Cae y se levanta al soltar el agarre
 
 Cada subcarpeta = una acción (pose). Acepta PNG/WebP/GIF por frame.
 Solo 'default' es obligatoria; el resto son opcionales.
@@ -23,7 +25,8 @@ from PIL import Image
 
 from .core import image_processor as importer
 
-KNOWN_POSES = ["default", "idle", "walk", "greet", "jump", "angry", "grab"]
+KNOWN_POSES = ["default", "idle", "walk", "greet", "kiss", "jump", "angry",
+               "grab", "fall"]
 IMG_EXT = (".png", ".webp", ".gif", ".jpg", ".jpeg", ".apng")
 
 
