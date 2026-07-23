@@ -99,8 +99,8 @@ class ControlWindow(Gtk.ApplicationWindow):
         web.set_use_markup(True)
         web.set_markup(
             '🌐 ¿Buscas más animaciones o quieres compartir las tuyas?  '
-            '<a href="https://sergi122.github.io/Animalinux/">'
-            'sergi122.github.io/Animalinux</a>')
+            '<a href="https://animalinux-community.web.app/">'
+            'animalinux-community.web.app</a>')
         footer.append(web)
         root.append(footer)
 
