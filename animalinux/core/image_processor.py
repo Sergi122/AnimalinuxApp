@@ -260,3 +260,39 @@ def ensure_flipped(frames_dir):
                 Image.open(p).transpose(Image.FLIP_LEFT_RIGHT).save(flip)
             except Exception:  # noqa: BLE001
                 pass
+
+
+def export_animation(frames_dir, out_path, fps=12):
+    """Exporta una animación 'sin vida' (frame_NNNN.png sueltos, sin poses) como
+    GIF o MP4 según la extensión de out_path. Para mascotas con vida se usa
+    pack.export_pack (.alpack) en cambio — esto es solo para el modo GIF."""
+    frames_dir = Path(frames_dir)
+    out_path = Path(out_path)
+    frames = [Image.open(p).convert("RGBA")
+              for p in sorted(frames_dir.glob("frame_*.png"))]
+    if not frames:
+        raise RuntimeError("Esta animación no tiene frames para exportar.")
+
+    if out_path.suffix.lower() == ".gif":
+        delay_ms = max(20, 1000 // fps)
+        frames[0].save(
+            out_path, format="GIF", save_all=True, append_images=frames[1:],
+            loop=0, duration=delay_ms, disposal=2)
+        return out_path
+
+    # MP4 (requiere ffmpeg)
+    tmp = tempfile.mkdtemp(prefix="animalinux_mp4_")
+    try:
+        for i, f in enumerate(frames):
+            f.save(f"{tmp}/frame_{i:04d}.png")
+        ret = subprocess.run(
+            ["ffmpeg", "-y", "-framerate", str(fps),
+             "-i", f"{tmp}/frame_%04d.png",
+             "-c:v", "libx264", "-pix_fmt", "yuv420p",
+             "-preset", "medium", str(out_path)],
+            capture_output=True)
+        if ret.returncode != 0:
+            raise RuntimeError("ffmpeg no encontrado o falló al exportar el MP4.")
+        return out_path
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)

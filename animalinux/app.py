@@ -169,6 +169,13 @@ class AnimaApp(Gtk.Application):
     def export_pack(self, anim_id, path):
         return packmod.export_pack(self.library, anim_id, path)
 
+    def export_animation(self, anim_id, path):
+        """Exporta una mascota 'sin vida' como GIF/MP4 (ver core/image_processor)."""
+        from .core import image_processor as importer
+        anim = self.library.animations.get(anim_id, {})
+        return importer.export_animation(
+            self.library.frames_dir(anim_id), path, fps=anim.get("fps", 12))
+
     def import_spritesheet(self, path, cols=0):
         from . import spritesheet
         return spritesheet.import_spritesheet(self.library, path, cols=cols)

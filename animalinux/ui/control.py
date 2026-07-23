@@ -333,7 +333,7 @@ class ControlWindow(Gtk.ApplicationWindow):
 
         exp_btn = Gtk.Button(label=t("export"))
         exp_btn.connect("clicked",
-                        lambda _, aid=anim["id"]: self._on_export_pack(aid))
+                        lambda _, aid=anim["id"]: self._on_export_gif(aid))
         col.append(exp_btn)
 
         del_btn = Gtk.Button(label=t("delete"))
@@ -577,7 +577,8 @@ class ControlWindow(Gtk.ApplicationWindow):
             # el usuario eligió un pack .alpack desde un botón de GIF/vídeo/
             # imagen: es un error de bicicleta esperable (los botones están
             # uno al lado del otro), no un archivo inválido — se importa
-            # igual, siempre como "con vida" (ver _import_pack_path).
+            # igual (ver _import_pack_path: el modo se decide según cuántas
+            # poses trae el pack, no queda fijo).
             self._import_pack_path(path)
             return
         method = BG_METHODS[self.method_combo.get_selected()][1]
@@ -680,10 +681,14 @@ class ControlWindow(Gtk.ApplicationWindow):
         def work():
             try:
                 aid = self.app.import_pack(path)
-                # los packs .alpack son siempre animaciones "con vida" (traen
-                # sus propias poses walk/idle/greet/...) — nunca quedan en
-                # modo "gif", venga la importación de donde venga.
-                self.app.library.update(aid, mode="life")
+                # un pack con MÁS de una carpeta de pose trae vida propia
+                # (walk/idle/greet/...) → modo "life". Con una sola carpeta
+                # (sea cual sea su nombre — normalmente "default") es una
+                # animación simple → modo "gif", igual que si se hubiera
+                # importado directo como GIF/vídeo.
+                poses = self.app.library.animations.get(aid, {}).get("poses", [])
+                mode = "life" if len(poses) > 1 else "gif"
+                self.app.library.update(aid, mode=mode)
                 GLib.idle_add(self._pack_done)
             except Exception as e:  # noqa: BLE001
                 GLib.idle_add(self.status.set_text, f"Error con el pack: {e}")
@@ -711,6 +716,40 @@ class ControlWindow(Gtk.ApplicationWindow):
         try:
             out = self.app.export_pack(aid, gfile.get_path())
             self.status.set_text(f"Pack exportado: {out.name}")
+        except Exception as e:  # noqa: BLE001
+            self.status.set_text(f"Error al exportar: {e}")
+
+    def _on_export_gif(self, aid):
+        """Exportar una mascota 'sin vida' (GIF/MP4 importado o dibujado) —
+        se reconstruye desde sus frames guardados, no como .alpack (ese
+        formato es para mascotas con vida, con varias poses)."""
+        anim = self.app.library.animations.get(aid, {})
+        dialog = Gtk.FileDialog()
+        dialog.set_title("Exportar animación")
+
+        gif_filter = Gtk.FileFilter(); gif_filter.set_name("GIF animado (*.gif)")
+        gif_filter.add_pattern("*.gif")
+        mp4_filter = Gtk.FileFilter(); mp4_filter.set_name("Vídeo MP4 (*.mp4)")
+        mp4_filter.add_pattern("*.mp4")
+        filters = Gio.ListStore.new(Gtk.FileFilter)
+        filters.append(gif_filter); filters.append(mp4_filter)
+        dialog.set_filters(filters)
+
+        dialog.set_initial_name(f"{anim.get('name', 'mascota')}.gif")
+        dialog.save(self, None,
+                    lambda d, r, aid=aid: self._on_gif_save(d, r, aid))
+
+    def _on_gif_save(self, dialog, result, aid):
+        try:
+            gfile = dialog.save_finish(result)
+        except GLib.Error:
+            return
+        path = gfile.get_path()
+        if not path.lower().endswith((".gif", ".mp4")):
+            path += ".gif"
+        try:
+            out = self.app.export_animation(aid, path)
+            self.status.set_text(f"Animación exportada: {out.name}")
         except Exception as e:  # noqa: BLE001
             self.status.set_text(f"Error al exportar: {e}")
 
