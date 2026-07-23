@@ -405,6 +405,12 @@ class ControlWindow(Gtk.ApplicationWindow):
         exp.connect("clicked", lambda _, aid=anim["id"]: self._on_export_pack(aid))
         col.append(exp)
 
+        share = Gtk.Button(label="🌐 Compartir")
+        share.set_tooltip_text(
+            "Exportar el pack y abrir la web de la comunidad para subirlo")
+        share.connect("clicked", lambda _, aid=anim["id"]: self._on_share_pack(aid))
+        col.append(share)
+
         del_btn = Gtk.Button(label=t("delete"))
         del_btn.add_css_class("destructive-action")
         del_btn.connect("clicked", lambda _, aid=anim["id"]: self._on_delete(aid))
@@ -742,6 +748,30 @@ class ControlWindow(Gtk.ApplicationWindow):
         try:
             out = self.app.export_pack(aid, gfile.get_path())
             self.status.set_text(f"Pack exportado: {out.name}")
+        except Exception as e:  # noqa: BLE001
+            self.status.set_text(f"Error al exportar: {e}")
+
+    def _on_share_pack(self, aid):
+        """Exportar + abrir directo la web de subida — un solo click en vez de
+        exportar, buscar la web y navegar hasta 'Subir mascota' a mano."""
+        anim = self.app.library.animations.get(aid, {})
+        dialog = Gtk.FileDialog()
+        dialog.set_title("Guardar pack para compartir")
+        dialog.set_initial_name(f"{anim.get('name', 'mascota')}.alpack")
+        dialog.save(self, None,
+                    lambda d, r, aid=aid: self._on_share_pack_save(d, r, aid))
+
+    def _on_share_pack_save(self, dialog, result, aid):
+        try:
+            gfile = dialog.save_finish(result)
+        except GLib.Error:
+            return
+        try:
+            out = self.app.export_pack(aid, gfile.get_path())
+            self.status.set_text(
+                f"Pack guardado en {out} — abriendo la web para subirlo…")
+            Gio.AppInfo.launch_default_for_uri(
+                "https://animalinux-community.web.app/upload.html", None)
         except Exception as e:  # noqa: BLE001
             self.status.set_text(f"Error al exportar: {e}")
 
