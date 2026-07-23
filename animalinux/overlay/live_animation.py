@@ -215,8 +215,16 @@ class LiveAnimationMixin:
             return
         if self._grab_anchor is None:
             self._grab_anchor = (mx, my, self._x, self._y)
+            self._grab_last_mx = mx
             return
         mx0, my0, x0, y0 = self._grab_anchor
+        # se da vuelta según hacia dónde la estás arrastrando (con umbral
+        # para no aletear con el temblor/ruido del mouse) — así se ve como
+        # que se aferra de verdad al cursor en vez de deslizar de espaldas.
+        dx = mx - self._grab_last_mx
+        if abs(dx) >= 2:
+            self._facing_left = dx < 0
+            self._grab_last_mx = mx
         self._set_position(x0 + (mx - mx0), y0 + (my - my0))
 
     def _end_grab_restore(self):
@@ -276,7 +284,8 @@ class LiveAnimationMixin:
         self._paintable.set_squash(1.0, 1.0)
         self._update_input_region()
         self._state = "falling"
-        self._set_pose("jump" if self._has_pose("jump") else "default")
+        self._set_pose("fall" if self._has_pose("fall")
+                       else ("jump" if self._has_pose("jump") else "default"))
 
     def _disable_self(self):
         """Se rinde: se quita del escritorio y se desmarca en el panel."""
@@ -492,7 +501,8 @@ class LiveAnimationMixin:
                     self._toss_vx = 0.0
                     self._toss_vy = 0.0
                     self._state = "falling"
-                    self._set_pose("jump" if self._has_pose("jump") else "default")
+                    self._set_pose("fall" if self._has_pose("fall")
+                                   else ("jump" if self._has_pose("jump") else "default"))
             return True
 
         # ── ir a trepar a una ventana (idea 5 proactiva) ───────────────────
