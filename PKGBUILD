@@ -5,8 +5,8 @@ pkgname=animalinux
 # build()/package() fallan con "No such file or directory" (bug real,
 # presente desde v0.2.0, nunca se había probado con una build de verdad).
 _gitname=AnimalinuxApp
-pkgver=0.4.0
-pkgrel=2
+pkgver=0.4.2
+pkgrel=1
 pkgdesc="Mascotas animadas en el escritorio para Hyprland/Wayland, con editor de píxeles y pintura"
 arch=('x86_64' 'aarch64')
 url="https://github.com/Sergi122/AnimalinuxApp"
@@ -35,7 +35,7 @@ makedepends=(
     'python-setuptools'
 )
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
-sha256sums=('e245af6f50553a713f5788436355cf942ec6be9f18617260151cf4bc4c3c6daa')
+sha256sums=('SKIP')
 
 build() {
     cd "$_gitname-$pkgver"
@@ -47,11 +47,5 @@ package() {
     python -m installer --destdir="$pkgdir" dist/*.whl
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
     install -Dm644 animalinux.desktop "$pkgdir/usr/share/applications/animalinux.desktop"
-    # el tarball del tag v0.4.0 trae el .desktop viejo (Exec=animalinux sin
-    # --show); con mascotas ya configuradas eso arranca la app en silencio
-    # (solo bandeja) y el icono del menú "no abre nada" a ojos del usuario.
-    # Se parchea aquí para no tener que taggear una v0.4.1 solo por esto.
-    sed -i 's/^Exec=animalinux$/Exec=animalinux --show/' \
-        "$pkgdir/usr/share/applications/animalinux.desktop"
     install -Dm644 animalinux.png "$pkgdir/usr/share/icons/hicolor/256x256/apps/animalinux.png"
 }
