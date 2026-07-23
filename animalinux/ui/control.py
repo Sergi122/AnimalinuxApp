@@ -604,11 +604,23 @@ class ControlWindow(Gtk.ApplicationWindow):
 
         def work():
             try:
+                pre_loaded = importer.load_frames(path)
+                use_method = method
+                # si el archivo YA viene con fondo transparente (stickers/
+                # emotes GIF/WebP/APNG), pasarlo por la IA es contraproducente
+                # — recalcula una máscara nueva y puede decolorar detalles
+                # finos (correas, guantes) que ya estaban bien recortados.
+                if method == "ai" and importer.already_has_transparency(pre_loaded[0]):
+                    use_method = "none"
+                    GLib.idle_add(
+                        self.status.set_text,
+                        "Este archivo ya tiene fondo transparente — no se aplicó recorte con IA.")
                 lib = self.app.library
                 aid = lib.new_id()
                 dest = lib.frames_dir(aid)
                 fc, w, h, fps = importer.import_animation(
-                    path, dest, bg_method=method, progress=report)
+                    path, dest, bg_method=use_method, progress=report,
+                    pre_loaded=pre_loaded)
                 name = gfile.get_basename().rsplit(".", 1)[0]
                 GLib.idle_add(self._import_done, aid, name, fc, w, h, fps, live)
             except Exception as e:   # noqa: BLE001
