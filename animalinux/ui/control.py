@@ -350,6 +350,15 @@ class ControlWindow(Gtk.ApplicationWindow):
                         lambda _, aid=anim["id"]: self._on_export_gif(aid))
         col.append(exp_btn)
 
+        # "Compartir" sigue armando un .alpack (no el GIF/MP4 de "Exportar"):
+        # es el único formato que acepta la web de la comunidad, tenga la
+        # mascota una sola pose (sin vida) o varias (con vida).
+        share = Gtk.Button(label="🌐 Compartir")
+        share.set_tooltip_text(
+            "Exportar el pack y abrir la web de la comunidad para subirlo")
+        share.connect("clicked", lambda _, aid=anim["id"]: self._on_share_pack(aid))
+        col.append(share)
+
         del_btn = Gtk.Button(label=t("delete"))
         del_btn.add_css_class("destructive-action")
         del_btn.connect("clicked", lambda _, aid=anim["id"]: self._on_delete(aid))
