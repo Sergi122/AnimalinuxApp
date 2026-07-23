@@ -143,6 +143,26 @@ def _load_video(path):
 # ----------------------------------------------------------------------
 # 2) Quitar el fondo
 # ----------------------------------------------------------------------
+def already_has_transparency(frames, sample=3, min_ratio=0.02):
+    """Detecta si los frames YA traen fondo transparente (típico de stickers/
+    emotes GIF/WebP/APNG exportados con alfa). Si es así, pasarlos por la IA
+    de recorte es contraproducente: rembg recalcula una máscara nueva desde
+    los colores RGB e ignora el alfa que ya venía bien, y en los bordes de
+    zonas oscuras/finas (guantes, correas) puede confundir el borde real con
+    ruido y dejar manchas o decolorar esa zona. Mejor no tocar nada (bg_method
+    "none") cuando el archivo ya viene recortado."""
+    if not frames:
+        return False
+    for f in frames[:sample]:
+        alpha = f.getchannel("A")
+        hist = alpha.histogram()          # 256 buckets, uno por valor de alfa
+        total = alpha.width * alpha.height
+        transparent = sum(hist[:250])     # alfa < 250 = ya viene con recorte
+        if total and (transparent / total) >= min_ratio:
+            return True
+    return False
+
+
 def remove_background(frames, method="ai", chroma_tolerance=40,
                       model="isnet-anime", progress=None):
     if method == "none":
@@ -217,17 +237,21 @@ def _autocrop(frames):
 
 
 def import_animation(src_path, dest_dir, bg_method="ai",
-                     model="isnet-anime", autocrop=True, progress=None):
+                     model="isnet-anime", autocrop=True, progress=None,
+                     pre_loaded=None):
     """
     Pipeline completo. Devuelve (frame_count, width, height, fps).
     progress: callback opcional progress(texto, fraccion 0..1) para la barra.
+    pre_loaded: (frames, fps) ya cargados con load_frames() — evita releer y
+    redecodificar el archivo si quien llama ya los cargó antes (ej. para
+    decidir el método de recorte según already_has_transparency()).
     """
     dest_dir = Path(dest_dir)
     dest_dir.mkdir(parents=True, exist_ok=True)
 
     if progress:
         progress("Leyendo archivo", 0.0)
-    frames, fps = load_frames(src_path)
+    frames, fps = pre_loaded if pre_loaded else load_frames(src_path)
     frames = remove_background(frames, method=bg_method, model=model,
                                progress=progress)
     if autocrop:
