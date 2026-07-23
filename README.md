@@ -10,7 +10,7 @@ Funciona en **Hyprland/Sway** (Wayland, vía wlr-layer-shell) y también en
 la app detecta sola el entorno y usa el backend adecuado — no hace falta
 configurar nada.
 
-🌐 **Descarga y comparte animaciones en la comunidad:** [sergi122.github.io/Animalinux](https://sergi122.github.io/Animalinux)
+🌐 **Descarga y comparte animaciones en la comunidad:** [animalinux-community.web.app](https://animalinux-community.web.app)
 
 ---
 
