@@ -10,6 +10,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
 import cairo
+from ..i18n import tr
 
 INK = (0.11, 0.11, 0.11)
 
@@ -111,7 +112,7 @@ class FgBg(Gtk.DrawingArea):
         self.bg = (255, 255, 255, 255)
         self.set_content_width(56); self.set_content_height(42)
         self.set_draw_func(self._draw)
-        self.set_tooltip_text("Color de primer plano y de fondo (X = intercambiar)")
+        self.set_tooltip_text(tr("Color de primer plano y de fondo (X = intercambiar)"))
         g = Gtk.GestureClick(); g.connect("pressed", lambda *_: on_swap and on_swap())
         self.add_controller(g)
 
@@ -172,7 +173,7 @@ class PaletteGrid(Gtk.DrawingArea):
         i = self._index(x, y)
         if i >= 0:
             c = self.colors[i]
-            self.set_tooltip_text(f"#{c[0]:02x}{c[1]:02x}{c[2]:02x}  α{c[3]}   (clic izq. = primer plano, der. = fondo)")
+            self.set_tooltip_text(tr("#{x0:02x}{x1:02x}{x2:02x}  α{x3}   (clic izq. = primer plano, der. = fondo)", x0=c[0], x1=c[1], x2=c[2], x3=c[3]))
 
     def _draw(self, a, cr, w, h):
         cs = self.CELL
@@ -292,7 +293,7 @@ class Timeline(Gtk.DrawingArea):
             cr.set_source_rgb(*(1, 1, 1) if active else (0.05, 0.05, 0.05))
             cr.set_font_size(11)
             cr.move_to(46, y + RH - 6)
-            cr.show_text(layer.name[:16] + (f"  {layer.opacity * 100 // 255}%" if layer.opacity < 255 else ""))
+            cr.show_text(layer.name[:16] + (tr("  {x0}%", x0=layer.opacity * 100 // 255) if layer.opacity < 255 else ""))
             for f in range(nf):
                 x = LW + f * CW
                 has = self._has_content(layer.frames[f])

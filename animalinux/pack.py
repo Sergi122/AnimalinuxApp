@@ -26,6 +26,7 @@ y compartirlo. Eso es lo que hizo famoso a Shimeji.
 import json
 import zipfile
 from pathlib import Path
+from .i18n import tr
 
 from .core import image_processor as importer
 
@@ -41,7 +42,7 @@ def export_pack(library, anim_id, dest_path):
     """Crea un .alpack a partir de una animación de la librería."""
     anim = library.animations.get(anim_id)
     if not anim:
-        raise RuntimeError("Esa animación no existe.")
+        raise RuntimeError(tr("Esa animación no existe."))
     frames_dir = library.frames_dir(anim_id)
     dest_path = Path(dest_path)
     if dest_path.suffix != ".alpack":
@@ -88,13 +89,13 @@ def import_pack(library, pack_path):
     """Instala un .alpack en la librería. Devuelve el id de la nueva animación."""
     pack_path = Path(pack_path)
     if pack_path.stat().st_size > MAX_PACK_BYTES:
-        raise RuntimeError("El pack es demasiado grande (límite 200 MB).")
+        raise RuntimeError(tr("El pack es demasiado grande (límite 200 MB)."))
 
     with zipfile.ZipFile(pack_path) as z:
         _validate_zip(z)
         meta = json.loads(z.read("mascot.json"))
         if meta.get("format") != MAGIC:
-            raise RuntimeError("Ese archivo no es un pack de AnimaLinux válido.")
+            raise RuntimeError(tr("Ese archivo no es un pack de AnimaLinux válido."))
 
         anim_id = library.new_id()
         frames_dir = library.frames_dir(anim_id)
@@ -139,6 +140,6 @@ def _validate_zip(z):
     for name in z.namelist():
         p = Path(name)
         if p.is_absolute() or ".." in p.parts:
-            raise RuntimeError("Pack inseguro: contiene rutas no permitidas.")
+            raise RuntimeError(tr("Pack inseguro: contiene rutas no permitidas."))
     if "mascot.json" not in z.namelist():
-        raise RuntimeError("El pack no tiene mascot.json.")
+        raise RuntimeError(tr("El pack no tiene mascot.json."))

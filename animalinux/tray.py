@@ -13,6 +13,7 @@ la config con `animalinux --show` o un atajo de teclado.
 import os
 import subprocess
 import sys
+from .i18n import tr
 
 
 def _run(*args):
@@ -65,17 +66,17 @@ def main():
 
     menu = Gtk.Menu()
 
-    item_cfg = Gtk.MenuItem(label="⚙  Configurar")
+    item_cfg = Gtk.MenuItem(label=tr("⚙  Configurar"))
     item_cfg.connect("activate", lambda _w: _run("--show"))
     menu.append(item_cfg)
 
-    item_add = Gtk.MenuItem(label="➕  Añadir animación")
+    item_add = Gtk.MenuItem(label=tr("➕  Añadir animación"))
     item_add.connect("activate", lambda _w: _run("--show"))
     menu.append(item_add)
 
     menu.append(Gtk.SeparatorMenuItem())
 
-    item_quit = Gtk.MenuItem(label="⏻  Salir de AnimaLinux")
+    item_quit = Gtk.MenuItem(label=tr("⏻  Salir de AnimaLinux"))
     item_quit.connect("activate", lambda _w: (_run("--quit"), Gtk.main_quit()))
     menu.append(item_quit)
 

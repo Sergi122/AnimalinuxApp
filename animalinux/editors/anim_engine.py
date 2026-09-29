@@ -24,6 +24,8 @@ import numpy as np
 import cairo
 from PIL import Image, ImageDraw
 
+from ..i18n import tr
+
 MAX_UNDO = 80
 
 BLEND_OPS = {
@@ -242,7 +244,7 @@ class Scene:
         self.audio = None
         self._undo, self._redo = [], []
         self._pre = None
-        self.add_layer("raster", "Dibujo 1", record=False)
+        self.add_layer("raster", tr("Dibujo {n}", n=1), record=False)
 
     # ── deshacer ─────────────────────────────────────────────────────────────
     def _struct(self):
@@ -317,7 +319,7 @@ class Scene:
     def add_layer(self, kind="raster", name=None, above=None, record=True):
         if record: self.snap()
         n = len(self.layers) + 1
-        l = Layer(name or (f"Dibujo {n}" if kind == "raster" else f"Vector {n}"), kind, self.frame_count)
+        l = Layer(name or (tr("Dibujo {n}", n=n) if kind == "raster" else tr("Vector {n}", n=n)), kind, self.frame_count)
         at = len(self.layers) if above is None else above + 1
         self.layers.insert(at, l)
         return at
@@ -329,8 +331,9 @@ class Scene:
     def duplicate_layer(self, i):
         self.snap()
         src = self.layers[i]
-        l = Layer(src.name + " copia", src.kind, 0)
-        l.apply_meta({**src.meta(), "name": src.name + " copia", "locked": False})
+        cname = tr("{name} copia", name=src.name)
+        l = Layer(cname, src.kind, 0)
+        l.apply_meta({**src.meta(), "name": cname, "locked": False})
         l.drawings = [d.copy() for d in src.drawings]
         l.exposure = list(src.exposure)
         self.layers.insert(i + 1, l)
@@ -580,7 +583,7 @@ class Scene:
         nl = max(len(fr["layers"]) for fr in frames)
         for li in range(nl):
             first = next((fr["layers"][li] for fr in frames if li < len(fr["layers"])), None)
-            l = Layer(first["name"] if first else f"Dibujo {li + 1}", "raster", len(frames))
+            l = Layer(first["name"] if first else tr("Dibujo {n}", n=li + 1), "raster", len(frames))
             if first:
                 l.apply_meta({"visible": first.get("visible", True), "locked": first.get("locked", False),
                               "alpha_locked": first.get("alpha_locked", False),
@@ -613,7 +616,7 @@ class Scene:
             l.drawings.append(Drawing(w, h, "raster", np.array(im)))
             l.exposure[i] = i
         sc.stop = sc.frame_count - 1
-        l.name = "Fondo"
+        l.name = tr("Fondo")
         return sc
 
 

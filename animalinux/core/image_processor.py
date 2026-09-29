@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+from ..i18n import tr
 
 from PIL import Image, ImageSequence
 
@@ -33,7 +34,7 @@ def _guard_open(path):
         img = Image.open(path)
         img.verify()              # valida que sea una imagen real
     except Exception as e:        # noqa: BLE001
-        raise RuntimeError(f"El archivo no es una imagen/animación válida: {e}")
+        raise RuntimeError(tr("El archivo no es una imagen/animación válida: {e}", e=e))
     return Image.open(path)       # reabrir tras verify()
 
 
@@ -88,7 +89,7 @@ def _install_ffmpeg_hint():
     ):
         if shutil.which(cmd):
             return pkg_cmd
-    return "el gestor de paquetes de tu distro (paquete 'ffmpeg')"
+    return tr("el gestor de paquetes de tu distro (paquete 'ffmpeg')")
 
 
 MAX_VIDEO_SECONDS = 10   # los vídeos más largos hay que recortarlos antes de importar
@@ -115,13 +116,13 @@ def _load_video(path):
     """Extrae frames de un video usando ffmpeg (debe estar instalado)."""
     if not shutil.which("ffmpeg"):
         raise RuntimeError(
-            "ffmpeg no está instalado. Instálalo con: " + _install_ffmpeg_hint()
+            tr("ffmpeg no está instalado. Instálalo con: {hint}", hint=_install_ffmpeg_hint())
         )
     duration = _video_duration_seconds(path)
     if duration is not None and duration > MAX_VIDEO_SECONDS:
         raise RuntimeError(
-            f"El vídeo dura {duration:.0f}s — el máximo para importar como "
-            f"mascota es {MAX_VIDEO_SECONDS}s. Recórtalo e intenta de nuevo."
+            tr("El vídeo dura {dur}s — el máximo para importar como mascota es {max}s. "
+               "Recórtalo e intenta de nuevo.", dur=f"{duration:.0f}", max=MAX_VIDEO_SECONDS)
         )
     tmp = Path(tempfile.mkdtemp(prefix="animalinux_"))
     try:
@@ -134,7 +135,7 @@ def _load_video(path):
         frames = [_clamp_size(Image.open(p).convert("RGBA"))
                   for p in sorted(tmp.glob("f_*.png"))[:MAX_FRAMES]]
         if not frames:
-            raise RuntimeError("ffmpeg no produjo frames de ese video.")
+            raise RuntimeError(tr("ffmpeg no produjo frames de ese video."))
         return frames, 15
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -171,11 +172,11 @@ def remove_background(frames, method="ai", chroma_tolerance=40,
         try:
             return _remove_bg_ai(frames, model=model, progress=progress)
         except ImportError:
-            raise RuntimeError(
+            raise RuntimeError(tr(
                 "Para el recorte con IA necesitas rembg. Instálalo con:\n"
                 "  pip install --user --break-system-packages rembg onnxruntime\n"
                 "O elige el método «Color de fondo» (solo para fondos planos)."
-            )
+            ))
     if method == "chroma":
         out = []
         n = len(frames)
@@ -198,7 +199,7 @@ def _remove_bg_ai(frames, model="isnet-anime", progress=None):
     for i, f in enumerate(frames):
         out.append(remove(f, session=session).convert("RGBA"))
         if progress:
-            progress("Recortando con IA", (i + 1) / n)
+            progress(tr("Recortando con IA"), (i + 1) / n)
     return out
 
 
@@ -250,14 +251,14 @@ def import_animation(src_path, dest_dir, bg_method="ai",
     dest_dir.mkdir(parents=True, exist_ok=True)
 
     if progress:
-        progress("Leyendo archivo", 0.0)
+        progress(tr("Leyendo archivo"), 0.0)
     frames, fps = pre_loaded if pre_loaded else load_frames(src_path)
     frames = remove_background(frames, method=bg_method, model=model,
                                progress=progress)
     if autocrop:
         frames = _autocrop(frames)
     if not frames:
-        raise RuntimeError("No se obtuvo ningún frame de ese archivo.")
+        raise RuntimeError(tr("No se obtuvo ningún frame de ese archivo."))
 
     w, h = frames[0].size
     n = len(frames)
@@ -295,7 +296,7 @@ def export_animation(frames_dir, out_path, fps=12):
     frames = [Image.open(p).convert("RGBA")
               for p in sorted(frames_dir.glob("frame_*.png"))]
     if not frames:
-        raise RuntimeError("Esta animación no tiene frames para exportar.")
+        raise RuntimeError(tr("Esta animación no tiene frames para exportar."))
 
     if out_path.suffix.lower() == ".gif":
         delay_ms = max(20, 1000 // fps)
@@ -316,7 +317,7 @@ def export_animation(frames_dir, out_path, fps=12):
              "-preset", "medium", str(out_path)],
             capture_output=True)
         if ret.returncode != 0:
-            raise RuntimeError("ffmpeg no encontrado o falló al exportar el MP4.")
+            raise RuntimeError(tr("ffmpeg no encontrado o falló al exportar el MP4."))
         return out_path
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

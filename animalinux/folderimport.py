@@ -20,6 +20,7 @@ Solo 'default' es obligatoria; el resto son opcionales.
 Al importar, VALIDA cada pose; si algo está mal, devuelve los problemas.
 """
 from pathlib import Path
+from .i18n import tr
 
 from PIL import Image
 
@@ -68,21 +69,21 @@ def validate_poses(poses):
     problemas = {}
     if "default" not in poses:
         problemas["_general"] = [
-            "Falta la pose 'default' (la base de la mascota)."]
+            tr("Falta la pose 'default' (la base de la mascota).")]
     for pose, frames in poses.items():
         avisos = []
         if len(frames) < 1:
-            avisos.append("No tiene cuadros.")
+            avisos.append(tr("No tiene cuadros."))
         sizes = {f.size for f in frames}
         if len(sizes) > 1:
-            avisos.append("Cuadros de distinto tamaño (se uniformarán, pero "
-                          "puede verse un salto).")
+            avisos.append(tr("Cuadros de distinto tamaño (se uniformarán, pero "
+                            "puede verse un salto)."))
         if pose in ("walk", "greet", "angry", "jump", "grab") and len(frames) < 2:
-            avisos.append("Una animación necesita 2+ cuadros para moverse.")
+            avisos.append(tr("Una animación necesita 2+ cuadros para moverse."))
         # pies desalineados
         bottoms = [f.getbbox()[3] for f in frames if f.getbbox()]
         if bottoms and (max(bottoms) - min(bottoms)) > max(4, frames[0].height * 0.08):
-            avisos.append("Los pies se desalinean entre cuadros (puede patinar).")
+            avisos.append(tr("Los pies se desalinean entre cuadros (puede patinar)."))
         if avisos:
             problemas[pose] = avisos
     return problemas
@@ -97,7 +98,7 @@ def import_folder(library, folder, fps=8, name=None):
     folder = Path(folder)
     poses = scan_folder(folder)
     if not poses:
-        raise RuntimeError("La carpeta no tiene imágenes ni subcarpetas válidas.")
+        raise RuntimeError(tr("La carpeta no tiene imágenes ni subcarpetas válidas."))
 
     problemas = validate_poses(poses)
 

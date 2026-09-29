@@ -11,6 +11,7 @@ Dos formas de cortar:
              (típico en tiras con huecos entre cuadros).
 """
 from pathlib import Path
+from .i18n import tr
 
 from PIL import Image
 
@@ -64,7 +65,7 @@ def import_spritesheet(library, path, cols=0, rows=1, fps=8, name=None):
 
     frames = [f for f in frames if f.getbbox()]   # descartar celdas vacías
     if not frames:
-        raise RuntimeError("No se detectaron fotogramas en la hoja.")
+        raise RuntimeError(tr("No se detectaron fotogramas en la hoja."))
 
     frames = importer._autocrop(frames)            # recorte uniforme
     w, h = frames[0].size

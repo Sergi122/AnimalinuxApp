@@ -18,6 +18,7 @@ import cairo
 import numpy as np
 from PIL import Image
 
+from ..i18n import tr
 from . import anim_engine as ae
 
 ZOOM_MIN, ZOOM_MAX = 0.05, 32.0
@@ -319,7 +320,7 @@ class AnimCanvas(Gtk.DrawingArea):
 
     def remove_layer(self):
         if self.scene.remove_layer(self.li): self._after_struct()
-        else: self._status("No se puede borrar la única capa")
+        else: self._status(tr("No se puede borrar la única capa"))
 
     def duplicate_layer(self):
         self.li = self.scene.duplicate_layer(self.li); self._after_struct()
@@ -330,7 +331,7 @@ class AnimCanvas(Gtk.DrawingArea):
     def merge_down(self):
         if self.scene.merge_down(self.li):
             self.li -= 1; self._after_struct()
-        else: self._status("Solo se pueden unir dos capas de dibujo")
+        else: self._status(tr("Solo se pueden unir dos capas de dibujo"))
 
     # fotogramas / exposición
     def new_drawing_here(self):
@@ -338,13 +339,13 @@ class AnimCanvas(Gtk.DrawingArea):
 
     def duplicate_drawing_here(self):
         if self.scene.duplicate_drawing(self.li, self.cur) is None:
-            self._status("La celda está vacía")
+            self._status(tr("La celda está vacía"))
         self._after_struct(False)
 
     def extend_exposure(self, n=1):
         f = self.cur
         if self.layer.drawing_index_at(f) < 0:
-            self._status("Dibuja algo en la celda antes de extenderla"); return
+            self._status(tr("Dibuja algo en la celda antes de extenderla")); return
         self.scene.extend_exposure(self.li, f, f + n)
         self.cur = min(self.cur + n, self.scene.frame_count - 1)
         self._after_struct(False)
@@ -357,7 +358,7 @@ class AnimCanvas(Gtk.DrawingArea):
 
     def delete_frame(self):
         if self.scene.delete_frames(self.cur, 1): self._after_struct(False)
-        else: self._status("La escena necesita al menos un fotograma")
+        else: self._status(tr("La escena necesita al menos un fotograma"))
 
     def _cur_drawing(self, create=False):
         d = self.layer.at(self.cur)
@@ -367,8 +368,8 @@ class AnimCanvas(Gtk.DrawingArea):
 
     def _blocked(self):
         l = self.layer
-        if l.locked: self._status("La capa está bloqueada"); return True
-        if not l.visible: self._status("La capa está oculta"); return True
+        if l.locked: self._status(tr("La capa está bloqueada")); return True
+        if not l.visible: self._status(tr("La capa está oculta")); return True
         return False
 
     # ══ entrada ═══════════════════════════════════════════════════════════════
@@ -396,7 +397,7 @@ class AnimCanvas(Gtk.DrawingArea):
         if tool == "camera":
             self._cam_begin(cx, cy); return
         if self.mode == "camera":
-            self._status("Cambia a la vista «Dibujo» para dibujar"); self._drawing = False; return
+            self._status(tr("Cambia a la vista «Dibujo» para dibujar")); self._drawing = False; return
         if tool == "polyline":
             self._poly_click(cx, cy, g); return
         if tool in ("select", "contour", "lasso"):
@@ -618,7 +619,7 @@ class AnimCanvas(Gtk.DrawingArea):
                 if s.get("closed") and ae.point_in_poly(s["pts"], cx, cy):
                     self.scene.begin_edit(d); s["fill"] = tuple(col); d.touch()
                     self.scene.end_edit(); self._changed(); return
-            self._status("Haz clic dentro de una forma cerrada"); return
+            self._status(tr("Haz clic dentro de una forma cerrada")); return
         x, y = int(cx), int(cy)
         p = self.props
         region = ae.flood_region(self._sample_array(), x, y, p["fill_tol"], p["fill_contig"], p["fill_gap"])
@@ -642,7 +643,7 @@ class AnimCanvas(Gtk.DrawingArea):
     def _shape_begin(self, cx, cy, tool):
         self._sh0 = (cx, cy); self._shape_end = (cx, cy)
         if self.layer.kind == "vector" and tool == "gradient":
-            self._status("El degradado solo funciona en capas de dibujo"); self._drawing = False; return
+            self._status(tr("El degradado solo funciona en capas de dibujo")); self._drawing = False; return
         if self.layer.kind == "raster":
             d = self._cur_drawing(create=True)
             self.scene.begin_edit(d); self._drawing_ref = d
@@ -878,13 +879,13 @@ class AnimCanvas(Gtk.DrawingArea):
         if not self._clip or self.layer.kind != "raster" or self._blocked(): return
         img, mm, x0, y0 = self._clip
         if x0 >= self.scene.w or y0 >= self.scene.h:
-            self._status("Lo copiado ya no cabe en la escena"); return
+            self._status(tr("Lo copiado ya no cabe en la escena")); return
         d = self._cur_drawing(create=True); created = self._created
         self.scene.begin_edit(d)
         h, w = mm.shape
         y1, x1 = min(d.h, y0 + h), min(d.w, x0 + w)
         if y1 <= y0 or x1 <= x0:
-            self._status("Lo copiado ya no cabe en la escena"); return
+            self._status(tr("Lo copiado ya no cabe en la escena")); return
         sub, sm = img[:y1 - y0, :x1 - x0], mm[:y1 - y0, :x1 - x0]
         reg = d.arr[y0:y1, x0:x1]; put = sm & (sub[..., 3] > 0); reg[put] = sub[put]
         d.refresh(0, 0, d.w, d.h)
@@ -911,8 +912,8 @@ class AnimCanvas(Gtk.DrawingArea):
         """Gira el dibujo 90/180° (solo raster cuadrado o 180°)."""
         d = self._cur_drawing()
         if d is None or self._blocked(): return
-        if d.kind != "raster": self._status("Solo para capas de dibujo"); return
-        if deg != 180 and d.w != d.h: self._status("Girar 90° necesita una escena cuadrada"); return
+        if d.kind != "raster": self._status(tr("Solo para capas de dibujo")); return
+        if deg != 180 and d.w != d.h: self._status(tr("Girar 90° necesita una escena cuadrada")); return
         self.scene.begin_edit(d)
         d.arr[:] = np.rot90(d.arr, {90: -1, -90: 1, 180: 2}[deg]).copy()
         d.refresh(0, 0, d.w, d.h); self.scene.end_edit(); self._changed()
@@ -1069,7 +1070,7 @@ class AnimCanvas(Gtk.DrawingArea):
         """Cada imagen ocupa un fotograma nuevo en una capa nueva."""
         if not files: return
         self.scene.snap()
-        li = self.scene.add_layer("raster", "Secuencia", above=self.li, record=False)
+        li = self.scene.add_layer("raster", tr("Secuencia"), above=self.li, record=False)
         W, H = self.scene.w, self.scene.h
         self.scene.ensure_frames(self.cur + len(files))
         l = self.scene.layers[li]

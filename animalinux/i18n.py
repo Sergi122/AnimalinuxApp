@@ -108,6 +108,48 @@ _T: dict[str, dict[str, str]] = {
     "lang_restart":         {"es":"(El cambio se aplica al reabrir las ventanas)","en":"(Change applies when reopening windows)","pt":"(A mudança é aplicada ao reabrir as janelas)","fr":"(Le changement s'applique à la réouverture des fenêtres)","de":"(Änderung gilt nach erneutem Öffnen der Fenster)","ja":"(変更はウィンドウを再度開くと適用されます)","zh":"(更改在重新打开窗口后生效)"},
     "autostart_label":      {"es":"Iniciar al encender el sistema","en":"Start when the system boots","pt":"Iniciar ao ligar o sistema","fr":"Démarrer au lancement du système","de":"Beim Systemstart starten","ja":"システム起動時に開始","zh":"开机时启动"},
     "autostart_hint":       {"es":"(Se aplica al próximo inicio de sesión)","en":"(Applies at the next login)","pt":"(Aplica-se no próximo login)","fr":"(S'applique à la prochaine connexion)","de":"(Gilt ab der nächsten Anmeldung)","ja":"(次回のログインから適用)","zh":"(将在下次登录时生效)"},
+    "theme_title":          {"es":"Tema de color","en":"Color theme","pt":"Tema de cor","fr":"Thème de couleur","de":"Farbthema","ja":"カラーテーマ","zh":"颜色主题"},
+    "theme_custom":         {"es":"Elegir otro color…","en":"Pick another color…","pt":"Escolher outra cor…","fr":"Choisir une autre couleur…","de":"Andere Farbe wählen…","ja":"別の色を選ぶ…","zh":"选择其他颜色…"},
+    "theme_combo":          {"es":"Combinación calculada a partir de tu color:","en":"Combination derived from your color:","pt":"Combinação calculada a partir da sua cor:","fr":"Combinaison calculée à partir de votre couleur :","de":"Aus deiner Farbe berechnete Kombination:","ja":"選んだ色から自動計算:","zh":"根据你的颜色自动计算:"},
+    "f_all":                {"es":"Todas","en":"All","pt":"Todas","fr":"Toutes","de":"Alle","ja":"すべて","zh":"全部"},
+    "ctl_search":           {"es":"Buscar mascotas…","en":"Search pets…","pt":"Buscar mascotes…","fr":"Rechercher…","de":"Haustiere suchen…","ja":"検索…","zh":"搜索宠物…"},
+    "ctl_new":              {"es":"Nueva mascota","en":"New pet","pt":"Novo mascote","fr":"Nouvelle mascotte","de":"Neues Haustier","ja":"新規ペット","zh":"新建宠物"},
+    "ctl_import":           {"es":"Importar","en":"Import","pt":"Importar","fr":"Importer","de":"Importieren","ja":"インポート","zh":"导入"},
+    "imp_gif":              {"es":"Animación GIF o imagen…","en":"GIF animation or image…","pt":"Animação GIF ou imagem…","fr":"Animation GIF ou image…","de":"GIF-Animation oder Bild…","ja":"GIFアニメまたは画像…","zh":"GIF动画或图片…"},
+    "imp_video":            {"es":"Vídeo corto…","en":"Short video…","pt":"Vídeo curto…","fr":"Vidéo courte…","de":"Kurzes Video…","ja":"短い動画…","zh":"短视频…"},
+    "imp_folder":           {"es":"Carpeta de mascota con vida…","en":"Living pet folder…","pt":"Pasta de mascote com vida…","fr":"Dossier de mascotte vivante…","de":"Ordner eines lebenden Haustiers…","ja":"生きペットのフォルダ…","zh":"有生命宠物文件夹…"},
+    "imp_pack":             {"es":"Pack .alpack…","en":"Pack .alpack…","pt":"Pacote .alpack…","fr":"Pack .alpack…","de":"Paket .alpack…","ja":".alpack パック…","zh":".alpack 包…"},
+    "imp_sheet":            {"es":"Spritesheet (tira de sprites)…","en":"Spritesheet (sprite strip)…","pt":"Spritesheet (tira de sprites)…","fr":"Spritesheet (bande de sprites)…","de":"Spritesheet (Sprite-Streifen)…","ja":"スプライトシート…","zh":"精灵图…"},
+    "imp_cols":             {"es":"Columnas (0 = automático)","en":"Columns (0 = auto)","pt":"Colunas (0 = automático)","fr":"Colonnes (0 = auto)","de":"Spalten (0 = automatisch)","ja":"列数 (0 = 自動)","zh":"列数 (0 = 自动)"},
+    "imp_bg":               {"es":"Quitar el fondo","en":"Remove background","pt":"Remover o fundo","fr":"Supprimer le fond","de":"Hintergrund entfernen","ja":"背景を削除","zh":"去除背景"},
+    "on_desktop":           {"es":"Escritorio","en":"Desktop","pt":"Área de trabalho","fr":"Bureau","de":"Desktop","ja":"デスクトップ","zh":"桌面"},
+    "card_edit":            {"es":"Editar","en":"Edit","pt":"Editar","fr":"Modifier","de":"Bearbeiten","ja":"編集","zh":"编辑"},
+    "card_more":            {"es":"Más opciones","en":"More options","pt":"Mais opções","fr":"Plus d'options","de":"Weitere Optionen","ja":"その他","zh":"更多选项"},
+    "card_settings":        {"es":"Ajustes","en":"Settings","pt":"Ajustes","fr":"Réglages","de":"Einstellungen","ja":"設定","zh":"设置"},
+    "card_export":          {"es":"Exportar","en":"Export","pt":"Exportar","fr":"Exporter","de":"Exportieren","ja":"エクスポート","zh":"导出"},
+    "card_share":           {"es":"Compartir en la comunidad","en":"Share with the community","pt":"Compartilhar com a comunidade","fr":"Partager avec la communauté","de":"Mit der Community teilen","ja":"コミュニティで共有","zh":"分享到社区"},
+    "card_delete":          {"es":"Borrar","en":"Delete","pt":"Apagar","fr":"Supprimer","de":"Löschen","ja":"削除","zh":"删除"},
+    "del_title":            {"es":"¿Borrar «{n}»?","en":"Delete “{n}”?","pt":"Apagar «{n}»?","fr":"Supprimer « {n} » ?","de":"„{n}“ löschen?","ja":"「{n}」を削除しますか?","zh":"删除「{n}」?"},
+    "del_detail":           {"es":"Se eliminará la mascota y todos sus dibujos. No se puede deshacer.","en":"The pet and all its drawings will be removed. This cannot be undone.","pt":"O mascote e todos os desenhos serão removidos. Não pode ser desfeito.","fr":"La mascotte et tous ses dessins seront supprimés. Action irréversible.","de":"Das Haustier und alle Zeichnungen werden entfernt. Nicht rückgängig zu machen.","ja":"ペットとすべての絵が削除されます。元に戻せません。","zh":"将删除宠物及其所有绘图,无法撤销。"},
+    "badge_life":           {"es":"CON VIDA","en":"LIVING","pt":"COM VIDA","fr":"VIVANTE","de":"LEBENDIG","ja":"生き","zh":"有生命"},
+    "badge_gif":            {"es":"GIF","en":"GIF","pt":"GIF","fr":"GIF","de":"GIF","ja":"GIF","zh":"GIF"},
+    "badge_live":           {"es":"EN EL ESCRITORIO","en":"ON DESKTOP","pt":"NA ÁREA","fr":"AU BUREAU","de":"AUF DEM DESKTOP","ja":"表示中","zh":"桌面上"},
+    "meta_poses":           {"es":"{n} poses","en":"{n} poses","pt":"{n} poses","fr":"{n} poses","de":"{n} Posen","ja":"{n} ポーズ","zh":"{n} 个姿势"},
+    "empty_title":          {"es":"Aún no tienes mascotas","en":"No pets yet","pt":"Você ainda não tem mascotes","fr":"Pas encore de mascotte","de":"Noch keine Haustiere","ja":"まだペットがいません","zh":"还没有宠物"},
+    "empty_sub":            {"es":"Crea una, impórtala o arrastra aquí un GIF, un vídeo o un pack .alpack.","en":"Create one, import one, or drop a GIF, a video or an .alpack here.","pt":"Crie um, importe ou arraste aqui um GIF, um vídeo ou um pacote .alpack.","fr":"Créez-en une, importez-en une ou déposez ici un GIF, une vidéo ou un pack .alpack.","de":"Erstelle eines, importiere eines oder ziehe ein GIF, Video oder .alpack hierher.","ja":"作成・インポートするか、GIF・動画・.alpack をここにドロップ。","zh":"新建、导入,或把 GIF、视频、.alpack 拖到这里。"},
+    "empty_cta":            {"es":"Crear mi primera mascota","en":"Create my first pet","pt":"Criar meu primeiro mascote","fr":"Créer ma première mascotte","de":"Mein erstes Haustier erstellen","ja":"最初のペットを作る","zh":"创建我的第一只宠物"},
+    "empty_comm":           {"es":"Explorar la comunidad","en":"Explore the community","pt":"Explorar a comunidade","fr":"Explorer la communauté","de":"Community erkunden","ja":"コミュニティを見る","zh":"探索社区"},
+    "empty_tour":           {"es":"Ver el tutorial","en":"Watch the tour","pt":"Ver o tutorial","fr":"Voir le tutoriel","de":"Tutorial ansehen","ja":"チュートリアル","zh":"查看教程"},
+    "no_results":           {"es":"Sin resultados para «{q}»","en":"No results for “{q}”","pt":"Sem resultados para «{q}»","fr":"Aucun résultat pour « {q} »","de":"Keine Ergebnisse für „{q}“","ja":"「{q}」の結果なし","zh":"没有「{q}」的结果"},
+    "drop_here":            {"es":"Suelta aquí para importar","en":"Drop here to import","pt":"Solte aqui para importar","fr":"Déposez ici pour importer","de":"Zum Importieren hier ablegen","ja":"ここにドロップしてインポート","zh":"拖放到这里导入"},
+    "summary":              {"es":"{n} mascotas · {a} en el escritorio","en":"{n} pets · {a} on the desktop","pt":"{n} mascotes · {a} na área de trabalho","fr":"{n} mascottes · {a} au bureau","de":"{n} Haustiere · {a} auf dem Desktop","ja":"{n} 匹 · {a} 匹を表示中","zh":"{n} 只宠物 · {a} 只在桌面"},
+    "create_type":          {"es":"¿Qué tipo de mascota?","en":"What kind of pet?","pt":"Que tipo de mascote?","fr":"Quel type de mascotte ?","de":"Welche Art von Haustier?","ja":"どんなペット?","zh":"什么类型的宠物?"},
+    "tour_title":           {"es":"Bienvenida","en":"Welcome","pt":"Boas-vindas","fr":"Bienvenue","de":"Willkommen","ja":"ようこそ","zh":"欢迎"},
+    "tour_next":            {"es":"Siguiente","en":"Next","pt":"Seguinte","fr":"Suivant","de":"Weiter","ja":"次へ","zh":"下一步"},
+    "tour_back":            {"es":"Atrás","en":"Back","pt":"Voltar","fr":"Retour","de":"Zurück","ja":"戻る","zh":"上一步"},
+    "tour_done":            {"es":"¡Empezar!","en":"Let's go!","pt":"Começar!","fr":"C'est parti !","de":"Los geht's!","ja":"はじめる!","zh":"开始!"},
+    "tour_never":           {"es":"No volver a mostrar","en":"Don't show again","pt":"Não mostrar novamente","fr":"Ne plus afficher","de":"Nicht mehr anzeigen","ja":"今後表示しない","zh":"不再显示"},
+    "help_tip":             {"es":"Tutorial de bienvenida","en":"Welcome tour","pt":"Tutorial de boas-vindas","fr":"Tutoriel de bienvenue","de":"Willkommens-Tour","ja":"ウェルカムツアー","zh":"欢迎教程"},
     "upd_auto":             {"es":"Buscar actualizaciones automáticamente","en":"Check for updates automatically","pt":"Procurar atualizações automaticamente","fr":"Rechercher les mises à jour automatiquement","de":"Automatisch nach Updates suchen","ja":"アップデートを自動で確認","zh":"自动检查更新"},
     "upd_check":            {"es":"Buscar ahora","en":"Check now","pt":"Procurar agora","fr":"Vérifier maintenant","de":"Jetzt prüfen","ja":"今すぐ確認","zh":"立即检查"},
     "upd_checking":         {"es":"Buscando…","en":"Checking…","pt":"Procurando…","fr":"Vérification…","de":"Prüfe…","ja":"確認中…","zh":"检查中…"},
@@ -192,3 +234,36 @@ def t(key: str, **kwargs) -> str:
         return key
     text = entry.get(_lang) or entry.get("es") or key
     return text.format(**kwargs) if kwargs else text
+
+# ── textos «sueltos» (español como clave) ──────────────────────────────────────
+# tr("texto en español") devuelve el texto en el idioma activo. Las traducciones
+# viven en i18n_data.TR: {español: (en, pt, fr, de, ja, zh)}. Con marcadores
+# {nombre} se pasan los valores por keyword: tr("Pose «{pose}» guardada.", pose=x).
+# N_("texto") solo marca el texto (para tablas a nivel de módulo, que se
+# construyen antes de saber el idioma); se traduce con tr() al mostrarlo.
+_TR: dict = {}
+_TR_LANGS = ("en", "pt", "fr", "de", "ja", "zh")
+
+
+def _load_tr():
+    global _TR
+    if not _TR:
+        from .i18n_data import TR
+        _TR = TR
+
+
+def N_(s: str) -> str:
+    return s
+
+
+def tr(s: str, **kw) -> str:
+    text = s
+    if _lang != "es":
+        _load_tr()
+        entry = _TR.get(s)
+        if entry is not None:
+            try:
+                text = entry[_TR_LANGS.index(_lang)] or s
+            except (ValueError, IndexError):
+                text = s
+    return text.format(**kw) if kw else text

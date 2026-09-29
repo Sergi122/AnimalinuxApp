@@ -20,6 +20,7 @@ import tempfile
 import time
 import urllib.request
 from pathlib import Path
+from ..i18n import tr
 
 from .. import __version__
 from .. import settings
@@ -103,17 +104,17 @@ def _run(cmd, cwd, log):
     p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
     if p.returncode != 0:
         tail = (p.stderr or p.stdout).strip().splitlines()[-6:]
-        raise RuntimeError("\n".join(tail) or f"{cmd[0]} falló ({p.returncode})")
+        raise RuntimeError("\n".join(tail) or tr("{cmd} falló ({code})", cmd=cmd[0], code=p.returncode))
 
 
 def apply_update(version: str, log=lambda _m: None) -> None:
     """Descarga e instala `version`. Lanza RuntimeError si algo falla.
     Bloqueante: llamar desde un hilo."""
     if not re.fullmatch(r"\d+\.\d+\.\d+", version):
-        raise RuntimeError(f"versión inválida: {version}")
+        raise RuntimeError(tr("versión inválida: {version}", version=version))
     tmp = Path(tempfile.mkdtemp(prefix="animalinux-update-"))
     try:
-        log(f"Descargando v{version}…")
+        log(tr("Descargando v{version}…", version=version))
         tgz = tmp / "src.tar.gz"
         tgz.write_bytes(_get(_TARBALL_URL.format(v=version), timeout=60))
         with tarfile.open(tgz) as tf:
@@ -122,19 +123,19 @@ def apply_update(version: str, log=lambda _m: None) -> None:
 
         if install_method() == "pacman":
             if not shutil.which("makepkg"):
-                raise RuntimeError("Falta makepkg (paquete base-devel).")
-            log("Construyendo el paquete…")
+                raise RuntimeError(tr("Falta makepkg (paquete base-devel)."))
+            log(tr("Construyendo el paquete…"))
             # --skipchecksums: el sha256 del PKGBUILD de un tag es el de la
             # versión anterior (se calcula después de crear el tag).
             _run(["makepkg", "-f", "--noconfirm", "--skipchecksums"], src, log)
             pkgs = sorted(src.glob("animalinux-*.pkg.tar.*"))
             pkgs = [p for p in pkgs if not p.name.endswith(".sig")]
             if not pkgs:
-                raise RuntimeError("makepkg no generó ningún paquete.")
-            log("Instalando (pide tu contraseña)…")
+                raise RuntimeError(tr("makepkg no generó ningún paquete."))
+            log(tr("Instalando (pide tu contraseña)…"))
             _run(["pkexec", "pacman", "-U", "--noconfirm", str(pkgs[-1])], src, log)
         else:
-            log("Instalando con pip…")
+            log(tr("Instalando con pip…"))
             _run([sys.executable, "-m", "pip", "install", "--user",
                   "--break-system-packages", "."], src, log)
         settings.set_val("update_available", "")

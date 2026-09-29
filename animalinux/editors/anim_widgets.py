@@ -10,6 +10,7 @@ from gi.repository import Gtk
 
 import cairo
 
+from ..i18n import tr
 from . import anim_engine as ae
 from .pixel_widgets import ColorPicker, FgBg, PaletteGrid
 
@@ -185,7 +186,7 @@ class Timeline(Gtk.DrawingArea):
             cr.move_to(x + .5, HH - (6 if (f + 1) % 5 == 0 else 3)); cr.line_to(x + .5, HH); cr.stroke()
         # cabecera de capas
         cr.set_source_rgb(0.20, 0.20, 0.20); cr.rectangle(0, 0, LW, HH); cr.fill()
-        cr.set_font_size(11); cr.set_source_rgb(*C_TEXT); cr.move_to(88, HH - 8); cr.show_text("Capas")
+        cr.set_font_size(11); cr.set_source_rgb(*C_TEXT); cr.move_to(88, HH - 8); cr.show_text(tr("Capas"))
         # marcadores inicio / fin
         cr.set_source_rgb(*C_RED)
         for f, off in ((s.start, 0), (s.stop, CW)):
@@ -258,68 +259,68 @@ class ToolProps(Gtk.Box):
         def bind(scale, key, mul=1.0):
             scale.connect("value-changed", lambda w: p.__setitem__(key, w.get_value() * mul))
 
-        kind = Gtk.DropDown.new_from_strings(ae.BRUSH_LABELS)
+        kind = Gtk.DropDown.new_from_strings([tr(x) for x in ae.BRUSH_LABELS])
         kind.connect("notify::selected", lambda w, _p: p.__setitem__("brush_kind", ae.BRUSH_TYPES[w.get_selected()]))
-        row("kind", "Pincel", kind)
+        row("kind", tr("Pincel"), kind)
         self.size_scale = _scale(1, 300, 14); self.size_key = "brush_size"
         self.size_scale.connect("value-changed", lambda w: p.__setitem__(self.size_key, w.get_value()))
-        row("size", "Tamaño", self.size_scale)
+        row("size", tr("Tamaño"), self.size_scale)
         hd = _scale(0, 100, 60); hd.connect("value-changed", lambda w: p.__setitem__("hardness", w.get_value() / 100))
-        row("hardness", "Dureza", hd)
+        row("hardness", tr("Dureza"), hd)
         op = _scale(1, 100, 100); op.connect("value-changed", lambda w: p.__setitem__("opacity", int(w.get_value() * 2.55)))
-        row("opacity", "Opacidad %", op)
+        row("opacity", tr("Opacidad %"), op)
         sp = _scale(3, 100, 14); sp.connect("value-changed", lambda w: p.__setitem__("spacing", w.get_value() / 100))
-        row("spacing", "Espaciado %", sp)
+        row("spacing", tr("Espaciado %"), sp)
         sm = _scale(0, 95, 35); sm.connect("value-changed", lambda w: p.__setitem__("smoothing", w.get_value() / 100))
-        row("smoothing", "Suavizado %", sm)
-        c1 = Gtk.CheckButton(label="Presión → tamaño"); c1.set_active(True)
+        row("smoothing", tr("Suavizado %"), sm)
+        c1 = Gtk.CheckButton(label=tr("Presión → tamaño")); c1.set_active(True)
         c1.connect("toggled", lambda w: p.__setitem__("pressure_size", w.get_active()))
-        c2 = Gtk.CheckButton(label="Presión → opacidad")
+        c2 = Gtk.CheckButton(label=tr("Presión → opacidad"))
         c2.connect("toggled", lambda w: p.__setitem__("pressure_opacity", w.get_active()))
         pb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); pb.append(c1); pb.append(c2)
-        row("pressure", "Tableta", pb)
+        row("pressure", tr("Tableta"), pb)
         tol = _scale(0, 255, 32, 1); tol.connect("value-changed", lambda w: p.__setitem__("fill_tol", int(w.get_value())))
-        row("tol", "Tolerancia", tol)
+        row("tol", tr("Tolerancia"), tol)
         gap = _scale(0, 10, 3); gap.connect("value-changed", lambda w: p.__setitem__("fill_gap", int(w.get_value())))
-        row("gap", "Cerrar huecos px", gap)
-        cont = Gtk.CheckButton(label="Solo región contigua"); cont.set_active(True)
+        row("gap", tr("Cerrar huecos px"), gap)
+        cont = Gtk.CheckButton(label=tr("Solo región contigua")); cont.set_active(True)
         cont.connect("toggled", lambda w: p.__setitem__("fill_contig", w.get_active())); row("contig", "", cont)
-        fa = Gtk.CheckButton(label="Usar todas las capas como límite")
+        fa = Gtk.CheckButton(label=tr("Usar todas las capas como límite"))
         fa.connect("toggled", lambda w: p.__setitem__("fill_all", w.get_active())); row("fill_all", "", fa)
-        rad = Gtk.CheckButton(label="Degradado radial")
+        rad = Gtk.CheckButton(label=tr("Degradado radial"))
         rad.connect("toggled", lambda w: p.__setitem__("grad_radial", w.get_active())); row("radial", "", rad)
         wd = _scale(1, 60, 3); wd.connect("value-changed", lambda w: p.__setitem__("shape_width", w.get_value()))
-        row("width", "Grosor", wd)
-        fl = Gtk.CheckButton(label="Rellenar forma")
+        row("width", tr("Grosor"), wd)
+        fl = Gtk.CheckButton(label=tr("Rellenar forma"))
         fl.connect("toggled", lambda w: p.__setitem__("shape_fill", w.get_active())); row("fill", "", fl)
-        da = Gtk.CheckButton(label="Muestrear todas las capas"); da.set_active(True)
+        da = Gtk.CheckButton(label=tr("Muestrear todas las capas")); da.set_active(True)
         da.connect("toggled", lambda w: p.__setitem__("dropper_all", w.get_active())); row("dropper_all", "", da)
 
         def hint(text):
             l = Gtk.Label(label=text, xalign=0); l.set_wrap(True); l.add_css_class("dim-label"); return l
-        row("polyhint", "", hint("Clic para añadir puntos · Enter cierra · doble Enter o Esc termina."))
-        row("contourhint", "", hint("Selecciona un trazo vectorial y arrastra sus puntos. Clic sobre la línea añade un punto; Supr en un punto lo quita."))
-        row("camhint", "", hint("Vista Cámara: arrastra para mover, Alt+arrastrar gira, rueda cambia la escala. Cada cambio crea/actualiza una clave en el fotograma."))
+        row("polyhint", "", hint(tr("Clic para añadir puntos · Enter cierra · doble Enter o Esc termina.")))
+        row("contourhint", "", hint(tr("Selecciona un trazo vectorial y arrastra sus puntos. Clic sobre la línea añade un punto; Supr en un punto lo quita.")))
+        row("camhint", "", hint(tr("Vista Cámara: arrastra para mover, Alt+arrastrar gira, rueda cambia la escala. Cada cambio crea/actualiza una clave en el fotograma.")))
 
         selops = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        for label, name in (("Voltear horizontal", "flip_h"), ("Voltear vertical", "flip_v"),
-                            ("Girar 90° horario", "rot_cw"), ("Copiar", "copy"), ("Cortar", "cut"),
-                            ("Pegar", "paste"), ("Invertir selección", "invert"), ("Borrar", "clear")):
+        for label, name in ((tr("Voltear horizontal"), "flip_h"), (tr("Voltear vertical"), "flip_v"),
+                            (tr("Girar 90° horario"), "rot_cw"), (tr("Copiar"), "copy"), (tr("Cortar"), "cut"),
+                            (tr("Pegar"), "paste"), (tr("Invertir selección"), "invert"), (tr("Borrar"), "clear")):
             b = Gtk.Button(label=label); b.connect("clicked", lambda _b, n=name: self.actions(n)); selops.append(b)
         row("selops", "", selops)
         viewops = Gtk.Box(spacing=6)
-        for label, name in (("100%", "zoom100"), ("Ajustar", "fit")):
+        for label, name in (("100%", "zoom100"), (tr("Ajustar"), "fit")):
             b = Gtk.Button(label=label); b.connect("clicked", lambda _b, n=name: self.actions(n)); viewops.append(b)
         row("viewops", "", viewops)
         self.show_tool("brush")
 
     def show_tool(self, tool):
         keys = {k.split(":")[0]: (k.split(":")[1] if ":" in k else None) for k in self.GROUPS.get(tool, ())}
-        names = {"brush": "Pincel", "pencil": "Lápiz", "eraser": "Borrador", "smudge": "Dedo", "paint": "Pintar",
-                 "gradient": "Degradado", "line": "Línea", "rect": "Rectángulo", "ellipse": "Elipse",
-                 "polyline": "Polilínea", "dropper": "Cuentagotas", "select": "Seleccionar",
-                 "lasso": "Lazo", "contour": "Editor de contorno", "hand": "Mano", "zoom": "Zoom",
-                 "camera": "Cámara"}
+        names = {"brush": tr("Pincel"), "pencil": tr("Lápiz"), "eraser": tr("Borrador"), "smudge": tr("Dedo"), "paint": tr("Pintar"),
+                 "gradient": tr("Degradado"), "line": tr("Línea"), "rect": tr("Rectángulo"), "ellipse": tr("Elipse"),
+                 "polyline": tr("Polilínea"), "dropper": tr("Cuentagotas"), "select": tr("Seleccionar"),
+                 "lasso": tr("Lazo"), "contour": tr("Editor de contorno"), "hand": tr("Mano"), "zoom": tr("Zoom"),
+                 "camera": tr("Cámara")}
         self.title.set_text(names.get(tool, tool))
         for k, b in self.rows.items(): b.set_visible(k in keys)
         if "size" in keys and keys["size"]:
@@ -334,16 +335,16 @@ class LayerProps(Gtk.Box):
         self.canvas = canvas; self.on_change = on_change; self._sync = False
         for m in ("start", "end", "top", "bottom"): getattr(self, f"set_margin_{m}")(10)
         self.name = Gtk.Entry(); self.name.connect("changed", self._name)
-        self.append(Gtk.Label(label="Nombre", xalign=0)); self.append(self.name)
+        self.append(Gtk.Label(label=tr("Nombre"), xalign=0)); self.append(self.name)
         self.kind = Gtk.Label(xalign=0); self.kind.add_css_class("dim-label"); self.append(self.kind)
-        self.append(Gtk.Label(label="Opacidad", xalign=0))
+        self.append(Gtk.Label(label=tr("Opacidad"), xalign=0))
         self.op = _scale(0, 100, 100); self.op.connect("value-changed", self._op); self.append(self.op)
-        self.append(Gtk.Label(label="Modo de mezcla", xalign=0))
-        self.blend = Gtk.DropDown.new_from_strings(ae.BLEND_MODES)
+        self.append(Gtk.Label(label=tr("Modo de mezcla"), xalign=0))
+        self.blend = Gtk.DropDown.new_from_strings([tr(x) for x in ae.BLEND_MODES])
         self.blend.connect("notify::selected", self._blend); self.append(self.blend)
-        self.alock = Gtk.CheckButton(label="Bloquear transparencia (pintar solo lo dibujado)")
+        self.alock = Gtk.CheckButton(label=tr("Bloquear transparencia (pintar solo lo dibujado)"))
         self.alock.connect("toggled", self._alock); self.append(self.alock)
-        self.onion = Gtk.CheckButton(label="Mostrar en papel cebolla")
+        self.onion = Gtk.CheckButton(label=tr("Mostrar en papel cebolla"))
         self.onion.connect("toggled", self._onion); self.append(self.onion)
         self.refresh()
 
@@ -351,7 +352,7 @@ class LayerProps(Gtk.Box):
         c = self.canvas; l = c.layer
         self._sync = True
         self.name.set_text(l.name)
-        self.kind.set_text("Capa vectorial (trazos editables)" if l.kind == "vector" else "Capa de dibujo (píxeles)")
+        self.kind.set_text(tr("Capa vectorial (trazos editables)") if l.kind == "vector" else tr("Capa de dibujo (píxeles)"))
         self.op.set_value(round(l.opacity * 100 / 255))
         self.blend.set_selected(ae.BLEND_MODES.index(l.blend) if l.blend in ae.BLEND_MODES else 0)
         self.alock.set_active(l.alpha_locked); self.alock.set_sensitive(l.kind == "raster")
@@ -360,7 +361,7 @@ class LayerProps(Gtk.Box):
 
     def _name(self, e):
         if self._sync: return
-        self.canvas.layer.name = e.get_text() or "Capa"; self.on_change()
+        self.canvas.layer.name = e.get_text() or tr("Capa"); self.on_change()
 
     def _op(self, w):
         if self._sync: return
@@ -392,13 +393,13 @@ class ColorDock(Gtk.Box):
         ent.append(self.fg_e); ent.append(self.bg_e); top.append(ent)
         self.append(top)
         self.picker = ColorPicker(self._picked); self.append(self.picker)
-        al = Gtk.Box(spacing=6); al.append(Gtk.Label(label="Alfa"))
+        al = Gtk.Box(spacing=6); al.append(Gtk.Label(label=tr("Alfa")))
         self.alpha = _scale(0, 255, 255); self.alpha.connect("value-changed", self._alpha); al.append(self.alpha)
         self.append(al)
         self.pal = PaletteGrid(palette, self._pal_pick); self.append(self.pal)
         row = Gtk.Box(spacing=4)
-        add = Gtk.Button(label="+"); add.set_tooltip_text("Añadir el color a la paleta"); add.connect("clicked", lambda _: self._add())
-        rem = Gtk.Button(label="−"); rem.set_tooltip_text("Quitar el color seleccionado"); rem.connect("clicked", lambda _: self._remove())
+        add = Gtk.Button(label="+"); add.set_tooltip_text(tr("Añadir el color a la paleta")); add.connect("clicked", lambda _: self._add())
+        rem = Gtk.Button(label="−"); rem.set_tooltip_text(tr("Quitar el color seleccionado")); rem.connect("clicked", lambda _: self._remove())
         row.append(add); row.append(rem); self.append(row)
         self.set_colors(canvas.fg, canvas.bg)
 
@@ -449,15 +450,15 @@ class CameraDock(Gtk.Box):
         self.canvas = canvas; self._sync = False
         for m in ("start", "end", "top", "bottom"): getattr(self, f"set_margin_{m}")(10)
         self.spins = {}
-        for label, key, lo, hi, step, digits in (("Traslación X", "tx", -4000, 4000, 1, 0), ("Traslación Y", "ty", -4000, 4000, 1, 0),
-                                                  ("Escala", "scale", 0.05, 10, 0.05, 2), ("Rotación °", "rot", -360, 360, 1, 1)):
+        for label, key, lo, hi, step, digits in ((tr("Traslación X"), "tx", -4000, 4000, 1, 0), (tr("Traslación Y"), "ty", -4000, 4000, 1, 0),
+                                                  (tr("Escala"), "scale", 0.05, 10, 0.05, 2), (tr("Rotación °"), "rot", -360, 360, 1, 1)):
             r = Gtk.Box(spacing=8); l = Gtk.Label(label=label, xalign=0); l.set_size_request(96, -1); r.append(l)
             sp = Gtk.SpinButton.new_with_range(lo, hi, step); sp.set_digits(digits); sp.set_hexpand(True)
             sp.connect("value-changed", lambda w, k=key: self._edit(k, w.get_value()))
             self.spins[key] = sp; r.append(sp); self.append(r)
         btns = Gtk.Box(spacing=6)
-        for label, cb in (("Crear clave", canvas.camera_key), ("Borrar clave", canvas.camera_remove_key),
-                          ("Reiniciar", canvas.camera_reset)):
+        for label, cb in ((tr("Crear clave"), canvas.camera_key), (tr("Borrar clave"), canvas.camera_remove_key),
+                          (tr("Reiniciar"), canvas.camera_reset)):
             b = Gtk.Button(label=label); b.connect("clicked", lambda _b, f=cb: (f(), self.refresh())); btns.append(b)
         self.append(btns)
         self.info = Gtk.Label(xalign=0); self.info.set_wrap(True); self.info.add_css_class("dim-label"); self.append(self.info)
@@ -469,8 +470,8 @@ class CameraDock(Gtk.Box):
         self._sync = True
         for k, sp in self.spins.items(): sp.set_value(cam[k])
         keys = sorted(c.scene.cam_keys)
-        self.info.set_text(("Claves de cámara en los fotogramas: " + ", ".join(str(k + 1) for k in keys))
-                           if keys else "Sin claves: la cámara está quieta. Cambia un valor para crear una clave.")
+        self.info.set_text((tr("Claves de cámara en los fotogramas: ") + ", ".join(str(k + 1) for k in keys))
+                           if keys else tr("Sin claves: la cámara está quieta. Cambia un valor para crear una clave."))
         self._sync = False
 
     def _edit(self, key, val):

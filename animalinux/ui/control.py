@@ -3,7 +3,9 @@ Ventana de configuración — AnimaLinux.
 Dos pestañas: animaciones normales (GIF en bucle) y con vida (camina sola).
 La creación siempre pregunta: importar / píxeles / dibujo libre / continuar proyecto.
 """
+import os
 import threading
+from pathlib import Path
 
 import gi
 gi.require_version("Gtk", "4.0")
@@ -14,7 +16,7 @@ from ..core import image_processor as importer
 from ..core import gpu
 from ..overlay import BACKEND
 from ..overlay.live_animation import MANDATORY_POSES
-from ..i18n import t
+from ..i18n import t, tr, N_
 from . import guide_widgets as gw
 
 # orden de presentación en la guía de poses + emoji ilustrativo de cada una
@@ -34,252 +36,434 @@ BG_METHODS = [
 class ControlWindow(Gtk.ApplicationWindow):
     def __init__(self, app):
         super().__init__(application=app, title=t("app_title"))
+        self.add_css_class("ctl")
         self.app = app
-        self.set_default_size(640, 760)
+        self.set_default_size(1040, 760)
         # timers de las previews GIF animadas (se limpian en cada refresh)
         self._preview_timers = []
+        self._filter = "all"          # all | life | gif
+        self._query = ""
         self.connect("close-request", self._stop_previews)
 
+        overlay = Gtk.Overlay()
+        self.set_child(overlay)
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        self.set_child(root)
+        overlay.set_child(root)
 
-        # barra superior: estado + botón configuración
-        topbar = Gtk.Box(spacing=6)
-        topbar.set_margin_start(12); topbar.set_margin_end(8)
-        topbar.set_margin_top(4); topbar.set_margin_bottom(2)
-        self.status = Gtk.Label(label="", xalign=0)
-        self.status.add_css_class("dim-label")
-        self.status.set_hexpand(True)
-        topbar.append(self.status)
-        news_lbl = Gtk.Label()
-        news_lbl.add_css_class("dim-label")
-        news_lbl.set_use_markup(True)
-        news_lbl.set_markup(
-            '<a href="https://animalinux.web.app/#cambios">📰 Novedades</a>')
-        news_lbl.set_tooltip_text("Ver la última actualización y el historial de cambios")
-        topbar.append(news_lbl)
-        cfg_btn = Gtk.Button(label=t("settings_title"))
-        cfg_btn.set_tooltip_text(t("lang_label"))
-        cfg_btn.connect("clicked", lambda _: self._show_settings_dialog())
-        topbar.append(cfg_btn)
-        close_btn = Gtk.Button(label="✕")
-        close_btn.set_tooltip_text("Cerrar esta ventana (las mascotas siguen activas)")
-        close_btn.add_css_class("close-btn")
-        close_btn.connect("clicked", lambda _: self.close())
-        topbar.append(close_btn)
-        root.append(topbar)
+        # aviso al arrastrar archivos encima de la ventana
+        self._drop_hint = Gtk.Box(halign=Gtk.Align.FILL, valign=Gtk.Align.FILL)
+        self._drop_hint.add_css_class("drop-hint")
+        dl = Gtk.Label(label="⬇  " + t("drop_here"), hexpand=True, vexpand=True)
+        self._drop_hint.append(dl)
+        self._drop_hint.set_visible(False)
+        self._drop_hint.set_can_target(False)
+        overlay.add_overlay(self._drop_hint)
+        dt = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
+        dt.connect("enter", lambda *_: (self._drop_hint.set_visible(True), Gdk.DragAction.COPY)[1])
+        dt.connect("leave", lambda *_: self._drop_hint.set_visible(False))
+        dt.connect("drop", self._on_drop)
+        self.add_controller(dt)
 
-        # Banner de actualización (oculto salvo que haya versión nueva)
-        self._upd_bar = Gtk.Box(spacing=8)
-        self._upd_bar.set_margin_start(12); self._upd_bar.set_margin_end(12)
-        self._upd_bar.set_margin_bottom(4)
+        root.append(self._build_header())
+
+        # Banner de actualización (se despliega solo si hay versión nueva)
+        self._upd_rev = Gtk.Revealer()
+        self._upd_rev.set_transition_type(Gtk.RevealerTransitionType.SLIDE_DOWN)
+        self._upd_bar = Gtk.Box(spacing=10)
+        self._upd_bar.add_css_class("upd-banner")
+        self._upd_bar.set_margin_start(18); self._upd_bar.set_margin_end(18)
+        self._upd_bar.set_margin_top(10)
         self._upd_lbl = Gtk.Label(xalign=0, hexpand=True)
         self._upd_lbl.set_wrap(True)
         self._upd_bar.append(self._upd_lbl)
         self._upd_btn = Gtk.Button(label=t("upd_now"))
         self._upd_btn.add_css_class("suggested-action")
+        self._upd_btn.add_css_class("pill")
         self._upd_btn.connect("clicked", lambda _b: self._run_update())
         self._upd_bar.append(self._upd_btn)
-        root.append(self._upd_bar)
+        self._upd_rev.set_child(self._upd_bar)
+        root.append(self._upd_rev)
         self.refresh_update_banner()
 
         # Aviso: sin GPU real (render por software, típico de una VM sin
         # passthrough gráfico), el compositor de algunos gestores de
         # ventanas X11 (xfwm4, Muffin...) puede fallar al mostrar varias
-        # mascotas fullscreen a la vez -- cada una es su propia ventana
-        # ARGB, y sin aceleración por hardware el compositor no siempre da
-        # abasto. No aplica en Wayland/Hyprland ni con GPU real: se detecta
-        # una sola vez al abrir y solo se muestra si hace falta (ver
-        # refresh()).
+        # mascotas fullscreen a la vez. Solo se muestra si hace falta.
         self._software_gpu = BACKEND == "x11" and gpu.is_software_rendering() is True
         self._gpu_warning = Gtk.Label(xalign=0)
         self._gpu_warning.add_css_class("dim-label")
         self._gpu_warning.set_wrap(True)
-        self._gpu_warning.set_margin_start(12); self._gpu_warning.set_margin_end(12)
-        self._gpu_warning.set_margin_bottom(4)
+        self._gpu_warning.set_margin_start(18); self._gpu_warning.set_margin_end(18)
+        self._gpu_warning.set_margin_top(6)
         self._gpu_warning.set_markup(GLib.markup_escape_text(t("gpu_warning")))
         self._gpu_warning.set_visible(False)
         root.append(self._gpu_warning)
 
-        # pestañas
-        self.notebook = Gtk.Notebook()
-        self.notebook.set_vexpand(True)
-        root.append(self.notebook)
+        root.append(self._build_toolbar())
 
-        self.notebook.append_page(self._build_normal_tab(),
-                                  Gtk.Label(label=t("tab_normal")))
-        self.notebook.append_page(self._build_vida_tab(),
-                                  Gtk.Label(label=t("tab_vida")))
+        # contenido: cuadrícula de tarjetas o estado vacío
+        self._stack = Gtk.Stack()
+        self._stack.set_vexpand(True)
+        self._stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self._stack.set_transition_duration(260)
+        sc = Gtk.ScrolledWindow()
+        sc.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self._flow = Gtk.FlowBox()
+        self._flow.set_selection_mode(Gtk.SelectionMode.NONE)
+        self._flow.set_homogeneous(True)
+        self._flow.set_min_children_per_line(1)
+        self._flow.set_max_children_per_line(8)
+        self._flow.set_column_spacing(16); self._flow.set_row_spacing(16)
+        self._flow.set_valign(Gtk.Align.START)
+        self._flow.set_margin_start(18); self._flow.set_margin_end(18)
+        self._flow.set_margin_top(14); self._flow.set_margin_bottom(18)
+        self._flow.set_filter_func(self._flow_filter)
+        sc.set_child(self._flow)
+        self._stack.add_named(sc, "grid")
+        self._stack.add_named(self._build_empty(), "empty")
+        root.append(self._stack)
 
-        # pie: enlace a la web (más animaciones / compartir las tuyas)
-        footer = Gtk.Box(spacing=6)
-        footer.set_halign(Gtk.Align.CENTER)
-        footer.set_margin_top(4); footer.set_margin_bottom(8)
-        footer.set_margin_start(12); footer.set_margin_end(12)
-        web = Gtk.Label()
-        web.add_css_class("dim-label")
-        web.set_use_markup(True)
-        web.set_markup(
-            '🌐 ¿Buscas más animaciones o quieres compartir las tuyas?  '
-            '<a href="https://animalinux-community.web.app/">'
-            'animalinux-community.web.app</a>')
-        footer.append(web)
-        root.append(footer)
+        # pie: estado
+        foot = Gtk.Box(spacing=8)
+        foot.set_margin_start(20); foot.set_margin_end(20)
+        foot.set_margin_top(4); foot.set_margin_bottom(10)
+        self.status = Gtk.Label(label="", xalign=0)
+        self.status.add_css_class("ctl-status")
+        self.status.set_hexpand(True)
+        foot.append(self.status)
+        root.append(foot)
 
-        version_lbl = Gtk.Label(label=f"AnimaLinux v{__version__}")
-        version_lbl.add_css_class("dim-label")
-        version_lbl.set_halign(Gtk.Align.CENTER)
-        version_lbl.set_margin_bottom(6)
-        root.append(version_lbl)
+        # atajos: Ctrl+F busca, Ctrl+N crea, Esc limpia la búsqueda
+        kc = Gtk.EventControllerKey()
+        kc.connect("key-pressed", self._on_key)
+        self.add_controller(kc)
 
         self.refresh()
+        from .. import settings as _s
+        if not _s.get("welcome_shown", False):
+            GLib.timeout_add(600, lambda: (self._show_tour(), False)[1])
 
-    # ── Tab Normal ──────────────────────────────────────────────────────────
-    def _build_normal_tab(self):
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        box.set_margin_top(10); box.set_margin_start(12)
-        box.set_margin_end(12); box.set_margin_bottom(8)
+    # ── Cabecera ────────────────────────────────────────────────────────────
+    def _build_header(self):
+        from ..editors.icons import icon_image
+        hb = Gtk.Box(spacing=12)
+        hb.add_css_class("ctl-header")
+        logo_path = Path(__file__).with_name("assets") / "logo.png"
+        if logo_path.exists():
+            pic = Gtk.Image.new_from_file(str(logo_path))
+            pic.set_pixel_size(40)
+            pic.set_overflow(Gtk.Overflow.HIDDEN)
+            pic.add_css_class("ctl-logo")
+            hb.append(pic)
+        title = Gtk.Label(label="AnimaLinux")
+        title.add_css_class("ctl-title")
+        hb.append(title)
+        chip = Gtk.Label(label=f"v{__version__}")
+        chip.add_css_class("chip")
+        chip.set_valign(Gtk.Align.CENTER)
+        hb.append(chip)
 
-        btn = Gtk.Button(label=t("new_normal"))
-        btn.add_css_class("suggested-action")
-        btn.connect("clicked", lambda _: self._ask_create(life=False))
-        box.append(btn)
+        sp = Gtk.Box(); sp.set_hexpand(True); hb.append(sp)
 
-        # Fila 1: importar video/gif (los packs .alpack son solo para
-        # animaciones "con vida" — ver _build_vida_tab)
-        imp1 = Gtk.Box(spacing=6)
-        imp1.set_margin_bottom(2)
-        imp1.append(Gtk.Label(label=t("import_label")))
-        gif_btn = Gtk.Button(label=t("import_gif"))
-        gif_btn.connect("clicked", lambda _: self._import_media("gif"))
-        imp1.append(gif_btn)
-        mp4_btn = Gtk.Button(label=t("import_video"))
-        mp4_btn.connect("clicked", lambda _: self._import_media("video"))
-        imp1.append(mp4_btn)
-        box.append(imp1)
+        self._search = Gtk.SearchEntry()
+        self._search.set_placeholder_text(t("ctl_search"))
+        self._search.add_css_class("ctl-search")
+        self._search.set_size_request(190, -1)
+        self._search.connect("search-changed", self._on_search)
+        hb.append(self._search)
 
-        # Fila 2: spritesheet
-        imp2 = Gtk.Box(spacing=6)
-        sheet_btn = Gtk.Button(label=t("spritesheet"))
-        sheet_btn.set_tooltip_text("Corta una tira de sprites en fotogramas")
-        sheet_btn.connect("clicked", self._on_import_sheet)
-        imp2.append(sheet_btn)
-        imp2.append(Gtk.Label(label=t("cols")))
+        def ghost(icon, tip, cb, label=None):
+            b = Gtk.Button()
+            if label:
+                box = Gtk.Box(spacing=6)
+                box.append(icon_image(icon, 16, "#c9d3e6"))
+                box.append(Gtk.Label(label=label))
+                b.set_child(box)
+            else:
+                b.set_child(icon_image(icon, 18, "#c9d3e6"))
+            b.set_tooltip_text(tip)
+            b.add_css_class("ghost"); b.add_css_class("pill")
+            b.connect("clicked", lambda _: cb())
+            return b
+
+        import webbrowser
+        hb.append(ghost("film", tr("Novedades e historial de cambios"),
+                        lambda: webbrowser.open("https://animalinux.web.app/#cambios")))
+        hb.append(ghost("help", t("help_tip"), lambda: self._show_tour(force=True)))
+        hb.append(ghost("settings", t("settings_title"), self._show_settings_dialog))
+        cl = ghost("close", tr("Cerrar esta ventana (las mascotas siguen activas)"), self.close)
+        hb.append(cl)
+        w = hb.get_first_child()
+        while w is not None:                 # todo centrado en vertical, nada se estira
+            w.set_valign(Gtk.Align.CENTER)
+            w = w.get_next_sibling()
+        return hb
+
+    # ── Barra de herramientas: filtros + importar + nueva ─────────────────────
+    def _build_toolbar(self):
+        bar = Gtk.Box(spacing=12)
+        bar.set_margin_start(18); bar.set_margin_end(18)
+        bar.set_margin_top(14)
+        seg = Gtk.Box(spacing=2)
+        seg.add_css_class("seg")
+        self._seg = {}
+        first = None
+        for fid, key in (("all", "f_all"), ("life", "tab_vida"), ("gif", "tab_normal")):
+            b = Gtk.ToggleButton(label=t(key))
+            b.set_focus_on_click(False)
+            if first is None:
+                first = b
+            else:
+                b.set_group(first)
+            b.connect("toggled", self._on_seg, fid)
+            self._seg[fid] = (b, key)
+            seg.append(b)
+        first.set_active(True)
+        bar.append(seg)
+
+        sp = Gtk.Box(); sp.set_hexpand(True); bar.append(sp)
+
+        # Importar ▾
+        self.method_combo = Gtk.DropDown.new_from_strings([t(m[0]) for m in BG_METHODS])
+        self.method_combo.set_selected(0)
         self.sheet_cols = Gtk.SpinButton(
             adjustment=Gtk.Adjustment(value=0, lower=0, upper=64, step_increment=1))
-        self.sheet_cols.set_size_request(60, -1)
-        imp2.append(self.sheet_cols)
-        box.append(imp2)
+        import webbrowser
+        comb = Gtk.Button(label="🌐  " + tr("Animaciones de la comunidad"))
+        comb.add_css_class("pill")
+        comb.set_tooltip_text(tr("Descarga packs de la comunidad y sube los tuyos"))
+        comb.connect("clicked", lambda _: webbrowser.open("https://animalinux-community.web.app/"))
+        bar.append(comb)
+        imp = Gtk.MenuButton(label=t("ctl_import") + " ▾")
+        imp.add_css_class("pill")
+        pop = Gtk.Popover()
+        pop.set_has_arrow(False)
+        pv = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
+        pv.set_margin_top(6); pv.set_margin_bottom(6); pv.set_margin_start(6); pv.set_margin_end(6)
+        def item(label, cb, box=pv):
+            b = Gtk.Button(label=label)
+            b.add_css_class("menu-item")
+            b.get_child().set_xalign(0)
+            b.connect("clicked", lambda _b: (pop.popdown(), cb()))
+            box.append(b)
+        item(t("imp_gif"), lambda: self._import_media("gif"))
+        item(t("imp_video"), lambda: self._import_media("video"))
+        item(t("imp_folder"), lambda: self._on_import_folder(None))
+        item(t("imp_pack"), lambda: self._start_import(life=True))
+        item(t("imp_sheet"), lambda: self._on_import_sheet(None))
+        cols = Gtk.Box(spacing=8)
+        cols.set_margin_start(10); cols.set_margin_end(10)
+        cl = Gtk.Label(label=t("imp_cols"), xalign=0); cl.add_css_class("dim-label"); cl.set_hexpand(True)
+        cols.append(cl); cols.append(self.sheet_cols)
+        pv.append(cols)
+        sep = Gtk.Box(); sep.add_css_class("menu-sep"); pv.append(sep)
+        bgt = Gtk.Label(label=t("imp_bg").upper(), xalign=0); bgt.add_css_class("menu-title"); pv.append(bgt)
+        self.method_combo.set_margin_start(10); self.method_combo.set_margin_end(10)
+        self.method_combo.set_margin_bottom(4)
+        pv.append(self.method_combo)
+        pop.set_child(pv)
+        imp.set_popover(pop)
+        bar.append(imp)
 
-        bg = Gtk.Box(spacing=6)
-        bg.append(Gtk.Label(label=t("bg_method")))
-        self.method_combo = Gtk.DropDown.new_from_strings(
-            [t(m[0]) for m in BG_METHODS])
-        self.method_combo.set_selected(0)
-        bg.append(self.method_combo)
-        box.append(bg)
+        new = Gtk.Button(label="＋  " + t("ctl_new"))
+        new.add_css_class("suggested-action")
+        new.add_css_class("pill")
+        new.connect("clicked", lambda _: self._ask_create())
+        bar.append(new)
+        return bar
 
-        sc = Gtk.ScrolledWindow(); sc.set_vexpand(True)
-        self._normal_list = Gtk.ListBox()
-        self._normal_list.set_selection_mode(Gtk.SelectionMode.NONE)
-        self._normal_list.add_css_class("boxed-list")
-        sc.set_child(self._normal_list)
-        box.append(sc)
+    # ── Estado vacío ────────────────────────────────────────────────────────
+    def _build_empty(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        box.set_halign(Gtk.Align.CENTER); box.set_valign(Gtk.Align.CENTER)
+        logo_path = Path(__file__).with_name("assets") / "logo.png"
+        if logo_path.exists():
+            pic = Gtk.Image.new_from_file(str(logo_path))
+            pic.set_pixel_size(112)
+            box.append(pic)
+        self._empty_title = Gtk.Label(label=t("empty_title"))
+        self._empty_title.add_css_class("empty-title")
+        box.append(self._empty_title)
+        self._empty_sub = Gtk.Label(label=t("empty_sub"))
+        self._empty_sub.add_css_class("empty-sub")
+        self._empty_sub.set_wrap(True); self._empty_sub.set_max_width_chars(46)
+        self._empty_sub.set_justify(Gtk.Justification.CENTER)
+        box.append(self._empty_sub)
+        self._empty_btns = Gtk.Box(spacing=10, halign=Gtk.Align.CENTER)
+        self._empty_btns.set_margin_top(10)
+        cta = Gtk.Button(label="＋  " + t("empty_cta"))
+        cta.add_css_class("suggested-action"); cta.add_css_class("pill")
+        cta.connect("clicked", lambda _: self._ask_create())
+        tour = Gtk.Button(label=t("empty_tour")); tour.add_css_class("pill")
+        tour.connect("clicked", lambda _: self._show_tour(force=True))
+        import webbrowser
+        com = Gtk.Button(label=t("empty_comm")); com.add_css_class("pill")
+        com.connect("clicked", lambda _: webbrowser.open("https://animalinux-community.web.app/"))
+        for b in (cta, tour, com):
+            self._empty_btns.append(b)
+        box.append(self._empty_btns)
         return box
 
-    # ── Tab Vida ────────────────────────────────────────────────────────────
-    def _build_vida_tab(self):
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        box.set_margin_top(10); box.set_margin_start(12)
-        box.set_margin_end(12); box.set_margin_bottom(8)
+    # ── Filtros y búsqueda ──────────────────────────────────────────────────
+    def _set_filter(self, fid):
+        b = self._seg.get(fid)
+        if b:
+            b[0].set_active(True)
 
-        top = Gtk.Box(spacing=6)
-        btn = Gtk.Button(label=t("new_vida"))
-        btn.add_css_class("suggested-action")
-        btn.set_hexpand(True)
-        btn.connect("clicked", lambda _: self._ask_create(life=True))
-        top.append(btn)
-        help_btn = Gtk.Button(label=t("vida_help"))
-        help_btn.set_tooltip_text("Ver guía de poses, nombres y estructura de carpetas")
-        help_btn.connect("clicked", lambda _: self._show_vida_help())
-        top.append(help_btn)
-        box.append(top)
+    def _on_seg(self, btn, fid):
+        if not btn.get_active():
+            return
+        self._filter = fid
+        self._apply_filter()
 
-        imp = Gtk.Box(spacing=6)
-        imp.append(Gtk.Label(label=t("import_folder")))
-        folder_btn = Gtk.Button(label=t("folder_mascot"))
-        folder_btn.set_tooltip_text(
-            "Carpeta = mascota; subcarpetas = acciones (idle, walk, greet, jump, angry, grab…)")
-        folder_btn.connect("clicked", self._on_import_folder)
-        imp.append(folder_btn)
-        box.append(imp)
+    def _on_search(self, entry):
+        self._query = entry.get_text().strip().lower()
+        self._apply_filter()
 
-        sc = Gtk.ScrolledWindow(); sc.set_vexpand(True)
-        self._life_list = Gtk.ListBox()
-        self._life_list.set_selection_mode(Gtk.SelectionMode.NONE)
-        self._life_list.add_css_class("boxed-list")
-        sc.set_child(self._life_list)
-        box.append(sc)
-        return box
+    def _flow_filter(self, child):
+        a = getattr(child, "_anim", None)
+        if a is None:
+            return True
+        life = a.get("mode") == "life"
+        if self._filter == "life" and not life:
+            return False
+        if self._filter == "gif" and life:
+            return False
+        return self._query in a.get("name", "").lower()
+
+    def _apply_filter(self):
+        if not hasattr(self, "_flow") or not hasattr(self, "_stack"):
+            return  # aún construyendo la ventana
+        self._flow.invalidate_filter()
+        self._update_stack()
+
+    def _update_stack(self):
+        anims = self.app.library.animations
+        if not anims:
+            self._empty_title.set_text(t("empty_title"))
+            self._empty_sub.set_text(t("empty_sub"))
+            self._empty_btns.set_visible(True)
+            self._stack.set_visible_child_name("empty")
+            return
+        visible = sum(1 for a in anims.values()
+                      if self._flow_filter_dict(a))
+        if visible == 0:
+            q = self._query or t("f_all" if self._filter == "all" else
+                                 "tab_vida" if self._filter == "life" else "tab_normal")
+            self._empty_title.set_text(t("no_results", q=q))
+            self._empty_sub.set_text("")
+            self._empty_btns.set_visible(False)
+            self._stack.set_visible_child_name("empty")
+        else:
+            self._stack.set_visible_child_name("grid")
+
+    def _flow_filter_dict(self, a):
+        life = a.get("mode") == "life"
+        if self._filter == "life" and not life:
+            return False
+        if self._filter == "gif" and life:
+            return False
+        return self._query in a.get("name", "").lower()
+
+    def _on_key(self, ctrl, keyval, keycode, mods):
+        ctl = bool(mods & Gdk.ModifierType.CONTROL_MASK)
+        name = (Gdk.keyval_name(keyval) or "").lower()
+        if ctl and name == "f":
+            self._search.grab_focus(); return True
+        if ctl and name == "n":
+            self._ask_create(); return True
+        if name == "escape" and self._search.get_text():
+            self._search.set_text(""); return True
+        return False
+
+    # ── Arrastrar y soltar ──────────────────────────────────────────────────
+    def _on_drop(self, target, value, x, y):
+        self._drop_hint.set_visible(False)
+        try:
+            files = value.get_files()
+        except Exception:  # noqa: BLE001
+            return False
+        n = 0
+        for f in files:
+            path = f.get_path()
+            if not path:
+                continue
+            n += 1
+            if os.path.isdir(path):
+                self._import_folder_path(path)
+            elif path.lower().endswith(".alpack"):
+                self._import_pack_path(path)
+            else:
+                self._pending_live = False
+                self._import_path(path)
+        return n > 0
 
     # ── Diálogo de creación ─────────────────────────────────────────────────
-    def _ask_create(self, life=False):
-        dialog = Gtk.Dialog(
-            title=t("how_create_vida") if life else t("how_create"),
-            transient_for=self, modal=True)
-        dialog.set_default_size(560, 240)
+    def _ask_create(self, life=None):
+        if life is None:
+            life = self._filter == "life"
+        dialog = Gtk.Dialog(title=t("ctl_new"), transient_for=self, modal=True)
+        dialog.set_default_size(640, 300)
         box = dialog.get_content_area()
-        box.set_spacing(12); box.set_margin_start(16); box.set_margin_end(16)
-        box.set_margin_top(14); box.set_margin_bottom(14)
+        box.set_spacing(14)
+        for m in ("start", "end", "top", "bottom"):
+            getattr(box, f"set_margin_{m}")(20)
+        state = {"life": bool(life)}
 
-        lbl = Gtk.Label()
-        question = t("how_create_vida") if life else t("how_create")
-        lbl.set_markup(f"<b>{question}</b>")
-        lbl.set_justify(Gtk.Justification.CENTER)
-        box.append(lbl)
+        head = Gtk.Label(label=t("create_type"))
+        head.add_css_class("empty-title")
+        head.set_halign(Gtk.Align.CENTER)
+        box.append(head)
 
-        btn_row = Gtk.Box(spacing=8, homogeneous=True)
-        btn_row.set_margin_top(8)
+        seg = Gtk.Box(spacing=2, halign=Gtk.Align.CENTER)
+        seg.add_css_class("seg")
+        b_life = Gtk.ToggleButton(label=t("tab_vida"))
+        b_gif = Gtk.ToggleButton(label=t("tab_normal"))
+        b_gif.set_group(b_life)
+        (b_life if life else b_gif).set_active(True)
+        b_life.connect("toggled", lambda b: b.get_active() and state.update(life=True))
+        b_gif.connect("toggled", lambda b: b.get_active() and state.update(life=False))
+        seg.append(b_life); seg.append(b_gif)
+        box.append(seg)
+
+        row = Gtk.Box(spacing=12, homogeneous=True)
+        row.set_margin_top(6)
 
         def _opt(icon_name, title, desc, cb):
-            vb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
-            vb.set_margin_top(8); vb.set_margin_bottom(8)
-            vb.set_margin_start(4); vb.set_margin_end(4)
+            vb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
             icon = Gtk.Image.new_from_icon_name(icon_name)
-            icon.set_pixel_size(22)
+            icon.set_pixel_size(30)
             vb.append(icon)
             tl = Gtk.Label(label=title)
-            tl.set_markup(f"<b>{title}</b>")
+            tl.add_css_class("opt-title")
             vb.append(tl)
             dl = Gtk.Label(label=desc)
             dl.add_css_class("dim-label")
             dl.set_justify(Gtk.Justification.CENTER)
+            dl.set_wrap(True); dl.set_max_width_chars(18)
             vb.append(dl)
             b = Gtk.Button()
+            b.add_css_class("opt-card")
             b.set_child(vb)
-            b.connect("clicked", lambda _: (dialog.destroy(), cb()))
+            b.connect("clicked", lambda _: (dialog.destroy(), cb(state["life"])))
             return b
 
-        btn_row.append(_opt(
-            "document-open-symbolic", t("btn_import"),
-            t("btn_import_desc_vida") if life else t("btn_import_desc"),
-            lambda: self._start_import(life=life)))
-        btn_row.append(_opt("applications-graphics-symbolic", t("btn_pixel"),
-                            t("btn_pixel_desc"),
-                            lambda: self.app.show_pixel_editor(guided=life)))
-        btn_row.append(_opt("edit-symbolic", t("btn_paint"), t("btn_paint_desc"),
-                            lambda: self.app.show_paint_editor(guided=life)))
-        btn_row.append(_opt("folder-open-symbolic", t("btn_continue"),
-                            t("btn_continue_desc"),
-                            lambda: self._show_projects_dialog()))
-        box.append(btn_row)
+        row.append(_opt("document-open-symbolic", t("btn_import"), t("btn_import_desc"),
+                        lambda lf: self._start_import(life=lf)))
+        row.append(_opt("applications-graphics-symbolic", t("btn_pixel"), t("btn_pixel_desc"),
+                        lambda lf: self.app.show_pixel_editor(guided=lf)))
+        row.append(_opt("edit-symbolic", t("btn_paint"), t("btn_paint_desc"),
+                        lambda lf: self.app.show_paint_editor(guided=lf)))
+        row.append(_opt("folder-open-symbolic", t("btn_continue"), t("btn_continue_desc"),
+                        lambda lf: self._show_projects_dialog()))
+        box.append(row)
 
-        footer = Gtk.Box(); footer.set_halign(Gtk.Align.END)
-        footer.set_margin_top(6)
-        cancel_btn = Gtk.Button(label=t("cancel"))
-        cancel_btn.connect("clicked", lambda _: dialog.destroy())
-        footer.append(cancel_btn)
-        box.append(footer)
+        foot = Gtk.Box(); foot.set_halign(Gtk.Align.END)
+        cancel = Gtk.Button(label=t("cancel"))
+        cancel.add_css_class("pill")
+        cancel.connect("clicked", lambda _: dialog.destroy())
+        foot.append(cancel)
+        box.append(foot)
         dialog.present()
 
     # ── Previews animadas ─────────────────────────────────────────────────────
@@ -292,156 +476,258 @@ class ControlWindow(Gtk.ApplicationWindow):
     # ── Refresh ─────────────────────────────────────────────────────────────
     def refresh(self):
         self._stop_previews()   # cancela timers de previews de la tanda anterior
-        for lb in (self._normal_list, self._life_list):
-            child = lb.get_first_child()
-            while child:
-                nxt = child.get_next_sibling()
-                lb.remove(child); child = nxt
+        child = self._flow.get_first_child()
+        while child:
+            nxt = child.get_next_sibling()
+            self._flow.remove(child); child = nxt
 
         anims = self.app.library.animations
-        normals = [a for a in anims.values() if a.get("mode", "gif") != "life"]
-        lives   = [a for a in anims.values() if a.get("mode") == "life"]
+        items = sorted(anims.values(), key=lambda a: (a.get("mode") != "life", a.get("name", "").lower()))
+        lives = sum(1 for a in items if a.get("mode") == "life")
+        active = sum(1 for a in items if a.get("on_desktop"))
 
-        if not anims:
-            self.status.set_text("Sin animaciones todavía — crea la primera arriba.")
-        else:
-            self.status.set_text(
-                f"{len(normals)} animación(es) GIF · {len(lives)} con vida")
+        for i, a in enumerate(items):
+            card = self._make_card(a, i)
+            fc = Gtk.FlowBoxChild()
+            fc.set_child(card)
+            fc._anim = a
+            self._flow.append(fc)
 
-        active_count = sum(1 for a in anims.values() if a.get("on_desktop"))
-        self._gpu_warning.set_visible(self._software_gpu and active_count > 1)
+        counts = {"all": len(items), "life": lives, "gif": len(items) - lives}
+        for fid, (btn, key) in self._seg.items():
+            btn.set_label(tr("{x0}  ·  {x1}", x0=t(key), x1=counts[fid]))
+        self.status.set_text(t("summary", n=len(items), a=active) if items else "")
+        self._gpu_warning.set_visible(self._software_gpu and active > 1)
+        self._flow.invalidate_filter()
+        self._update_stack()
 
-        for a in normals:
-            self._normal_list.append(self._make_normal_row(a))
-        for a in lives:
-            self._life_list.append(self._make_life_row(a))
+    # ── Tarjeta de mascota ──────────────────────────────────────────────────
+    def _menu_item(self, pop, label, cb, danger=False):
+        b = Gtk.Button(label=label)
+        b.add_css_class("menu-item")
+        if danger:
+            b.add_css_class("danger")
+        b.get_child().set_xalign(0)
+        b.connect("clicked", lambda _b: (pop.popdown(), cb()))
+        return b
 
-    # ── Fila animación normal ────────────────────────────────────────────────
-    def _make_normal_row(self, anim):
-        row = Gtk.ListBoxRow()
-        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        box.add_css_class("mascot-card")
-        box.set_margin_top(6); box.set_margin_bottom(6)
-        box.set_margin_start(6); box.set_margin_end(6)
+    def _make_card(self, anim, index):
+        life = anim.get("mode") == "life"
+        aid = anim["id"]
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        card.add_css_class("mcard")
+        card.add_css_class(f"d{min(index, 11)}")
+        if anim.get("on_desktop"):
+            card.add_css_class("on-desktop")
+        card.set_size_request(236, -1)
 
-        box.append(self._animated_preview(anim))
+        # escenario con la animación y las insignias
+        stage = Gtk.Overlay()
+        stage.add_css_class("mcard-stage")
+        stage.set_size_request(-1, 176)
+        prev = self._animated_preview(anim, 150)
+        prev.set_halign(Gtk.Align.CENTER); prev.set_valign(Gtk.Align.CENTER)
+        stage.set_child(prev)
+        badge = Gtk.Label(label=t("badge_life") if life else t("badge_gif"))
+        badge.add_css_class("mbadge"); badge.add_css_class("mbadge-life" if life else "mbadge-gif")
+        badge.set_halign(Gtk.Align.START); badge.set_valign(Gtk.Align.START)
+        stage.add_overlay(badge)
+        live = Gtk.Label(label="●  " + t("badge_live"))
+        live.add_css_class("mbadge"); live.add_css_class("mbadge-live")
+        live.set_halign(Gtk.Align.END); live.set_valign(Gtk.Align.START)
+        live.set_visible(bool(anim.get("on_desktop")))
+        stage.add_overlay(live)
+        card.append(stage)
 
-        info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        info.set_hexpand(True)
-        info.set_valign(Gtk.Align.CENTER)
-        info.append(self._editable_name(anim))
-        info.append(self._fps_scale_row(anim))
-        box.append(info)
+        name = self._editable_name(anim)
+        name.add_css_class("mcard-title")
+        name.set_margin_start(6); name.set_margin_end(6); name.set_margin_top(4)
+        card.append(name)
 
-        col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        meta = [tr("{x0} fps", x0=int(anim.get('fps', 12))), tr("{x0}×{x1}", x0=anim.get('width', '?'), x1=anim.get('height', '?'))]
+        if life:
+            meta.append(t("meta_poses", n=len(anim.get("poses", ["default"]))))
+        ml = Gtk.Label(label="  ·  ".join(meta), xalign=0)
+        ml.add_css_class("mcard-meta")
+        card.append(ml)
 
+        # acciones: interruptor de escritorio, editar y más opciones
+        acts = Gtk.Box(spacing=8)
+        acts.add_css_class("mcard-actions")
         sw = Gtk.Switch()
+        sw.set_valign(Gtk.Align.CENTER)
         sw.set_active(anim.get("on_desktop", False))
-        sw.set_halign(Gtk.Align.END)
         sw.set_tooltip_text(t("show_desktop"))
-        sw.connect("state-set",
-                   lambda s, st, aid=anim["id"]: self._on_toggle(aid, st))
-        col.append(sw)
 
-        # Editar: SOLO para contenido creado/empaquetado con la app (packs de la
-        # app, dibujo, spritesheet, imagen estática). Un GIF/MP4 importado trae
-        # su propia animación y no se edita frame a frame → no se muestra Editar.
+        def toggled(s, state, aid=aid):
+            self._on_toggle(aid, state)
+            live.set_visible(state)
+            (card.add_css_class if state else card.remove_css_class)("on-desktop")
+            active = sum(1 for a in self.app.library.animations.values() if a.get("on_desktop"))
+            self.status.set_text(t("summary", n=len(self.app.library.animations), a=active))
+            return False
+        sw.connect("state-set", toggled)
+        acts.append(sw)
+        sl = Gtk.Label(label=t("on_desktop")); sl.add_css_class("sw-label")
+        acts.append(sl)
+        sp = Gtk.Box(); sp.set_hexpand(True); acts.append(sp)
+
         if not anim.get("source_animated"):
-            edit_r = Gtk.Box(spacing=4)
-            b1 = Gtk.Button(label=t("edit_pixel"))
-            b1.connect("clicked",
-                       lambda _, aid=anim["id"]: self.app.show_pixel_editor(
-                           anim_id=aid, pose="default"))
-            b2 = Gtk.Button(label=t("edit_paint"))
-            b2.connect("clicked",
-                       lambda _, aid=anim["id"]: self.app.show_paint_editor(
-                           anim_id=aid, pose="default"))
-            edit_r.append(b1); edit_r.append(b2)
-            col.append(edit_r)
+            # Editar: SOLO para contenido creado con la app. Un GIF/MP4 importado
+            # trae su propia animación y no se edita frame a frame.
+            ed = Gtk.MenuButton(label=t("card_edit") + " ▾")
+            ed.add_css_class("pill")
+            ep = Gtk.Popover(); ep.set_has_arrow(False)
+            ev = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
+            for m in ("start", "end", "top", "bottom"):
+                getattr(ev, f"set_margin_{m}")(6)
+            ev.append(self._menu_item(ep, t("btn_pixel"), lambda: self.app.show_pixel_editor(anim_id=aid, pose="default")))
+            ev.append(self._menu_item(ep, t("btn_paint"), lambda: self.app.show_paint_editor(anim_id=aid, pose="default")))
+            if life:
+                s2 = Gtk.Box(); s2.add_css_class("menu-sep"); ev.append(s2)
+                ev.append(self._menu_item(ep, t("add_pose") + " · " + t("add_pose_pixel"),
+                                          lambda: self.app.show_pixel_editor(anim_id=aid, guided=True)))
+                ev.append(self._menu_item(ep, t("add_pose") + " · " + t("add_pose_paint"),
+                                          lambda: self.app.show_paint_editor(anim_id=aid, guided=True)))
+            ep.set_child(ev); ed.set_popover(ep)
+            acts.append(ed)
 
-        exp_btn = Gtk.Button(label=t("export"))
-        exp_btn.connect("clicked",
-                        lambda _, aid=anim["id"]: self._on_export_gif(aid))
-        col.append(exp_btn)
+        more = Gtk.MenuButton()
+        more.set_label("⋯")
+        more.add_css_class("pill")
+        more.set_tooltip_text(t("card_more"))
+        mp = Gtk.Popover(); mp.set_has_arrow(False)
+        mv = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
+        for m in ("start", "end", "top", "bottom"):
+            getattr(mv, f"set_margin_{m}")(8)
+        tt = Gtk.Label(label=t("card_settings").upper(), xalign=0); tt.add_css_class("menu-title")
+        mv.append(tt)
+        mv.append(self._fps_scale_row(anim))
+        if life:
+            mv.append(self._pose_toggles_row(anim))
+        s3 = Gtk.Box(); s3.add_css_class("menu-sep"); mv.append(s3)
+        mv.append(self._menu_item(mp, t("card_export"),
+                                  (lambda: self._on_export_pack(aid)) if life else (lambda: self._on_export_gif(aid))))
+        mv.append(self._menu_item(mp, "🌐 " + t("card_share"), lambda: self._on_share_pack(aid)))
+        s4 = Gtk.Box(); s4.add_css_class("menu-sep"); mv.append(s4)
+        mv.append(self._menu_item(mp, t("card_delete"), lambda: self._confirm_delete(anim), danger=True))
+        mp.set_child(mv); more.set_popover(mp)
+        acts.append(more)
+        card.append(acts)
+        return card
 
-        # "Compartir" sigue armando un .alpack (no el GIF/MP4 de "Exportar"):
-        # es el único formato que acepta la web de la comunidad, tenga la
-        # mascota una sola pose (sin vida) o varias (con vida).
-        share = Gtk.Button(label="🌐 Compartir")
-        share.set_tooltip_text(
-            "Exportar el pack y abrir la web de la comunidad para subirlo")
-        share.connect("clicked", lambda _, aid=anim["id"]: self._on_share_pack(aid))
-        col.append(share)
+    def _confirm_delete(self, anim):
+        dlg = Gtk.AlertDialog()
+        dlg.set_message(t("del_title", n=anim["name"]))
+        dlg.set_detail(t("del_detail"))
+        dlg.set_buttons([t("cancel"), t("card_delete")])
+        dlg.set_cancel_button(0)
+        dlg.set_default_button(0)
 
-        del_btn = Gtk.Button(label=t("delete"))
-        del_btn.add_css_class("destructive-action")
-        del_btn.connect("clicked", lambda _, aid=anim["id"]: self._on_delete(aid))
-        col.append(del_btn)
+        def done(d, res):
+            try:
+                if d.choose_finish(res) == 1:
+                    self._on_delete(anim["id"])
+            except GLib.Error:
+                pass
+        dlg.choose(self, None, done)
 
-        box.append(col)
-        row.set_child(box)
-        return row
+    # ── Tutorial de bienvenida ───────────────────────────────────────────────
+    _TOUR = [
+        ("🐾", N_("¡Bienvenido a AnimaLinux!"),
+         N_("Mascotas animadas que viven en tu escritorio: caminan, saltan, saludan y "
+         "reaccionan a tu ratón. Este recorrido de un minuto te enseña lo esencial."),
+         []),
+        ("✨", N_("Crea tu primera mascota"),
+         N_("Pulsa «Nueva mascota» y elige cómo hacerla:"),
+         [N_("📥  Importar un GIF, vídeo, imagen, spritesheet, carpeta o pack .alpack "
+          "(también puedes arrastrarlos a la ventana)"),
+          N_("🎨  Editor de píxeles, con la disposición y los atajos de Aseprite"),
+          N_("🖌  Editor de animación, con capas, papel cebolla y cámara al estilo Toon Boom"),
+          N_("📂  Continuar un proyecto guardado")]),
+        ("🧬", N_("Normal o con vida"),
+         N_("«Normal» es una animación en bucle. «Con vida» usa poses y física real:"),
+         ["default · idle · walk · greet · kiss · jump · angry · grab · fall",
+          N_("default, walk y jump son obligatorias; el resto es opcional"),
+          N_("En «⋯ Ajustes» de cada tarjeta eliges qué poses usa la mascota")]),
+        ("🖥", N_("Ponla en tu escritorio"),
+         N_("Activa el interruptor «Escritorio» de la tarjeta. Luego prueba:"),
+         [N_("Pasa el ratón por encima: te saluda"),
+          N_("Haz clic varias veces: se enfada"),
+          N_("Arrástrala y suéltala: cae y rebota"),
+          N_("Ajusta los FPS y el tamaño en «⋯ Ajustes»")]),
+        ("🎛", N_("Personaliza y comparte"),
+         N_("En ⚙ Configuración cambias el idioma, el arranque automático, las "
+         "actualizaciones y el tema de color: eliges un color y la app calcula sola "
+         "los tonos que mejor combinan."),
+         [N_("Ctrl+F busca · Ctrl+N crea una mascota nueva"),
+          N_("🌐 La comunidad tiene packs para descargar y donde subir los tuyos")]),
+    ]
 
-    # ── Fila animación con vida ──────────────────────────────────────────────
-    def _make_life_row(self, anim):
-        row = Gtk.ListBoxRow()
-        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        box.add_css_class("mascot-card")
-        box.add_css_class("card-life")
-        box.set_margin_top(6); box.set_margin_bottom(6)
-        box.set_margin_start(6); box.set_margin_end(6)
+    def _show_tour(self, force=False):
+        from .. import settings as _s
+        if not force and _s.get("welcome_shown", False):
+            return
+        win = Gtk.Window(title=t("tour_title"), transient_for=self, modal=True)
+        win.add_css_class("tour")
+        win.set_default_size(600, 520)
+        win.set_resizable(False)
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        win.set_child(outer)
+        stack = Gtk.Stack()
+        stack.set_vexpand(True)
+        stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
+        stack.set_transition_duration(320)
+        for k, (emoji, title, text, bullets) in enumerate(self._TOUR):
+            pg = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+            pg.set_margin_start(40); pg.set_margin_end(40); pg.set_margin_top(34)
+            e = Gtk.Label(label=emoji); e.add_css_class("tour-emoji"); pg.append(e)
+            tl = Gtk.Label(label=tr(title)); tl.add_css_class("empty-title"); pg.append(tl)
+            tx = Gtk.Label(label=tr(text), wrap=True, justify=Gtk.Justification.CENTER)
+            tx.add_css_class("empty-sub"); tx.set_max_width_chars(56); pg.append(tx)
+            for b in bullets:
+                bl = Gtk.Label(label=tr(b), xalign=0, wrap=True)
+                bl.add_css_class("tour-bullet"); bl.set_max_width_chars(60); pg.append(bl)
+            stack.add_named(pg, f"p{k}")
+        outer.append(stack)
 
-        box.append(self._animated_preview(anim))
+        dots = Gtk.Label(); dots.add_css_class("tour-dots")
+        never = Gtk.CheckButton(label=t("tour_never")); never.set_active(True)
+        back = Gtk.Button(label=t("tour_back")); back.add_css_class("pill")
+        nxt = Gtk.Button(label=t("tour_next")); nxt.add_css_class("suggested-action"); nxt.add_css_class("pill")
+        state = {"i": 0}
+        n = len(self._TOUR)
 
-        info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        info.set_hexpand(True)
-        info.append(self._editable_name(anim))
-        info.append(self._fps_scale_row(anim))
+        def show(i):
+            state["i"] = max(0, min(n - 1, i))
+            stack.set_visible_child_name(f"p{state['i']}")
+            dots.set_markup("  ".join("<span foreground='%s'>●</span>" % ("#ffffff" if k == state["i"] else "#5b6478")
+                                       for k in range(n)))
+            back.set_sensitive(state["i"] > 0)
+            nxt.set_label(t("tour_done") if state["i"] == n - 1 else t("tour_next"))
+            never.set_visible(state["i"] == n - 1)
 
-        info.append(self._pose_toggles_row(anim))
+        def go_next(_b):
+            if state["i"] == n - 1:
+                if never.get_active():
+                    _s.set_val("welcome_shown", True)
+                win.destroy()
+            else:
+                show(state["i"] + 1)
+        back.connect("clicked", lambda _b: show(state["i"] - 1))
+        nxt.connect("clicked", go_next)
+        win.connect("close-request", lambda *_: (_s.set_val("welcome_shown", True) if not force else None, False)[1])
 
-        add_r = Gtk.Box(spacing=4)
-        add_r.append(Gtk.Label(label=t("add_pose")))
-        ap1 = Gtk.Button(label=t("add_pose_pixel"))
-        ap1.connect("clicked",
-                    lambda _, aid=anim["id"]: self.app.show_pixel_editor(
-                        anim_id=aid, guided=True))
-        ap2 = Gtk.Button(label=t("add_pose_paint"))
-        ap2.connect("clicked",
-                    lambda _, aid=anim["id"]: self.app.show_paint_editor(
-                        anim_id=aid, guided=True))
-        add_r.append(ap1); add_r.append(ap2)
-        info.append(add_r)
-        box.append(info)
-
-        col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-
-        sw = Gtk.Switch()
-        sw.set_active(anim.get("on_desktop", False))
-        sw.set_halign(Gtk.Align.END)
-        sw.set_tooltip_text(t("show_desktop"))
-        sw.connect("state-set",
-                   lambda s, st, aid=anim["id"]: self._on_toggle(aid, st))
-        col.append(sw)
-
-        exp = Gtk.Button(label=t("export"))
-        exp.connect("clicked", lambda _, aid=anim["id"]: self._on_export_pack(aid))
-        col.append(exp)
-
-        share = Gtk.Button(label="🌐 Compartir")
-        share.set_tooltip_text(
-            "Exportar el pack y abrir la web de la comunidad para subirlo")
-        share.connect("clicked", lambda _, aid=anim["id"]: self._on_share_pack(aid))
-        col.append(share)
-
-        del_btn = Gtk.Button(label=t("delete"))
-        del_btn.add_css_class("destructive-action")
-        del_btn.connect("clicked", lambda _, aid=anim["id"]: self._on_delete(aid))
-        col.append(del_btn)
-
-        box.append(col)
-        row.set_child(box)
-        return row
+        foot = Gtk.Box(spacing=10)
+        foot.set_margin_start(24); foot.set_margin_end(24); foot.set_margin_bottom(20); foot.set_margin_top(10)
+        foot.append(never)
+        sp = Gtk.Box(); sp.set_hexpand(True); foot.append(sp)
+        foot.append(dots)
+        sp2 = Gtk.Box(); sp2.set_hexpand(True); foot.append(sp2)
+        foot.append(back); foot.append(nxt)
+        outer.append(foot)
+        show(0)
+        win.present()
 
     # ── Widgets reutilizables ─────────────────────────────────────────────────
     def _animated_preview(self, anim, size=64):
@@ -481,7 +767,7 @@ class ControlWindow(Gtk.ApplicationWindow):
         entry.add_css_class("card-title")
         entry.set_hexpand(True)
         entry.set_has_frame(False)
-        entry.set_tooltip_text("Editar nombre (Enter para guardar)")
+        entry.set_tooltip_text(tr("Editar nombre (Enter para guardar)"))
 
         def save(*_):
             new = entry.get_text().strip()
@@ -548,7 +834,7 @@ class ControlWindow(Gtk.ApplicationWindow):
         for pose in poses:
             chk = Gtk.CheckButton(label=pose)
             chk.set_active(pose not in disabled)
-            chk.set_tooltip_text(f"Usar la pose «{pose}» en modo Vida")
+            chk.set_tooltip_text(tr("Usar la pose «{pose}» en modo Vida", pose=pose))
             chk.connect("toggled", self._on_pose_toggled, anim["id"], pose)
             flow.append(chk)
         outer.append(flow)
@@ -570,24 +856,24 @@ class ControlWindow(Gtk.ApplicationWindow):
         self._pending_live = False
         dialog = Gtk.FileDialog()
         if kind == "video":
-            dialog.set_title("Elige un vídeo corto (MP4, WebM, MOV, AVI, M4V…)")
+            dialog.set_title(tr("Elige un vídeo corto (MP4, WebM, MOV, AVI, M4V…)"))
         else:
-            dialog.set_title("Elige una animación (GIF, WebP animado, APNG…)")
+            dialog.set_title(tr("Elige una animación (GIF, WebP animado, APNG…)"))
 
         # Filtro de archivo
         store = Gio.ListStore.new(Gtk.FileFilter)
         f = Gtk.FileFilter()
         if kind == "video":
-            f.set_name("Vídeos (MP4, WebM, MOV, AVI, M4V)")
+            f.set_name(tr("Vídeos (MP4, WebM, MOV, AVI, M4V)"))
             for pat in ("*.mp4", "*.webm", "*.mov", "*.avi", "*.m4v"):
                 f.add_pattern(pat)
         else:
-            f.set_name("Animaciones (GIF, WebP, APNG, PNG)")
+            f.set_name(tr("Animaciones (GIF, WebP, APNG, PNG)"))
             for pat in ("*.gif", "*.webp", "*.apng", "*.png"):
                 f.add_pattern(pat)
         store.append(f)
         all_f = Gtk.FileFilter()
-        all_f.set_name("Todos los archivos")
+        all_f.set_name(tr("Todos los archivos"))
         all_f.add_pattern("*")
         store.append(all_f)
         dialog.set_filters(store)
@@ -598,16 +884,16 @@ class ControlWindow(Gtk.ApplicationWindow):
         self._pending_live = life
         dialog = Gtk.FileDialog()
         if life:
-            dialog.set_title("Elige un pack .alpack")
+            dialog.set_title(tr("Elige un pack .alpack"))
             f = Gtk.FileFilter()
-            f.set_name("Pack de AnimaLinux (.alpack)")
+            f.set_name(tr("Pack de AnimaLinux (.alpack)"))
             f.add_pattern("*.alpack")
             store = Gio.ListStore.new(Gtk.FileFilter)
             store.append(f)
             dialog.set_filters(store)
             dialog.set_default_filter(f)
         else:
-            dialog.set_title("Elige una animación (GIF, WebP, APNG, PNG, MP4…)")
+            dialog.set_title(tr("Elige una animación (GIF, WebP, APNG, PNG, MP4…)"))
         dialog.open(self, None, self._on_file_chosen)
 
     def _on_file_chosen(self, dialog, result):
@@ -615,7 +901,9 @@ class ControlWindow(Gtk.ApplicationWindow):
             gfile = dialog.open_finish(result)
         except GLib.Error:
             return
-        path = gfile.get_path()
+        self._import_path(gfile.get_path())
+
+    def _import_path(self, path):
         if path and path.lower().endswith(".alpack"):
             # el usuario eligió un pack .alpack desde un botón de GIF/vídeo/
             # imagen: es un error de bicicleta esperable (los botones están
@@ -626,10 +914,10 @@ class ControlWindow(Gtk.ApplicationWindow):
             return
         method = BG_METHODS[self.method_combo.get_selected()][1]
         live = getattr(self, "_pending_live", False)
-        self.status.set_text("Procesando… (puede tardar si se usa IA)")
+        self.status.set_text(tr("Procesando… (puede tardar si se usa IA)"))
 
         def report(texto, frac):
-            GLib.idle_add(self.status.set_text, f"{texto}… {int(frac*100)}%")
+            GLib.idle_add(self.status.set_text, tr("{texto}… {x1}%", texto=texto, x1=int(frac * 100)))
 
         def work():
             try:
@@ -643,17 +931,17 @@ class ControlWindow(Gtk.ApplicationWindow):
                     use_method = "none"
                     GLib.idle_add(
                         self.status.set_text,
-                        "Este archivo ya tiene fondo transparente — no se aplicó recorte con IA.")
+                        tr("Este archivo ya tiene fondo transparente — no se aplicó recorte con IA."))
                 lib = self.app.library
                 aid = lib.new_id()
                 dest = lib.frames_dir(aid)
                 fc, w, h, fps = importer.import_animation(
                     path, dest, bg_method=use_method, progress=report,
                     pre_loaded=pre_loaded)
-                name = gfile.get_basename().rsplit(".", 1)[0]
+                name = os.path.basename(path).rsplit(".", 1)[0]
                 GLib.idle_add(self._import_done, aid, name, fc, w, h, fps, live)
             except Exception as e:   # noqa: BLE001
-                GLib.idle_add(self.status.set_text, f"Error al importar: {e}")
+                GLib.idle_add(self.status.set_text, tr("Error al importar: {e}", e=e))
 
         threading.Thread(target=work, daemon=True).start()
 
@@ -667,13 +955,13 @@ class ControlWindow(Gtk.ApplicationWindow):
         if live:
             self.app.library.update(aid, mode="life")
             self.status.set_text(
-                f"«{name}» lista. Abriendo editor guiado para crear sus acciones…")
+                tr("«{name}» lista. Abriendo editor guiado para crear sus acciones…", name=name))
             self.refresh()
             # Offer guided editor
             self._ask_guided_editor(aid)
         else:
             self.status.set_text(
-                f"«{name}» creada ({fc} cuadros). Usa «Editar» para ajustarla.")
+                tr("«{name}» creada ({fc} cuadros). Usa «Editar» para ajustarla.", name=name, fc=fc))
             self.refresh()
         self._pending_live = False
         return False
@@ -731,7 +1019,7 @@ class ControlWindow(Gtk.ApplicationWindow):
 
     # ── Packs ────────────────────────────────────────────────────────────────
     def _import_pack_path(self, path):
-        self.status.set_text("Importando pack…")
+        self.status.set_text(tr("Importando pack…"))
 
         def work():
             try:
@@ -746,19 +1034,19 @@ class ControlWindow(Gtk.ApplicationWindow):
                 self.app.library.update(aid, mode=mode)
                 GLib.idle_add(self._pack_done)
             except Exception as e:  # noqa: BLE001
-                GLib.idle_add(self.status.set_text, f"Error con el pack: {e}")
+                GLib.idle_add(self.status.set_text, tr("Error con el pack: {e}", e=e))
 
         threading.Thread(target=work, daemon=True).start()
 
     def _pack_done(self):
-        self.status.set_text("Pack importado.")
+        self.status.set_text(tr("Pack importado."))
         self.refresh()
         return False
 
     def _on_export_pack(self, aid):
         anim = self.app.library.animations.get(aid, {})
         dialog = Gtk.FileDialog()
-        dialog.set_title("Guardar pack")
+        dialog.set_title(tr("Guardar pack"))
         dialog.set_initial_name(f"{anim.get('name', 'mascota')}.alpack")
         dialog.save(self, None,
                     lambda d, r, aid=aid: self._on_pack_save(d, r, aid))
@@ -770,16 +1058,16 @@ class ControlWindow(Gtk.ApplicationWindow):
             return
         try:
             out = self.app.export_pack(aid, gfile.get_path())
-            self.status.set_text(f"Pack exportado: {out.name}")
+            self.status.set_text(tr("Pack exportado: {name}", name=out.name))
         except Exception as e:  # noqa: BLE001
-            self.status.set_text(f"Error al exportar: {e}")
+            self.status.set_text(tr("Error al exportar: {e}", e=e))
 
     def _on_share_pack(self, aid):
         """Exportar + abrir directo la web de subida — un solo click en vez de
         exportar, buscar la web y navegar hasta 'Subir mascota' a mano."""
         anim = self.app.library.animations.get(aid, {})
         dialog = Gtk.FileDialog()
-        dialog.set_title("Guardar pack para compartir")
+        dialog.set_title(tr("Guardar pack para compartir"))
         dialog.set_initial_name(f"{anim.get('name', 'mascota')}.alpack")
         dialog.save(self, None,
                     lambda d, r, aid=aid: self._on_share_pack_save(d, r, aid))
@@ -792,11 +1080,11 @@ class ControlWindow(Gtk.ApplicationWindow):
         try:
             out = self.app.export_pack(aid, gfile.get_path())
             self.status.set_text(
-                f"Pack guardado en {out} — abriendo la web para subirlo…")
+                tr("Pack guardado en {out} — abriendo la web para subirlo…", out=out))
             Gio.AppInfo.launch_default_for_uri(
                 "https://animalinux-community.web.app/upload.html", None)
         except Exception as e:  # noqa: BLE001
-            self.status.set_text(f"Error al exportar: {e}")
+            self.status.set_text(tr("Error al exportar: {e}", e=e))
 
     def _on_export_gif(self, aid):
         """Exportar una mascota 'sin vida' (GIF/MP4 importado o dibujado) —
@@ -804,11 +1092,11 @@ class ControlWindow(Gtk.ApplicationWindow):
         formato es para mascotas con vida, con varias poses)."""
         anim = self.app.library.animations.get(aid, {})
         dialog = Gtk.FileDialog()
-        dialog.set_title("Exportar animación")
+        dialog.set_title(tr("Exportar animación"))
 
-        gif_filter = Gtk.FileFilter(); gif_filter.set_name("GIF animado (*.gif)")
+        gif_filter = Gtk.FileFilter(); gif_filter.set_name(tr("GIF animado (*.gif)"))
         gif_filter.add_pattern("*.gif")
-        mp4_filter = Gtk.FileFilter(); mp4_filter.set_name("Vídeo MP4 (*.mp4)")
+        mp4_filter = Gtk.FileFilter(); mp4_filter.set_name(tr("Vídeo MP4 (*.mp4)"))
         mp4_filter.add_pattern("*.mp4")
         filters = Gio.ListStore.new(Gtk.FileFilter)
         filters.append(gif_filter); filters.append(mp4_filter)
@@ -828,14 +1116,14 @@ class ControlWindow(Gtk.ApplicationWindow):
             path += ".gif"
         try:
             out = self.app.export_animation(aid, path)
-            self.status.set_text(f"Animación exportada: {out.name}")
+            self.status.set_text(tr("Animación exportada: {name}", name=out.name))
         except Exception as e:  # noqa: BLE001
-            self.status.set_text(f"Error al exportar: {e}")
+            self.status.set_text(tr("Error al exportar: {e}", e=e))
 
     # ── Carpeta vida ─────────────────────────────────────────────────────────
     def _on_import_folder(self, _btn):
         dialog = Gtk.FileDialog()
-        dialog.set_title("Elige la carpeta de la mascota")
+        dialog.set_title(tr("Elige la carpeta de la mascota"))
         dialog.select_folder(self, None, self._on_folder_chosen)
 
     def _on_folder_chosen(self, dialog, result):
@@ -843,20 +1131,23 @@ class ControlWindow(Gtk.ApplicationWindow):
             gfile = dialog.select_folder_finish(result)
         except GLib.Error:
             return
-        self.status.set_text("Importando carpeta y validando…")
+        self._import_folder_path(gfile.get_path())
+
+    def _import_folder_path(self, path):
+        self.status.set_text(tr("Importando carpeta y validando…"))
 
         def work():
             try:
-                aid, problemas = self.app.import_life_folder(gfile.get_path())
+                aid, problemas = self.app.import_life_folder(path)
                 GLib.idle_add(self._folder_done, aid, problemas)
             except Exception as e:  # noqa: BLE001
-                GLib.idle_add(self.status.set_text, f"Error: {e}")
+                GLib.idle_add(self.status.set_text, tr("Error: {e}", e=e))
 
         threading.Thread(target=work, daemon=True).start()
 
     def _folder_done(self, aid, problemas):
         self.refresh()
-        self.notebook.set_current_page(1)
+        self._set_filter("life")
         anim = self.app.library.animations.get(aid, {})
         poses_encontradas = set(anim.get("poses", []))
         self._show_folder_result(aid, poses_encontradas, problemas)
@@ -876,19 +1167,19 @@ class ControlWindow(Gtk.ApplicationWindow):
         tv.set_margin_top(12); tv.set_margin_bottom(12)
         buf = tv.get_buffer()
 
-        lineas = ["POSES ENCONTRADAS\n" + "─" * 38 + "\n"]
+        lineas = [tr("POSES ENCONTRADAS\n") + "─" * 38 + "\n"]
         for pose in fi.KNOWN_POSES:
             if pose in poses_encontradas:
                 aviso = ""
                 if pose in problemas:
                     aviso = "  ⚠ " + "; ".join(problemas[pose])
-                lineas.append(f"  ✔  {pose:<10}{aviso}")
+                lineas.append(tr("  ✔  {pose:<10}{aviso}", pose=pose, aviso=aviso))
             else:
-                lineas.append(f"  ✘  {pose:<10}  (falta — añade subcarpeta '{pose}/')")
+                lineas.append(tr("  ✘  {pose:<10}  (falta — añade subcarpeta '{x1}/')", pose=pose, x1=pose))
 
         extras = poses_encontradas - set(fi.KNOWN_POSES) - {"default"}
         if extras:
-            lineas.append("\nPOSES EXTRA DETECTADAS")
+            lineas.append(tr("\nPOSES EXTRA DETECTADAS"))
             for p in sorted(extras):
                 lineas.append(f"  ·  {p}")
 
@@ -896,13 +1187,13 @@ class ControlWindow(Gtk.ApplicationWindow):
             lineas.append("\n⚠  " + "\n   ".join(problemas["_general"]))
 
         lineas.append("\n" + "─" * 38)
-        lineas.append("ESTRUCTURA ESPERADA\n")
-        lineas.append("  NombreMascota/")
+        lineas.append(tr("ESTRUCTURA ESPERADA\n"))
+        lineas.append(tr("  NombreMascota/"))
         for pose in fi.KNOWN_POSES:
-            req = " ← obligatoria" if pose == "default" else ""
+            req = tr(" ← obligatoria") if pose == "default" else ""
             estado = "✔" if pose in poses_encontradas else "✘"
-            lineas.append(f"  {estado} {pose}/")
-            lineas.append(f"      frame_0000.png …{req}")
+            lineas.append(tr("  {estado} {pose}/", estado=estado, pose=pose))
+            lineas.append(tr("      frame_0000.png …{req}", req=req))
 
         buf.set_text("\n".join(lineas))
         sc.set_child(tv)
@@ -928,7 +1219,7 @@ class ControlWindow(Gtk.ApplicationWindow):
     # ── Spritesheet ──────────────────────────────────────────────────────────
     def _on_import_sheet(self, _btn):
         dialog = Gtk.FileDialog()
-        dialog.set_title("Elige un spritesheet")
+        dialog.set_title(tr("Elige un spritesheet"))
         dialog.open(self, None, self._on_sheet_chosen)
 
     def _on_sheet_chosen(self, dialog, result):
@@ -941,19 +1232,19 @@ class ControlWindow(Gtk.ApplicationWindow):
             self._import_pack_path(path)
             return
         cols = int(self.sheet_cols.get_value())
-        self.status.set_text("Cortando spritesheet…")
+        self.status.set_text(tr("Cortando spritesheet…"))
 
         def work():
             try:
                 self.app.import_spritesheet(gfile.get_path(), cols)
                 GLib.idle_add(self._sheet_done)
             except Exception as e:  # noqa: BLE001
-                GLib.idle_add(self.status.set_text, f"Error: {e}")
+                GLib.idle_add(self.status.set_text, tr("Error: {e}", e=e))
 
         threading.Thread(target=work, daemon=True).start()
 
     def _sheet_done(self):
-        self.status.set_text("Spritesheet importado.")
+        self.status.set_text(tr("Spritesheet importado."))
         self.refresh()
         return False
 
@@ -1001,10 +1292,10 @@ class ControlWindow(Gtk.ApplicationWindow):
                 info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
                 info.set_hexpand(True)
                 name_lbl = Gtk.Label(label=proj["name"], xalign=0)
-                name_lbl.set_markup(f"<b>{proj['name']}</b>")
+                name_lbl.set_markup(tr("<b>{x0}</b>", x0=proj['name']))
                 info.append(name_lbl)
                 meta_lbl = Gtk.Label(
-                    label=f"{t('projects_modified')} {proj['modified']}  •  {proj['size_kb']} KB",
+                    label=tr("{x0} {x1}  •  {x2} KB", x0=t('projects_modified'), x1=proj['modified'], x2=proj['size_kb']),
                     xalign=0)
                 meta_lbl.add_css_class("dim-label")
                 info.append(meta_lbl)
@@ -1036,7 +1327,7 @@ class ControlWindow(Gtk.ApplicationWindow):
     def refresh_update_banner(self):
         from ..core import updater
         v = updater.pending()
-        self._upd_bar.set_visible(bool(v))
+        self._upd_rev.set_reveal_child(bool(v))
         if v:
             self._upd_lbl.set_text("🆕 " + t("upd_available", v=v))
             self._upd_btn.set_sensitive(True)
@@ -1063,7 +1354,7 @@ class ControlWindow(Gtk.ApplicationWindow):
         threading.Thread(target=work, daemon=True).start()
 
     def _update_failed(self, msg):
-        self._upd_lbl.set_text(f"{t('upd_failed')} {msg}")
+        self._upd_lbl.set_text(tr("{x0} {msg}", x0=t('upd_failed'), msg=msg))
         self._upd_btn.set_sensitive(True)
         self._upd_btn.set_label(t("upd_now"))
 
@@ -1075,16 +1366,83 @@ class ControlWindow(Gtk.ApplicationWindow):
     def _show_settings_dialog(self):
         from .. import i18n as _i18n
         dlg = Gtk.Dialog(title=t("settings_title"), transient_for=self, modal=True)
-        dlg.set_default_size(360, 200)
+        dlg.set_default_size(430, 200)
         box = dlg.get_content_area()
         box.set_spacing(12)
         box.set_margin_start(20); box.set_margin_end(20)
         box.set_margin_top(16); box.set_margin_bottom(16)
 
+        # ── Tema de color: el color principal define TODA la combinación ─────
+        from . import theme as _theme
+        orig_theme = _theme.current_theme()
+        th_title = Gtk.Label(label=t("theme_title"), xalign=0)
+        th_title.add_css_class("opt-title")
+        box.append(th_title)
+        sw_row = Gtk.Box(spacing=10)
+        swatches = {}
+        preview = Gtk.DrawingArea()
+        preview.set_content_width(150); preview.set_content_height(20)
+
+        def draw_preview(_a, cr, w, h):
+            pal = _theme.build_palette(_theme.resolve(_theme.current_theme()))
+            for k, col in enumerate((pal["BG"], pal["ACCENT"], pal["G1"], pal["G2"], pal["ACCENT2"])):
+                r, g, bl = (int(col[i:i + 2], 16) / 255 for i in (1, 3, 5))
+                cr.set_source_rgb(r, g, bl)
+                cr.arc(10 + k * 30, h / 2, 9, 0, 6.2832); cr.fill()
+        preview.set_draw_func(draw_preview)
+
+        def mark():
+            cur = _theme.current_theme()
+            for tid, b in swatches.items():
+                (b.add_css_class if tid == cur else b.remove_css_class)("swatch-on")
+            preview.queue_draw()
+
+        def pick(tid):
+            _theme.set_theme(tid)
+            mark()
+
+        def make_swatch(tid, name, colhex):
+            b = Gtk.Button()
+            b.add_css_class("swatch")
+            da = Gtk.DrawingArea(); da.set_content_width(22); da.set_content_height(22)
+            r, g, bl = (int(colhex[i:i + 2], 16) / 255 for i in (1, 3, 5))
+            da.set_draw_func(lambda _a, cr, w, h: (cr.set_source_rgb(r, g, bl), cr.arc(w / 2, h / 2, 10, 0, 6.2832), cr.fill()))
+            b.set_child(da)
+            b.set_tooltip_text(name)
+            b.connect("clicked", lambda _b: pick(tid))
+            swatches[tid] = b
+            return b
+        for tid, (name, colhex) in _theme.PRESETS.items():
+            sw_row.append(make_swatch(tid, name, colhex))
+        if hasattr(Gtk, "ColorDialogButton"):
+            cust = Gtk.ColorDialogButton(dialog=Gtk.ColorDialog())
+        else:
+            cust = Gtk.ColorButton()
+        cust.set_tooltip_text(t("theme_custom"))
+        cur_id = _theme.current_theme()
+        c0 = Gdk.RGBA(); c0.parse(_theme.resolve(cur_id))
+        try:
+            cust.set_rgba(c0)
+        except Exception:  # noqa: BLE001
+            pass
+
+        def custom_changed(*_):
+            c = cust.get_rgba()
+            pick("#%02x%02x%02x" % (round(c.red * 255), round(c.green * 255), round(c.blue * 255)))
+        cust.connect("notify::rgba", custom_changed)
+        sw_row.append(cust)
+        box.append(sw_row)
+        pv_row = Gtk.Box(spacing=10)
+        pl = Gtk.Label(label=t("theme_combo"), xalign=0); pl.add_css_class("dim-label"); pl.set_hexpand(True)
+        pv_row.append(pl); pv_row.append(preview)
+        box.append(pv_row)
+        mark()
+        sep_t = Gtk.Separator(); box.append(sep_t)
+
         lang_row = Gtk.Box(spacing=10)
         lang_row.append(Gtk.Label(label=t("lang_label")))
         lang_codes = list(_i18n.LANGUAGES.keys())
-        lang_names = [f"{_i18n.LANGUAGES[c]}  ({c})" for c in lang_codes]
+        lang_names = [tr("{x0}  ({c})", x0=_i18n.LANGUAGES[c], c=c) for c in lang_codes]
         dd = Gtk.DropDown.new_from_strings(lang_names)
         cur = _i18n.get_language()
         dd.set_selected(lang_codes.index(cur) if cur in lang_codes else 0)
@@ -1160,7 +1518,7 @@ class ControlWindow(Gtk.ApplicationWindow):
 
         btn_row = Gtk.Box(spacing=8, halign=Gtk.Align.END)
         cancel = Gtk.Button(label=t("cancel"))
-        cancel.connect("clicked", lambda _: dlg.destroy())
+        cancel.connect("clicked", lambda _: (_theme.set_theme(orig_theme), dlg.destroy()))
         btn_row.append(cancel)
         ok = Gtk.Button(label=t("ok"))
         ok.add_css_class("suggested-action")
@@ -1204,18 +1562,18 @@ class ControlWindow(Gtk.ApplicationWindow):
         root = Gtk.Label(label="📁 mi_mascota/", xalign=0)
         box.append(root)
         for name, required, frames in entries:
-            lbl = Gtk.Label(label=f"   📁 {name}/", xalign=0)
+            lbl = Gtk.Label(label=tr("   📁 {name}/", name=name), xalign=0)
             if required:
                 lbl.add_css_class("folder-required")
             box.append(lbl)
             if frames:
-                sub = Gtk.Label(label=f"      🖼 {frames}", xalign=0)
+                sub = Gtk.Label(label=tr("      🖼 {frames}", frames=frames), xalign=0)
                 sub.add_css_class("dim-label")
                 box.append(sub)
         return box
 
     def _show_vida_help(self):
-        dlg = Gtk.Dialog(title="Guía: Animaciones con vida",
+        dlg = Gtk.Dialog(title=tr("Guía: Animaciones con vida"),
                          transient_for=self, modal=True)
         dlg.set_default_size(520, 620)
         box = dlg.get_content_area()

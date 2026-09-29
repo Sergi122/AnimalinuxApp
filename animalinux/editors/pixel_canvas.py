@@ -24,6 +24,7 @@ import cairo
 import numpy as np
 from PIL import Image, ImageDraw
 
+from ..i18n import tr
 from .editor_utils import premultiply_bgra
 
 ZOOM_STEPS = [1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 32, 48, 64]
@@ -104,7 +105,7 @@ class PixelCanvas(Gtk.DrawingArea):
     def __init__(self, cw: int = 64, ch: int = 64):
         super().__init__()
         self.cw, self.ch = cw, ch
-        self.layers = [Layer("Capa 1", 1, cw * ch * 4)]
+        self.layers = [Layer(tr("Capa 1"), 1, cw * ch * 4)]
         self._layer = 0
         self._cur = 0
         self._zi = 5
@@ -398,14 +399,14 @@ class PixelCanvas(Gtk.DrawingArea):
     def add_layer(self):
         self.snap_full()
         n = len(self.layers) + 1
-        self.layers.insert(self._layer + 1, self._new_layer_obj(f"Capa {n}"))
+        self.layers.insert(self._layer + 1, self._new_layer_obj(tr("Capa {n}", n=n)))
         self._layer += 1
         self._notify(layers=True); self.queue_draw()
 
     def duplicate_layer(self):
         self.snap_full()
         src = self.layer
-        l = Layer(src.name + " copia", 0, 0)
+        l = Layer(tr("{name} copia", name=src.name), 0, 0)
         l.visible, l.locked, l.opacity = src.visible, False, src.opacity
         l.frames = [bytearray(f) for f in src.frames]
         self.layers.insert(self._layer + 1, l)
@@ -415,7 +416,7 @@ class PixelCanvas(Gtk.DrawingArea):
 
     def delete_layer(self):
         if len(self.layers) <= 1:
-            self._status("No se puede borrar la única capa"); return
+            self._status(tr("No se puede borrar la única capa")); return
         self.snap_full()
         self.layers.pop(self._layer)
         self._layer = min(self._layer, len(self.layers) - 1)
@@ -433,7 +434,7 @@ class PixelCanvas(Gtk.DrawingArea):
 
     def merge_down(self):
         if self._layer == 0:
-            self._status("No hay capa debajo"); return
+            self._status(tr("No hay capa debajo")); return
         self.snap_full()
         top, bot = self.layers[self._layer], self.layers[self._layer - 1]
         for fi in range(self.frame_count):
@@ -501,7 +502,7 @@ class PixelCanvas(Gtk.DrawingArea):
 
     def delete_frame(self):
         if self.frame_count <= 1:
-            self._status("No se puede borrar el único fotograma"); return
+            self._status(tr("No se puede borrar el único fotograma")); return
         self.snap_full()
         for l in self.layers: l.frames.pop(self._cur)
         self._cur = min(self._cur, self.frame_count - 1)
@@ -552,7 +553,7 @@ class PixelCanvas(Gtk.DrawingArea):
     # ── carga / tamaño ───────────────────────────────────────────────────────
     def reset(self, w, h):
         self.cw, self.ch = w, h
-        self.layers = [Layer("Capa 1", 1, w * h * 4)]
+        self.layers = [Layer(tr("Capa 1"), 1, w * h * 4)]
         self._layer = 0; self._cur = 0
         self._undo.clear(); self._redo.clear()
         self.sel = None; self._sel_path = None
@@ -569,7 +570,7 @@ class PixelCanvas(Gtk.DrawingArea):
             r = max_dim / max(w, h)
             w, h = max(1, int(w * r)), max(1, int(h * r))
         self.cw, self.ch = w, h
-        lay = Layer("Capa 1", 0, 0)
+        lay = Layer(tr("Capa 1"), 0, 0)
         for fp in files:
             im = Image.open(fp).convert("RGBA")
             if im.size != (w, h): im = im.resize((w, h), Image.NEAREST)
@@ -636,7 +637,7 @@ class PixelCanvas(Gtk.DrawingArea):
     def crop_to_selection(self):
         bb = self._sel_bbox()
         if not bb:
-            self._status("Selecciona una zona para recortar"); return
+            self._status(tr("Selecciona una zona para recortar")); return
         x1, y1, x2, y2 = bb
         self._map_all(lambda a: a[y1:y2 + 1, x1:x2 + 1], (x2 - x1 + 1, y2 - y1 + 1))
 
@@ -721,12 +722,12 @@ class PixelCanvas(Gtk.DrawingArea):
         img, mm, x1, y1 = self._clip
         h, w = mm.shape
         if x1 >= self.cw or y1 >= self.ch:                  # el lienzo se achicó: fuera de rango
-            self._status("Lo copiado ya no cabe en el lienzo"); return
+            self._status(tr("Lo copiado ya no cabe en el lienzo")); return
         self.snap_undo()
         arr = self._arr().copy()
         y2, x2 = min(self.ch, y1 + h), min(self.cw, x1 + w)
         if y2 <= y1 or x2 <= x1 or y1 < 0 or x1 < 0:       # el lienzo cambió de tamaño y no queda sitio
-            self._status("Lo copiado ya no cabe en el lienzo"); return
+            self._status(tr("Lo copiado ya no cabe en el lienzo")); return
         sub = img[:y2 - y1, :x2 - x1]; sm = mm[:y2 - y1, :x2 - x1]
         reg = arr[y1:y2, x1:x2]
         opaque = sm & (sub[..., 3] > 0)
@@ -831,9 +832,9 @@ class PixelCanvas(Gtk.DrawingArea):
     def _locked(self):
         l = self.layer
         if l.locked:
-            self._status("La capa está bloqueada"); return True
+            self._status(tr("La capa está bloqueada")); return True
         if not l.visible:
-            self._status("La capa está oculta"); return True
+            self._status(tr("La capa está oculta")); return True
         return False
 
     def _sym(self, pts):
