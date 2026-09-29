@@ -1,0 +1,790 @@
+[
+ {
+  "id": "f0d1ffdb2d2c",
+  "name": "kaoruko",
+  "mode": "gif",
+  "fps": 13,
+  "poses": {},
+  "base": {
+   "frames": 20,
+   "bytes": 3087095,
+   "unreadable": 0,
+   "sizes": [
+    "443x454"
+   ],
+   "px": "443x454",
+   "duplicates": 0,
+   "motion_mean": 28.191,
+   "near_static_steps": 0,
+   "loop_seam": 41.558,
+   "seam_vs_motion": 1.47,
+   "empty_frames": 0,
+   "foot_drift_px": 0,
+   "center_drift_px": 62.6,
+   "fringe_ratio": 0.022,
+   "fill_ratio": 0.531,
+   "issues": []
+  },
+  "total_bytes": 3087095
+ },
+ {
+  "id": "1ac2f3b0555a",
+  "name": "lacrimosa",
+  "mode": "gif",
+  "fps": 13,
+  "poses": {},
+  "base": {
+   "frames": 20,
+   "bytes": 590735,
+   "unreadable": 0,
+   "sizes": [
+    "183x183"
+   ],
+   "px": "183x183",
+   "duplicates": 0,
+   "motion_mean": 31.192,
+   "near_static_steps": 0,
+   "loop_seam": 58.025,
+   "seam_vs_motion": 1.86,
+   "empty_frames": 0,
+   "foot_drift_px": 0,
+   "center_drift_px": 36.5,
+   "fringe_ratio": 0.083,
+   "fill_ratio": 0.472,
+   "issues": []
+  },
+  "total_bytes": 590735
+ },
+ {
+  "id": "bdc9143be2b9",
+  "name": "herta",
+  "mode": "gif",
+  "fps": 10,
+  "poses": {},
+  "base": {
+   "frames": 12,
+   "bytes": 910056,
+   "unreadable": 0,
+   "sizes": [
+    "414x338"
+   ],
+   "px": "414x338",
+   "duplicates": 0,
+   "motion_mean": 38.781,
+   "near_static_steps": 0,
+   "loop_seam": 58.393,
+   "seam_vs_motion": 1.51,
+   "empty_frames": 0,
+   "foot_drift_px": 0,
+   "center_drift_px": 61.4,
+   "fringe_ratio": 0.017,
+   "fill_ratio": 0.581,
+   "issues": []
+  },
+  "total_bytes": 910056
+ },
+ {
+  "id": "34804bcae130",
+  "name": "Ejemplo Vida",
+  "mode": "life",
+  "fps": 5,
+  "poses": {
+   "angry": {
+    "frames": 16,
+    "bytes": 31696,
+    "unreadable": 0,
+    "sizes": [
+     "181x236"
+    ],
+    "px": "181x236",
+    "duplicates": 12,
+    "motion_mean": 0.011,
+    "near_static_steps": 14,
+    "loop_seam": 0.161,
+    "seam_vs_motion": 14.64,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 0.0,
+    "fringe_ratio": 0.037,
+    "fill_ratio": 0.223,
+    "issues": [
+     "12 cuadros idénticos (desperdicio)",
+     "casi estática",
+     "salto al reiniciar el bucle (x14.64)"
+    ]
+   },
+   "greet": {
+    "frames": 20,
+    "bytes": 279950,
+    "unreadable": 0,
+    "sizes": [
+     "181x236"
+    ],
+    "px": "181x236",
+    "duplicates": 8,
+    "motion_mean": 20.913,
+    "near_static_steps": 0,
+    "loop_seam": 25.39,
+    "seam_vs_motion": 1.21,
+    "empty_frames": 0,
+    "foot_drift_px": 2,
+    "center_drift_px": 26.7,
+    "fringe_ratio": 0.067,
+    "fill_ratio": 0.228,
+    "issues": [
+     "8 cuadros idénticos (desperdicio)"
+    ]
+   },
+   "idle": {
+    "frames": 16,
+    "bytes": 115475,
+    "unreadable": 0,
+    "sizes": [
+     "181x236"
+    ],
+    "px": "181x236",
+    "duplicates": 6,
+    "motion_mean": 3.573,
+    "near_static_steps": 0,
+    "loop_seam": 3.547,
+    "seam_vs_motion": 0.99,
+    "empty_frames": 0,
+    "foot_drift_px": 2,
+    "center_drift_px": 0.0,
+    "fringe_ratio": 0.051,
+    "fill_ratio": 0.225,
+    "issues": [
+     "6 cuadros idénticos (desperdicio)"
+    ]
+   },
+   "jump": {
+    "frames": 20,
+    "bytes": 243613,
+    "unreadable": 0,
+    "sizes": [
+     "181x236"
+    ],
+    "px": "181x236",
+    "duplicates": 2,
+    "motion_mean": 24.151,
+    "near_static_steps": 0,
+    "loop_seam": 14.898,
+    "seam_vs_motion": 0.62,
+    "empty_frames": 0,
+    "foot_drift_px": 80,
+    "center_drift_px": 1.0,
+    "fringe_ratio": 0.067,
+    "fill_ratio": 0.229,
+    "issues": []
+   },
+   "sleep": {
+    "frames": 24,
+    "bytes": 389281,
+    "unreadable": 0,
+    "sizes": [
+     "181x236"
+    ],
+    "px": "181x236",
+    "duplicates": 10,
+    "motion_mean": 3.258,
+    "near_static_steps": 0,
+    "loop_seam": 4.131,
+    "seam_vs_motion": 1.27,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 1.0,
+    "fringe_ratio": 0.08,
+    "fill_ratio": 0.219,
+    "issues": [
+     "10 cuadros idénticos (desperdicio)"
+    ]
+   },
+   "walk": {
+    "frames": 16,
+    "bytes": 205273,
+    "unreadable": 0,
+    "sizes": [
+     "181x236"
+    ],
+    "px": "181x236",
+    "duplicates": 4,
+    "motion_mean": 10.241,
+    "near_static_steps": 0,
+    "loop_seam": 13.694,
+    "seam_vs_motion": 1.34,
+    "empty_frames": 0,
+    "foot_drift_px": 1,
+    "center_drift_px": 14.3,
+    "fringe_ratio": 0.065,
+    "fill_ratio": 0.228,
+    "issues": []
+   }
+  },
+  "base": {
+   "frames": 2,
+   "bytes": 3962,
+   "unreadable": 0,
+   "sizes": [
+    "181x236"
+   ],
+   "px": "181x236",
+   "duplicates": 0,
+   "motion_mean": 0.159,
+   "near_static_steps": 0,
+   "loop_seam": 0.159,
+   "seam_vs_motion": 1.0,
+   "empty_frames": 0,
+   "foot_drift_px": 0,
+   "center_drift_px": 0.0,
+   "fringe_ratio": 0.037,
+   "fill_ratio": 0.223,
+   "issues": []
+  },
+  "total_bytes": 1269250
+ },
+ {
+  "id": "848c5a0b4a37",
+  "name": "Gato Minecraft",
+  "mode": "life",
+  "fps": 8,
+  "poses": {
+   "angry": {
+    "frames": 12,
+    "bytes": 5163,
+    "unreadable": 0,
+    "sizes": [
+     "48x48"
+    ],
+    "px": "48x48",
+    "duplicates": 8,
+    "motion_mean": 5.697,
+    "near_static_steps": 0,
+    "loop_seam": 33.082,
+    "seam_vs_motion": 5.81,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 3.6,
+    "fringe_ratio": 0.0,
+    "fill_ratio": 0.652,
+    "issues": [
+     "8 cuadros idénticos (desperdicio)",
+     "salto al reiniciar el bucle (x5.81)"
+    ]
+   },
+   "grab": {
+    "frames": 12,
+    "bytes": 6027,
+    "unreadable": 0,
+    "sizes": [
+     "48x48"
+    ],
+    "px": "48x48",
+    "duplicates": 4,
+    "motion_mean": 32.809,
+    "near_static_steps": 0,
+    "loop_seam": 65.316,
+    "seam_vs_motion": 1.99,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 25.9,
+    "fringe_ratio": 0.0,
+    "fill_ratio": 0.397,
+    "issues": [
+     "4 cuadros idénticos (desperdicio)"
+    ]
+   },
+   "greet": {
+    "frames": 12,
+    "bytes": 5452,
+    "unreadable": 0,
+    "sizes": [
+     "48x48"
+    ],
+    "px": "48x48",
+    "duplicates": 8,
+    "motion_mean": 5.176,
+    "near_static_steps": 6,
+    "loop_seam": 32.906,
+    "seam_vs_motion": 6.36,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 4.1,
+    "fringe_ratio": 0.0,
+    "fill_ratio": 0.624,
+    "issues": [
+     "8 cuadros idénticos (desperdicio)",
+     "salto al reiniciar el bucle (x6.36)"
+    ]
+   },
+   "idle": {
+    "frames": 12,
+    "bytes": 5302,
+    "unreadable": 0,
+    "sizes": [
+     "48x48"
+    ],
+    "px": "48x48",
+    "duplicates": 8,
+    "motion_mean": 3.691,
+    "near_static_steps": 6,
+    "loop_seam": 32.906,
+    "seam_vs_motion": 8.92,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 3.8,
+    "fringe_ratio": 0.0,
+    "fill_ratio": 0.624,
+    "issues": [
+     "8 cuadros idénticos (desperdicio)",
+     "salto al reiniciar el bucle (x8.92)"
+    ]
+   },
+   "jump": {
+    "frames": 12,
+    "bytes": 5052,
+    "unreadable": 0,
+    "sizes": [
+     "48x48"
+    ],
+    "px": "48x48",
+    "duplicates": 2,
+    "motion_mean": 24.063,
+    "near_static_steps": 2,
+    "loop_seam": 56.099,
+    "seam_vs_motion": 2.33,
+    "empty_frames": 0,
+    "foot_drift_px": 3,
+    "center_drift_px": 2.0,
+    "fringe_ratio": 0.0,
+    "fill_ratio": 0.383,
+    "issues": []
+   },
+   "walk": {
+    "frames": 16,
+    "bytes": 6586,
+    "unreadable": 0,
+    "sizes": [
+     "48x48"
+    ],
+    "px": "48x48",
+    "duplicates": 0,
+    "motion_mean": 9.553,
+    "near_static_steps": 0,
+    "loop_seam": 46.774,
+    "seam_vs_motion": 4.9,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 2.2,
+    "fringe_ratio": 0.0,
+    "fill_ratio": 0.377,
+    "issues": [
+     "salto al reiniciar el bucle (x4.9)"
+    ]
+   }
+  },
+  "base": {
+   "frames": 4,
+   "bytes": 1798,
+   "unreadable": 0,
+   "sizes": [
+    "48x48"
+   ],
+   "px": "48x48",
+   "duplicates": 2,
+   "motion_mean": 10.969,
+   "near_static_steps": 2,
+   "loop_seam": 32.906,
+   "seam_vs_motion": 3.0,
+   "empty_frames": 0,
+   "foot_drift_px": 0,
+   "center_drift_px": 3.6,
+   "fringe_ratio": 0.0,
+   "fill_ratio": 0.625,
+   "issues": [
+    "2 cuadros idénticos (desperdicio)",
+    "salto al reiniciar el bucle (x3.0)"
+   ]
+  },
+  "total_bytes": 35380
+ },
+ {
+  "id": "f33a629551c6",
+  "name": "Gato Pixel",
+  "mode": "life",
+  "fps": 12,
+  "poses": {
+   "angry": {
+    "frames": 12,
+    "bytes": 10107,
+    "unreadable": 0,
+    "sizes": [
+     "48x48"
+    ],
+    "px": "48x48",
+    "duplicates": 2,
+    "motion_mean": 10.897,
+    "near_static_steps": 0,
+    "loop_seam": 39.051,
+    "seam_vs_motion": 3.58,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 3.1,
+    "fringe_ratio": 0.0,
+    "fill_ratio": 0.44,
+    "issues": [
+     "salto al reiniciar el bucle (x3.58)"
+    ]
+   },
+   "grab": {
+    "frames": 12,
+    "bytes": 10836,
+    "unreadable": 0,
+    "sizes": [
+     "48x48"
+    ],
+    "px": "48x48",
+    "duplicates": 0,
+    "motion_mean": 15.583,
+    "near_static_steps": 0,
+    "loop_seam": 42.409,
+    "seam_vs_motion": 2.72,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 2.9,
+    "fringe_ratio": 0.0,
+    "fill_ratio": 0.495,
+    "issues": [
+     "salto al reiniciar el bucle (x2.72)"
+    ]
+   },
+   "greet": {
+    "frames": 12,
+    "bytes": 11757,
+    "unreadable": 0,
+    "sizes": [
+     "48x48"
+    ],
+    "px": "48x48",
+    "duplicates": 2,
+    "motion_mean": 14.408,
+    "near_static_steps": 0,
+    "loop_seam": 44.247,
+    "seam_vs_motion": 3.07,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 4.2,
+    "fringe_ratio": 0.0,
+    "fill_ratio": 0.47,
+    "issues": [
+     "salto al reiniciar el bucle (x3.07)"
+    ]
+   },
+   "idle": {
+    "frames": 12,
+    "bytes": 11824,
+    "unreadable": 0,
+    "sizes": [
+     "48x48"
+    ],
+    "px": "48x48",
+    "duplicates": 4,
+    "motion_mean": 11.546,
+    "near_static_steps": 0,
+    "loop_seam": 44.247,
+    "seam_vs_motion": 3.83,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 4.2,
+    "fringe_ratio": 0.0,
+    "fill_ratio": 0.47,
+    "issues": [
+     "4 cuadros idénticos (desperdicio)",
+     "salto al reiniciar el bucle (x3.83)"
+    ]
+   },
+   "jump": {
+    "frames": 12,
+    "bytes": 11388,
+    "unreadable": 0,
+    "sizes": [
+     "48x48"
+    ],
+    "px": "48x48",
+    "duplicates": 0,
+    "motion_mean": 35.762,
+    "near_static_steps": 0,
+    "loop_seam": 49.878,
+    "seam_vs_motion": 1.39,
+    "empty_frames": 0,
+    "foot_drift_px": 9,
+    "center_drift_px": 4.8,
+    "fringe_ratio": 0.0,
+    "fill_ratio": 0.444,
+    "issues": []
+   },
+   "walk": {
+    "frames": 16,
+    "bytes": 14304,
+    "unreadable": 0,
+    "sizes": [
+     "48x48"
+    ],
+    "px": "48x48",
+    "duplicates": 6,
+    "motion_mean": 11.383,
+    "near_static_steps": 0,
+    "loop_seam": 38.033,
+    "seam_vs_motion": 3.34,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 3.1,
+    "fringe_ratio": 0.0,
+    "fill_ratio": 0.448,
+    "issues": [
+     "6 cuadros idénticos (desperdicio)",
+     "salto al reiniciar el bucle (x3.34)"
+    ]
+   }
+  },
+  "base": {
+   "frames": 4,
+   "bytes": 3940,
+   "unreadable": 0,
+   "sizes": [
+    "48x48"
+   ],
+   "px": "48x48",
+   "duplicates": 0,
+   "motion_mean": 20.785,
+   "near_static_steps": 0,
+   "loop_seam": 44.953,
+   "seam_vs_motion": 2.16,
+   "empty_frames": 0,
+   "foot_drift_px": 0,
+   "center_drift_px": 4.2,
+   "fringe_ratio": 0.0,
+   "fill_ratio": 0.471,
+   "issues": []
+  },
+  "total_bytes": 74156
+ },
+ {
+  "id": "5a2f4b37063c",
+  "name": "Kaoruko",
+  "mode": "life",
+  "fps": 12,
+  "poses": {
+   "angry": {
+    "frames": 14,
+    "bytes": 472367,
+    "unreadable": 0,
+    "sizes": [
+     "149x248"
+    ],
+    "px": "149x248",
+    "duplicates": 0,
+    "motion_mean": 16.351,
+    "near_static_steps": 0,
+    "loop_seam": 34.657,
+    "seam_vs_motion": 2.12,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 21.6,
+    "fringe_ratio": 0.0,
+    "fill_ratio": 0.36,
+    "issues": []
+   },
+   "fall": {
+    "frames": 36,
+    "bytes": 1490472,
+    "unreadable": 0,
+    "sizes": [
+     "250x274"
+    ],
+    "px": "250x274",
+    "duplicates": 0,
+    "motion_mean": 19.141,
+    "near_static_steps": 0,
+    "loop_seam": 34.22,
+    "seam_vs_motion": 1.79,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 48.1,
+    "fringe_ratio": 0.0,
+    "fill_ratio": 0.245,
+    "issues": []
+   },
+   "grab": {
+    "frames": 12,
+    "bytes": 457199,
+    "unreadable": 0,
+    "sizes": [
+     "307x273"
+    ],
+    "px": "307x273",
+    "duplicates": 0,
+    "motion_mean": 14.11,
+    "near_static_steps": 0,
+    "loop_seam": 30.586,
+    "seam_vs_motion": 2.17,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 9.1,
+    "fringe_ratio": 0.0,
+    "fill_ratio": 0.173,
+    "issues": []
+   },
+   "greet": {
+    "frames": 14,
+    "bytes": 481906,
+    "unreadable": 0,
+    "sizes": [
+     "148x260"
+    ],
+    "px": "148x260",
+    "duplicates": 0,
+    "motion_mean": 21.313,
+    "near_static_steps": 0,
+    "loop_seam": 35.97,
+    "seam_vs_motion": 1.69,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 20.6,
+    "fringe_ratio": 0.0,
+    "fill_ratio": 0.338,
+    "issues": []
+   },
+   "idle": {
+    "frames": 8,
+    "bytes": 813135,
+    "unreadable": 0,
+    "sizes": [
+     "210x516"
+    ],
+    "px": "210x516",
+    "duplicates": 0,
+    "motion_mean": 26.405,
+    "near_static_steps": 0,
+    "loop_seam": 54.696,
+    "seam_vs_motion": 2.07,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 38.0,
+    "fringe_ratio": 0.0,
+    "fill_ratio": 0.463,
+    "issues": []
+   },
+   "jump": {
+    "frames": 14,
+    "bytes": 453171,
+    "unreadable": 0,
+    "sizes": [
+     "152x271"
+    ],
+    "px": "152x271",
+    "duplicates": 0,
+    "motion_mean": 30.392,
+    "near_static_steps": 0,
+    "loop_seam": 23.763,
+    "seam_vs_motion": 0.78,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 12.5,
+    "fringe_ratio": 0.0,
+    "fill_ratio": 0.281,
+    "issues": []
+   },
+   "kiss": {
+    "frames": 14,
+    "bytes": 531924,
+    "unreadable": 0,
+    "sizes": [
+     "160x273"
+    ],
+    "px": "160x273",
+    "duplicates": 0,
+    "motion_mean": 19.165,
+    "near_static_steps": 0,
+    "loop_seam": 30.686,
+    "seam_vs_motion": 1.6,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 17.5,
+    "fringe_ratio": 0.0,
+    "fill_ratio": 0.325,
+    "issues": []
+   },
+   "walk": {
+    "frames": 16,
+    "bytes": 1860609,
+    "unreadable": 0,
+    "sizes": [
+     "246x495"
+    ],
+    "px": "246x495",
+    "duplicates": 0,
+    "motion_mean": 31.329,
+    "near_static_steps": 0,
+    "loop_seam": 41.769,
+    "seam_vs_motion": 1.33,
+    "empty_frames": 0,
+    "foot_drift_px": 0,
+    "center_drift_px": 38.3,
+    "fringe_ratio": 0.083,
+    "fill_ratio": 0.376,
+    "issues": []
+   }
+  },
+  "base": {
+   "frames": 2,
+   "bytes": 677674,
+   "unreadable": 0,
+   "sizes": [
+    "312x990"
+   ],
+   "px": "312x990",
+   "duplicates": 0,
+   "motion_mean": 46.8,
+   "near_static_steps": 0,
+   "loop_seam": 46.8,
+   "seam_vs_motion": 1.0,
+   "empty_frames": 0,
+   "foot_drift_px": 0,
+   "center_drift_px": 20.5,
+   "fringe_ratio": 0.04,
+   "fill_ratio": 0.551,
+   "issues": [
+    "pesado: 330 KB/cuadro"
+   ]
+  },
+  "total_bytes": 7238457
+ },
+ {
+  "id": "36d8e46b2a7c",
+  "name": "noce",
+  "mode": "gif",
+  "fps": 13,
+  "poses": {},
+  "base": {
+   "frames": 20,
+   "bytes": 1575877,
+   "unreadable": 0,
+   "sizes": [
+    "289x292"
+   ],
+   "px": "289x292",
+   "duplicates": 0,
+   "motion_mean": 48.875,
+   "near_static_steps": 0,
+   "loop_seam": 82.393,
+   "seam_vs_motion": 1.69,
+   "empty_frames": 0,
+   "foot_drift_px": 0,
+   "center_drift_px": 44.8,
+   "fringe_ratio": 0.0,
+   "fill_ratio": 0.525,
+   "issues": []
+  },
+  "total_bytes": 1575877
+ }
+]
