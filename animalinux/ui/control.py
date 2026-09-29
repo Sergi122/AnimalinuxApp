@@ -69,6 +69,20 @@ class ControlWindow(Gtk.ApplicationWindow):
         topbar.append(close_btn)
         root.append(topbar)
 
+        # Banner de actualización (oculto salvo que haya versión nueva)
+        self._upd_bar = Gtk.Box(spacing=8)
+        self._upd_bar.set_margin_start(12); self._upd_bar.set_margin_end(12)
+        self._upd_bar.set_margin_bottom(4)
+        self._upd_lbl = Gtk.Label(xalign=0, hexpand=True)
+        self._upd_lbl.set_wrap(True)
+        self._upd_bar.append(self._upd_lbl)
+        self._upd_btn = Gtk.Button(label=t("upd_now"))
+        self._upd_btn.add_css_class("suggested-action")
+        self._upd_btn.connect("clicked", lambda _b: self._run_update())
+        self._upd_bar.append(self._upd_btn)
+        root.append(self._upd_bar)
+        self.refresh_update_banner()
+
         # Aviso: sin GPU real (render por software, típico de una VM sin
         # passthrough gráfico), el compositor de algunos gestores de
         # ventanas X11 (xfwm4, Muffin...) puede fallar al mostrar varias
@@ -1018,6 +1032,46 @@ class ControlWindow(Gtk.ApplicationWindow):
         dlg.present()
 
     # ── Diálogo de configuración / idioma ────────────────────────────────────
+    # ── Actualizaciones ──────────────────────────────────────────────────────
+    def refresh_update_banner(self):
+        from ..core import updater
+        v = updater.pending()
+        self._upd_bar.set_visible(bool(v))
+        if v:
+            self._upd_lbl.set_text("🆕 " + t("upd_available", v=v))
+            self._upd_btn.set_sensitive(True)
+            self._upd_btn.set_label(t("upd_now"))
+
+    def _run_update(self):
+        from ..core import updater
+        v = updater.pending()
+        if not v:
+            return
+        self._upd_btn.set_sensitive(False)
+        self._upd_btn.set_label(t("upd_working"))
+
+        def log(msg):
+            GLib.idle_add(self._upd_lbl.set_text, msg)
+
+        def work():
+            try:
+                updater.apply_update(v, log)
+            except Exception as e:  # noqa: BLE001
+                GLib.idle_add(self._update_failed, str(e))
+                return
+            GLib.idle_add(self._update_ok, v)
+        threading.Thread(target=work, daemon=True).start()
+
+    def _update_failed(self, msg):
+        self._upd_lbl.set_text(f"{t('upd_failed')} {msg}")
+        self._upd_btn.set_sensitive(True)
+        self._upd_btn.set_label(t("upd_now"))
+
+    def _update_ok(self, v):
+        from ..core import updater
+        self._upd_lbl.set_text(t("upd_done", v=v))
+        updater.restart()
+
     def _show_settings_dialog(self):
         from .. import i18n as _i18n
         dlg = Gtk.Dialog(title=t("settings_title"), transient_for=self, modal=True)
@@ -1060,6 +1114,50 @@ class ControlWindow(Gtk.ApplicationWindow):
         auto_hint.set_wrap(True)
         box.append(auto_hint)
 
+        # Actualizaciones
+        from ..core import updater
+        upd_row = Gtk.Box(spacing=10)
+        upd_lbl = Gtk.Label(label=t("upd_auto"), xalign=0)
+        upd_lbl.set_hexpand(True)
+        upd_lbl.set_wrap(True)
+        upd_row.append(upd_lbl)
+        upd_sw = Gtk.Switch(valign=Gtk.Align.CENTER)
+        upd_sw.set_active(updater.enabled())
+        upd_row.append(upd_sw)
+        box.append(upd_row)
+
+        chk_row = Gtk.Box(spacing=10)
+        chk_msg = Gtk.Label(label="", xalign=0, hexpand=True)
+        chk_msg.add_css_class("dim-label")
+        chk_msg.set_wrap(True)
+        chk_row.append(chk_msg)
+        chk_btn = Gtk.Button(label=t("upd_check"))
+
+        def _check(_b):
+            chk_btn.set_sensitive(False)
+            chk_msg.set_text(t("upd_checking"))
+
+            def work():
+                latest = updater.check_latest()
+                new = latest if latest and updater.is_newer(latest) else None
+                if latest:
+                    from .. import settings as _st
+                    import time as _time
+                    _st.set_val("last_update_check", _time.time())
+                    _st.set_val("update_available", new or "")
+
+                def done():
+                    chk_btn.set_sensitive(True)
+                    chk_msg.set_text(
+                        t("upd_available", v=new) if new else
+                        t("upd_uptodate") if latest else t("upd_nonet"))
+                    self.refresh_update_banner()
+                GLib.idle_add(done)
+            threading.Thread(target=work, daemon=True).start()
+        chk_btn.connect("clicked", _check)
+        chk_row.append(chk_btn)
+        box.append(chk_row)
+
         btn_row = Gtk.Box(spacing=8, halign=Gtk.Align.END)
         cancel = Gtk.Button(label=t("cancel"))
         cancel.connect("clicked", lambda _: dlg.destroy())
@@ -1069,6 +1167,8 @@ class ControlWindow(Gtk.ApplicationWindow):
         def _apply(_b):
             code = lang_codes[dd.get_selected()]
             _i18n.set_language(code)
+            from .. import settings as _st
+            _st.set_val("auto_update_check", upd_sw.get_active())
             try:
                 autostart.set_enabled(auto_sw.get_active())
             except OSError:

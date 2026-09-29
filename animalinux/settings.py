@@ -10,6 +10,9 @@ _DEFAULTS = {
     "tutorial_paint_shown":  False,
     "tutorial_pixel_shown":  False,
     "autosave_minutes":      5,
+    "auto_update_check":     True,
+    "last_update_check":     0,
+    "update_available":      "",
 }
 
 

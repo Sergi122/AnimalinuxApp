@@ -105,6 +105,30 @@ class AnimaApp(Gtk.Application):
         self._prox_id = GLib.timeout_add(800, self.manager.check_proximity)
         # vigilar bordes de ventanas para que la mascota se suba/camine por ellos
         self.manager.start_platform_watch()
+        # avisar de versiones nuevas (a lo sumo 1 consulta cada 24 h)
+        GLib.timeout_add_seconds(30, self._check_updates)
+
+    def _check_updates(self):
+        import threading
+        from .core import updater
+        if not updater.should_check():
+            return False
+
+        def work():
+            new = updater.check_and_store()
+            if new:
+                GLib.idle_add(self._notify_update, new)
+        threading.Thread(target=work, daemon=True).start()
+        return False
+
+    def _notify_update(self, version):
+        from .i18n import t
+        n = Gio.Notification.new(t("upd_notify_title"))
+        n.set_body(t("upd_available", v=version))
+        self.send_notification("update", n)
+        if self.control:
+            self.control.refresh_update_banner()
+        return False
 
     def _launch_tray(self):
         try:

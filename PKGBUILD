@@ -5,7 +5,7 @@ pkgname=animalinux
 # build()/package() fallan con "No such file or directory" (bug real,
 # presente desde v0.2.0, nunca se había probado con una build de verdad).
 _gitname=AnimalinuxApp
-pkgver=0.4.7
+pkgver=0.4.8
 pkgrel=1
 pkgdesc="Mascotas animadas en el escritorio para Hyprland/Wayland, con editor de píxeles y pintura"
 arch=('x86_64' 'aarch64')
