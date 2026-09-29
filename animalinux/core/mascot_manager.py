@@ -16,6 +16,7 @@ import threading
 from gi.repository import GLib
 
 from ..overlay import MascotWindow
+from ..overlay.hyprcursor import clients as hypr_clients
 
 
 class MascotManager:
@@ -69,11 +70,14 @@ class MascotManager:
 
     def _fetch_platforms_hyprctl(self):
         try:
-            out = subprocess.run(
-                ["hyprctl", "-j", "clients"],
-                capture_output=True, text=True, timeout=2).stdout
+            clients = hypr_clients()   # socket IPC, sin fork/exec
+            if clients is None:
+                out = subprocess.run(
+                    ["hyprctl", "-j", "clients"],
+                    capture_output=True, text=True, timeout=2).stdout
+                clients = json.loads(out)
             plats = []
-            for c in json.loads(out):
+            for c in clients:
                 if c.get("hidden") or not c.get("mapped", True):
                     continue
                 if c.get("workspace", {}).get("id", 1) < 0:

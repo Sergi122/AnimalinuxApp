@@ -33,7 +33,7 @@
 <section class="hero">
   <div class="wrap g">
     <div>
-      <a class="pill" href="#cambios"><b>v0.5.0</b> Interfaz nueva, temas de color y 7 idiomas →</a>
+      <a class="pill" href="#cambios"><b>v0.5.1</b> Mascotas más ligeras: menos CPU, RAM y GPU →</a>
       <h1 data-words>Mascotas <span class="grad">con vida</span> para tu escritorio Linux</h1>
       <p class="sub">Dibuja con el editor de píxeles o de pintura, comparte packs <code>.alpack</code> y deja que tu mascota camine, salte, salude y te agarre el ratón. Con física real.</p>
       <div class="acts">
@@ -140,8 +140,17 @@
 <section id="cambios"><div class="wrap">
   <p class="eyebrow rv">Historial</p>
   <h2 class="rv">Cambios <span class="grad">recientes</span>.</h2>
-  <p class="lede rv">Versión actual: <strong>0.5.0</strong></p>
+  <p class="lede rv">Versión actual: <strong>0.5.1</strong></p>
   <div class="tl">
+    <div class="changelog-item rv">
+      <h3>v0.5.1</h3>
+      <span class="date">29 de septiembre de 2026</span>
+      <ul>
+        <li><strong>Mascotas mucho más ligeras en Hyprland/Sway:</strong> cada mascota usa una ventana del tamaño de su sprite, un solo reloj compartido y ya no lanza procesos para leer el cursor ni las ventanas. Con 8 mascotas activas baja el uso de memoria de vídeo de ~325 a ~40&nbsp;MiB y la RAM de ~500 a ~215&nbsp;MB.</li>
+        <li>Arrastrar y agarrar el cursor ya no amplía la ventana a pantalla completa.</li>
+        <li>Se sigue verificando el modo X11 (GNOME, KDE, Xfce, Cinnamon, MATE) con el reloj compartido de comportamiento.</li>
+      </ul>
+    </div>
     <div class="changelog-item rv">
       <h3>v0.5.0</h3>
       <span class="date">29 de septiembre de 2026</span>

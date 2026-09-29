@@ -34,3 +34,26 @@ def cursor_pos():
         return int(float(x)), int(float(y))
     except Exception:  # noqa: BLE001
         return None
+
+
+def clients():
+    """Lista `j/clients` de Hyprland por el socket IPC (sin lanzar hyprctl).
+    Devuelve None si no hay Hyprland o falla (el llamador usa su fallback)."""
+    if _PATH is None:
+        return None
+    import json
+    try:
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.settimeout(1.0)
+        s.connect(_PATH)
+        s.sendall(b"j/clients")
+        buf = b""
+        while True:
+            chunk = s.recv(65536)
+            if not chunk:
+                break
+            buf += chunk
+        s.close()
+        return json.loads(buf.decode())
+    except Exception:  # noqa: BLE001
+        return None
