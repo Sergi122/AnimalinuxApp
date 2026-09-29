@@ -17,6 +17,7 @@ LIB = Path.home() / ".local/share/animalinux/animations"
 BAK = Path.home() / "animalinux-audit/backup_cats"   # originales: la fuente, para poder repetir
 EJ = LIB / "34804bcae130"
 MC = LIB / "848c5a0b4a37"
+PX = LIB / "f33a629551c6"
 SS = 4  # supersampling para dibujar trazos suaves
 
 
@@ -193,6 +194,165 @@ def mc_pose(name, fn):
     save_pose(MC / name, [fn(i, f) for i, f in enumerate(frames)])
 
 
+# ───────────────────── poses que faltaban: sleep / kiss / fall / grab ───────
+HEART = ["..XX.XX..", ".XXXXXXX.", "XXXXXXXXX", ".XXXXXXX.", "..XXXXX..", "...XXX...", "....X...."]
+HEART_S = [".X.X.", "XXXXX", ".XXX.", "..X.."]
+ZZ_S = ["XXX", ".X.", "XXX"]
+ZZ_L = ["XXXXX", "...X.", "..X..", ".X...", "XXXXX"]
+PINK = (255, 100, 140, 255)
+PINK_HI = (255, 190, 210, 255)
+ZCOL = (110, 150, 255, 255)
+
+
+def stamp(im, pattern, x, y, color, hi=None):
+    a = np.asarray(im).copy()
+    for j, row in enumerate(pattern):
+        for i, c in enumerate(row):
+            if c == "X" and 0 <= y + j < a.shape[0] and 0 <= x + i < a.shape[1]:
+                a[y + j, x + i] = color
+    if hi is not None:                       # brillo de 1 px arriba a la izquierda
+        a[y + 1, x + 1] = hi
+    return Image.fromarray(a, "RGBA")
+
+
+def free_spot(folder_src, w, h):
+    """Esquina libre (en TODOS los cuadros de todas las poses) para un adorno wxh."""
+    occ = None
+    for f in Path(folder_src).glob("*/frame_*.png"):
+        a = np.asarray(Image.open(f).convert("RGBA"))[..., 3] > 0
+        occ = a if occ is None else occ | a
+    H, W = occ.shape
+    best = None
+    for y in range(0, H - h):
+        for x in range(W - w, -1, -1):        # prefiere arriba a la derecha
+            if not occ[y:y + h, x:x + w].any():
+                score = y * 2 + (W - w - x)
+                if best is None or score < best[0]:
+                    best = (score, x, y)
+    return best[1:] if best else None
+
+
+def breathe(im, dh):
+    """Respiración con píxeles enteros: comprime dh filas (vecino más cercano)."""
+    w, h = im.size
+    if not dh:
+        return im
+    sq = im.resize((w, h - dh), Image.NEAREST)
+    out = Image.new("RGBA", im.size, (0, 0, 0, 0))
+    out.alpha_composite(sq, (0, dh))
+    return out
+
+
+BREATH = [0, 0, 1, 1, 2, 1, 1, 0]
+
+
+def pixel_sleep(closed_base, spot):
+    out = []
+    for i, dh in enumerate(BREATH):
+        f = breathe(closed_base, dh)
+        if spot:
+            x, y = spot
+            f = stamp(f, ZZ_L if i >= 4 else ZZ_S, x, y + (i % 4) // 2, ZCOL)
+        out.append(f)
+    return out
+
+
+def pixel_kiss(happy_base, spot):
+    out = []
+    for i in range(8):
+        f = happy_base
+        if spot and i >= 1:
+            x, y = spot
+            f = stamp(f, HEART if i in (3, 4, 5) else HEART_S, x, y - (1 if i >= 5 else 0), PINK, PINK_HI)
+        out.append(f)
+    return out
+
+
+def pixel_fall(jump_frames):
+    mid = jump_frames[1:5] if len(jump_frames) >= 5 else jump_frames
+    out = []
+    for i, f in enumerate(mid * 2):
+        sh = (1, -1, 1, -1)[i % 4]           # temblor de pánico de 1 px
+        g = Image.new("RGBA", f.size, (0, 0, 0, 0))
+        g.alpha_composite(f, (sh, 0))
+        out.append(g)
+    return out
+
+
+def ej_heart(im, cx, cy, r):
+    def draw(d, k):
+        d.ellipse([(cx - r) * k, (cy - r) * k, (cx) * k, (cy + r * 0.2) * k], fill=PINK)
+        d.ellipse([(cx) * k, (cy - r) * k, (cx + r) * k, (cy + r * 0.2) * k], fill=PINK)
+        d.polygon([((cx - r) * k, (cy - r * 0.15) * k), ((cx + r) * k, (cy - r * 0.15) * k),
+                   (cx * k, (cy + r * 1.35) * k)], fill=PINK)
+    return ss_draw(im, draw)
+
+
+def ej_kiss(base):
+    out = []
+    for i in range(10):
+        f = ej_eyes(base, "closed")
+        f = transform(f, sy=1 + 0.02 * math.sin(math.pi * i / 5), rot=3 * math.sin(math.pi * i / 5))
+        if i >= 2:
+            t = (i - 2) / 7
+            f = ej_heart(f, 135 + 6 * math.sin(t * 6), 100 - 55 * t, 6 + 8 * min(1, t * 2))
+        out.append(f)
+    return out
+
+
+def ej_fall(base):
+    def wide(d, k):
+        for cx, cy in EYES:
+            d.ellipse([(cx - 12) * k, (cy - 13) * k, (cx + 12) * k, (cy + 13) * k], fill=(255, 255, 255, 255), outline=LINE, width=int(2 * k))
+            d.ellipse([(cx - 3) * k, (cy - 3) * k, (cx + 3) * k, (cy + 3) * k], fill=(10, 10, 20, 255))
+        d.ellipse([80 * k, 166 * k, 100 * k, 184 * k], fill=(60, 30, 50, 255))       # boca abierta
+    out = []
+    for i in range(6):
+        s = math.sin(2 * math.pi * i / 6)
+        f = ss_draw(base, wide)
+        out.append(transform(f, sy=1.09, sx=0.94, rot=5 * s, dx=2 * s))
+    return out
+
+
+def ej_grab(base):
+    feet = {"l": (54, 195, 86, 220), "r": (94, 195, 128, 220)}
+    out = []
+    for i in range(8):
+        s = math.sin(2 * math.pi * i / 8)
+        f = base.copy()
+        crops = {k: base.crop(b) for k, b in feet.items()}
+        for b in feet.values():
+            f.paste(Image.new("RGBA", (b[2] - b[0], b[3] - b[1]), (0, 0, 0, 0)), b[:2])
+        layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+        for k, sign in (("l", 1), ("r", -1)):
+            b = feet[k]
+            layer.alpha_composite(crops[k], (b[0] + int(4 * sign * s), int(b[1] + 5 + 3 * abs(s))))
+        f.alpha_composite(layer)
+        f = ss_draw(f, lambda d, k: d.ellipse([131 * k, 118 * k, 137 * k, 128 * k], fill=(190, 230, 255, 255)))  # gota de sudor
+        out.append(transform(f, sy=1.06, sx=0.96, rot=6 * s, anchor=(90, 108)))
+    return out
+
+
+def extra_poses(base_ej):
+    save_pose(EJ / "kiss", ej_kiss(base_ej))
+    save_pose(EJ / "fall", ej_fall(base_ej))
+    save_pose(EJ / "grab", ej_grab(base_ej))
+    for root, closed_idx, name in ((MC, None, "mc"), (PX, 2, "px")):
+        src = BAK / root.name
+        idle = sorted((src / "idle").glob("frame_*.png"))
+        greet = sorted((src / "greet").glob("frame_*.png"))
+        jump = [Image.open(f).convert("RGBA") for f in sorted((src / "jump").glob("frame_*.png"))]
+        if name == "mc":
+            closed = mc_edit(Image.open(idle[0]).convert("RGBA"), "closed")
+            happy = mc_edit(Image.open(greet[1]).convert("RGBA"), "happy")
+        else:
+            closed = Image.open(idle[closed_idx]).convert("RGBA")
+            happy = Image.open(greet[1]).convert("RGBA")
+        save_pose(root / "sleep", pixel_sleep(closed, free_spot(src, 5, 6)))
+        save_pose(root / "kiss", pixel_kiss(happy, free_spot(src, 9, 8)))
+        save_pose(root / "fall", pixel_fall(jump))
+
+
 def main():
     base = ej_base()
     save_pose(EJ / "idle", ej_idle(base))
@@ -202,6 +362,7 @@ def main():
     mc_pose("idle", lambda i, f: mc_edit(f, "closed") if i in (2, 3) else f)
     mc_pose("greet", lambda i, f: mc_edit(f, "happy") if 1 <= i <= 4 else f)
     mc_pose("angry", lambda i, f: mc_tint(mc_edit(f, "angry"), 0.2 + 0.5 * (i % 2)))
+    extra_poses(base)
     print("listo")
 
 
