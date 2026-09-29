@@ -89,20 +89,45 @@ _PATHS = {
     "reset":    '<path d="M5 12a7 7 0 1 1 2 4.9"/><path d="M4 17v-5h5"/>',
     "folder_open": '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a1 1 0 0 1 1 1v2H3z"/><path d="M3 10h19l-2 8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/>',
     "close":    '<path d="M6 6l12 12M18 6L6 18"/>',
+    # ── editor de píxeles estilo Aseprite ──
+    "contour": '<path d="M4 16c0-6 5-10 9-9 4 1 6 5 5 9-1 3-5 4-8 3-3 0-6-1-6-3z"/>',
+    "lasso":   '<path d="M12 5c-5 0-8 2-8 5s3 5 7 5c1 0 2 0 3-.5"/><path d="M12 5c5 0 8 2 8 5s-3 5-7 5"/>'
+               '<path d="M11 15c-1 2-1 4 1 5"/>',
+    "hand":    '<path d="M8 12V6.5a1.5 1.5 0 0 1 3 0V11M11 10V5a1.5 1.5 0 0 1 3 0v6M14 10V6.5a1.5 1.5 0 0 1 3 0V13'
+               'M8 12l-1.6-2a1.5 1.5 0 0 0-2.4 1.8L7 17a6 6 0 0 0 5 3h1a6 6 0 0 0 6-6v-2.5a1.5 1.5 0 0 0-3 0"/>',
+    "first":   '<path d="M6 5v14M19 6l-9 6 9 6z" fill="%s"/>' % _STROKE,
+    "prev":    '<path d="M18 6l-9 6 9 6z" fill="%s"/>' % _STROKE,
+    "next":    '<path d="M6 6l9 6-9 6z" fill="%s"/>' % _STROKE,
+    "last":    '<path d="M18 5v14M5 6l9 6-9 6z" fill="%s"/>' % _STROKE,
+    "grid":    '<rect x="4" y="4" width="16" height="16"/><path d="M4 9.3h16M4 14.7h16M9.3 4v16M14.7 4v16"/>',
+    "tile":    '<rect x="3" y="3" width="8" height="8"/><rect x="13" y="3" width="8" height="8" stroke-opacity="0.5"/>'
+               '<rect x="3" y="13" width="8" height="8" stroke-opacity="0.5"/><rect x="13" y="13" width="8" height="8" stroke-opacity="0.5"/>',
+    "flip_h":  '<path d="M12 3v18" stroke-dasharray="2 2"/><path d="M9 7L3 17h6zM15 7l6 10h-6z"/>',
+    "flip_v":  '<path d="M3 12h18" stroke-dasharray="2 2"/><path d="M7 9l10-6v6zM7 15l10 6v-6z" transform="translate(0 0)"/>',
+    "rotate":  '<path d="M20 12a8 8 0 1 1-3-6.2"/><path d="M20 4v5h-5"/>',
+    "crop":    '<path d="M7 3v14h14M3 7h14v14"/>',
+    "cut":     '<circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M8 16L19 4M16 16L5 4"/>',
+    "preview": '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M9 21h6M12 17v4"/>',
+    "loop":    '<path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/>',
+    "layers":  '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5" stroke-opacity="0.7"/>',
+    "outline_fx": '<rect x="7" y="7" width="10" height="10" fill="%s" stroke="none"/><rect x="4" y="4" width="16" height="16" stroke-dasharray="2 2"/>' % _STROKE,
+    "swap":    '<path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>',
 }
 
 _cache = {}
 
 
-def _render(name, size):
+def _render(name, size, color=None):
     body = _PATHS.get(name)
     if body is None:
         return None
+    color = color or _STROKE
+    body = body.replace(_STROKE, color)
     svg = (
         '<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" '
         'viewBox="0 0 24 24" fill="none" stroke="%s" stroke-width="1.8" '
         'stroke-linecap="round" stroke-linejoin="round">%s</svg>'
-        % (size, size, _STROKE, body)
+        % (size, size, color, body)
     )
     try:
         stream = Gio.MemoryInputStream.new_from_bytes(
@@ -114,16 +139,17 @@ def _render(name, size):
         return None
 
 
-def icon_texture(name, size=18):
-    key = (name, size)
+def icon_texture(name, size=18, color=None):
+    key = (name, size, color)
     if key not in _cache:
-        _cache[key] = _render(name, size)
+        _cache[key] = _render(name, size, color)
     return _cache[key]
 
 
-def icon_image(name, size=18):
-    """Devuelve un Gtk.Image con el icono; si falla, un Image vacío."""
-    tex = icon_texture(name, size)
+def icon_image(name, size=18, color=None):
+    """Devuelve un Gtk.Image con el icono; si falla, un Image vacío.
+    `color` (#rrggbb) sustituye el trazo claro por defecto (para chrome claro)."""
+    tex = icon_texture(name, size, color)
     img = Gtk.Image()
     if tex is not None:
         img.set_from_paintable(tex)
@@ -131,10 +157,10 @@ def icon_image(name, size=18):
     return img
 
 
-def icon_button(name, tooltip="", size=18, toggle=False, css="tool-btn"):
+def icon_button(name, tooltip="", size=18, toggle=False, css="tool-btn", color=None):
     """Crea un botón (o toggle) con icono SVG y tooltip."""
     btn = Gtk.ToggleButton() if toggle else Gtk.Button()
-    btn.set_child(icon_image(name, size))
+    btn.set_child(icon_image(name, size, color))
     if tooltip:
         btn.set_tooltip_text(tooltip)
     if css:

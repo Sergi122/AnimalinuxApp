@@ -57,11 +57,8 @@ chmod +x install.sh
 
 ```bash
 # Obligatorias
-sudo pacman -S python python-gobject gtk4 python-pillow gtk4-layer-shell \
-               libayatana-appindicator
-
-# Muy recomendadas (mejor rendimiento)
-sudo pacman -S python-numpy
+sudo pacman -S python python-gobject gtk4 python-pillow python-numpy \
+               gtk4-layer-shell libayatana-appindicator
 
 # Opcionales
 sudo pacman -S mpv ffmpeg                          # audio y exportar MP4
@@ -136,47 +133,60 @@ animalinux --quit     # cerrar todo
 ## Editor de píxeles — Guía rápida
 
 Abre desde **Control → Nueva animación → Píxel art** o con el botón **🎨 Editar**.
+Tiene la misma disposición, herramientas y atajos que **Aseprite**.
 
 ### Interfaz
 
 ```
-┌─[Toolbar: zoom · FPS · ▶ · 👁 cebolla · simetría ↔↕✦ · undo/redo · ❓]────┐
-│ [Herramientas] │          LIENZO DE PÍXELES         │ [Frames]             │
-│  ✏ Lápiz  B   │  (zoom con Ctrl+Scroll o +/-)       │  + Nuevo             │
-│  ⬜ Borrador E │  (pan con botón medio)              │  ⎘ Duplicar          │
-│  🪣 Relleno F  │                                     │  [thumb F1]          │
-│  R O L C V D W│                                     │  [thumb F2] ←actual  │
-│  S M I         │                                     │  …                   │
-│  [48 colores]  │                                     │                      │
-└─[Status: X:— Y:— · color · zoom% · tamaño · pose · 💾 Guardar pose]────────┘
+┌─[Archivo Editar Sprite Capa Fotograma Vista Ayuda]───────────────────────────┐
+├─[Barra de contexto: tamaño · pincel · pixel-perfect · tinta · opacidad · …]──┤
+│ [Paleta]     │            LIENZO (zoom hacia el cursor)       │ [Herramientas]│
+│ [FG / BG]    │            + ventana de vista previa           │  marco lazo   │
+│ [Selector    │                                                │  varita mover │
+│  de color]   │                                                │  lápiz goma … │
+├──────────────┴─ Línea de tiempo: capas × fotogramas ──────────┴───────────────┤
+└─[Estado: X/Y · color · tamaño · Pose · Guardar pose · Fotograma · zoom]───────┘
 ```
+
+### Funciones
+
+| Área | Qué incluye |
+|---|---|
+| **Herramientas** | Marco, lazo, varita, mover, lápiz, borrador, cuentagotas, mano, zoom, bote (tolerancia, contiguo, 8 vecinos), degradado (lineal/radial, tramado Bayer), línea, rectángulo, elipse, contorno libre |
+| **Dibujo** | Pincel cuadrado o redondo de 1–64 px, pixel-perfect, tintas (simple, composición alfa, bloquear alfa, tramado), opacidad, simetría H/V/H+V, modo mosaico X/Y |
+| **Selección** | Máscara libre, Shift añade y Alt resta, copiar/cortar/pegar, invertir, mover con flechas |
+| **Capas** | Varias capas con ojo, candado y opacidad; duplicar, subir/bajar, unir con la de abajo |
+| **Animación** | Fotogramas por capa, papel cebolla anterior/siguiente, reproducción, FPS, vista previa |
+| **Sprite** | Tamaño del lienzo, redimensionar, recortar, voltear y rotar, contorno automático |
+| **Vista** | Rueda = zoom hacia el cursor, Espacio o botón medio = mover, cuadrícula de píxeles y personalizada |
+
+Al guardar la pose las capas se combinan en una imagen por fotograma.
 
 ### Atajos de teclado
 
 | Tecla | Acción |
 |---|---|
-| `B` | Lápiz |
-| `E` | Borrador |
-| `F` | Relleno |
-| `R` | Reemplazar color |
-| `O` | Outline rect |
-| `L` | Línea |
-| `C` / `V` | Elipse ○ / ● |
-| `D` | Dithering |
-| `W` | Varita mágica |
-| `S` / `M` | Selección / Mover |
-| `I` | Cuentagotas |
-| `[ ]` | Tamaño del lápiz |
-| `Ctrl+Z/Y` | Deshacer / Rehacer |
+| `B` `E` `I` | Lápiz · Borrador · Cuentagotas |
+| `G` / `Shift+G` | Bote / Degradado |
+| `L` `U` `Shift+U` `D` | Línea · Rectángulo · Elipse · Contorno |
+| `M` `Q` `W` `V` | Marco · Lazo · Varita · Mover |
+| `H` `Z` | Mano · Zoom |
+| `X` | Intercambiar color principal y de fondo |
+| `[ ]` | Tamaño del pincel |
+| `Rueda` · `1`–`6` · `Ctrl+0` | Zoom · zoom 100–3200% · ajustar |
+| `Espacio`+arrastrar | Mover la vista |
+| Clic derecho · `Alt`+clic · `Shift`+clic | Color de fondo · cuentagotas · línea recta |
+| `Ctrl+Z` / `Ctrl+Y` | Deshacer / Rehacer |
+| `Ctrl+A` `Ctrl+D` `Ctrl+C/X/V` | Seleccionar todo · quitar · copiar/cortar/pegar |
+| `Supr` · `Ctrl+flechas` | Borrar selección · mover 1 px |
+| `Alt+N` · `Shift+N` | Nuevo fotograma · nueva capa |
+| `←` `→` · `Enter` | Fotograma anterior/siguiente · reproducir |
 | `Ctrl+S` | Guardar pose |
-| `Ctrl+C/V` | Copiar / Pegar frame |
-| `Ctrl+N/D` | Nuevo / Duplicar frame |
-| `Espacio` | Reproducir / Pausar |
 
 ### Guardar
 
 1. Escribe el nombre de la pose en el campo inferior (ej: `walk`)
-2. Pulsa **💾 Guardar pose** o `Ctrl+S`
+2. Pulsa **Guardar pose** o `Ctrl+S`
 
 ---
 

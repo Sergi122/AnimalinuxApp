@@ -16,12 +16,12 @@ depends=(
     'python-gobject'
     'gtk4'
     'python-pillow'
+    'python-numpy'
     'python-xlib'
     'gtk4-layer-shell'
     'libayatana-appindicator'
 )
 optdepends=(
-    'python-numpy: rendimiento mejorado de pinceles y blend modes'
     'mpv: reproducción de audio en el editor de animación'
     'ffmpeg: exportar animaciones como MP4'
     'python-rembg: recorte de fondo con IA (requiere onnxruntime)'
