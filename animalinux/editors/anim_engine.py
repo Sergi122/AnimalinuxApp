@@ -152,8 +152,6 @@ class Drawing:
             self.arr = np.zeros((h, w, 4), np.uint8) if arr is None else arr
             self.buf = bytearray(w * h * 4)
             self.bufarr = np.frombuffer(self.buf, np.uint8).reshape(h, w, 4)
-            self.surf = cairo.ImageSurface.create_for_data(
-                self.buf, cairo.Format.ARGB32, w, h, w * 4)
             self.refresh(0, 0, w, h)
         else:
             self.strokes = []
@@ -165,14 +163,18 @@ class Drawing:
         x0, y0 = max(0, x0), max(0, y0); x1, y1 = min(self.w, x1), min(self.h, y1)
         if x1 <= x0 or y1 <= y0: return
         premul_region(self.bufarr, self.arr, x0, y0, x1, y1)
-        self.surf.mark_dirty_rectangle(x0, y0, x1 - x0, y1 - y0)
+        # No se llama a mark_dirty: cairo aborta el proceso si la superficie sigue
+        # referenciada por el dibujo grabado de GTK. Se usa una superficie nueva en
+        # cada uso (ver surface()), sin estado interno que invalidar.
 
     # vectorial ---------------------------------------------------------------
     def touch(self):
         if self.kind == "vector": self._vdirty = True
 
     def surface(self):
-        if self.kind == "raster": return self.surf
+        if self.kind == "raster":
+            return cairo.ImageSurface.create_for_data(
+                self.buf, cairo.Format.ARGB32, self.w, self.h, self.w * 4)
         if self._vdirty or self._vsurf is None:
             s = cairo.ImageSurface(cairo.Format.ARGB32, self.w, self.h)
             cr = cairo.Context(s)
