@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AnimaLinux — Galería de Mascotas</title>
+  <!-- CSP: bloquea scripts/estilos externos no autorizados -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src  'self' https://cdn.jsdelivr.net;
+    style-src   'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src    https://fonts.gstatic.com;
+    img-src     'self' blob: data: https://*.supabase.co;
+    connect-src 'self' https://*.supabase.co;
+    frame-ancestors 'none';
+  ">
+  <meta name="theme-color" content="#09080d">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/modern.css">
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <a class="logo" href="index.html">
+        <span class="logo-icon">🐾</span>
+        <span>AnimaLinux</span>
+      </a>
+      <nav>
+        <a href="index.html" class="nav-link active">Galería</a>
+        <a href="upload.html" class="nav-link" id="nav-upload">Subir mascota</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>Mascotas para tu escritorio</h1>
+      <p>Descarga animaciones <code>.alpack</code> creadas por la comunidad, o sube la tuya en un par de minutos —
+        cuantas más compartamos, mejor la galería para todos.</p>
+      <div class="hero-cta">
+        <a href="upload.html" class="btn-accent big">📤 Compartir mi mascota</a>
+      </div>
+      <div class="search-bar">
+        <input id="search" type="text" placeholder="Buscar mascota o autor…" autocomplete="off">
+        <div class="filter-pills" id="mode-filters">
+          <button class="pill active" data-mode="">Todas</button>
+          <button class="pill" data-mode="vida">🧬 Con vida</button>
+          <button class="pill" data-mode="sinvida">🎞 Sin vida</button>
+        </div>
+        <div class="filter-pills" id="pose-filters">
+          <button class="pill active" data-pose="">Todas las poses</button>
+          <button class="pill" data-pose="idle">idle</button>
+          <button class="pill" data-pose="walk">walk</button>
+          <button class="pill" data-pose="greet">greet</button>
+          <button class="pill" data-pose="kiss">kiss</button>
+          <button class="pill" data-pose="jump">jump</button>
+          <button class="pill" data-pose="angry">angry</button>
+          <button class="pill" data-pose="grab">grab</button>
+          <button class="pill" data-pose="fall">fall</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="gallery-section" id="section-vida">
+      <h2 class="gallery-heading">🧬 Con vida <span class="gallery-heading-hint">camina, salta, saluda sola</span></h2>
+      <div id="gallery-vida" class="gallery-grid">
+        <div class="loading-msg">Cargando mascotas…</div>
+      </div>
+      <p id="empty-vida" class="empty-msg hidden">Todavía no hay mascotas con vida que coincidan.</p>
+    </section>
+
+    <section class="gallery-section" id="section-sinvida">
+      <h2 class="gallery-heading">🎞 Sin vida <span class="gallery-heading-hint">GIF simple en bucle</span></h2>
+      <div id="gallery-sinvida" class="gallery-grid">
+        <div class="loading-msg">Cargando mascotas…</div>
+      </div>
+      <p id="empty-sinvida" class="empty-msg hidden">Todavía no hay mascotas simples que coincidan.</p>
+    </section>
+
+    <div id="empty-msg" class="empty-msg hidden">
+      No hay mascotas que coincidan con la búsqueda.
+    </div>
+  </main>
+
+  <footer>
+    <p>AnimaLinux · <a href="https://github.com/Sergi122/AnimalinuxApp" target="_blank">GitHub</a> · Formato <code>.alpack</code> libre</p>
+  </footer>
+
+  <!-- Template de tarjeta -->
+  <template id="pack-card-tpl">
+    <article class="pack-card">
+      <div class="card-preview">
+        <img class="preview-img" src="" alt="">
+        <span class="pose-count"></span>
+      </div>
+      <div class="card-body">
+        <h3 class="card-name"></h3>
+        <p class="card-author"></p>
+        <p class="card-desc"></p>
+        <div class="card-poses"></div>
+        <div class="card-footer">
+          <span class="card-downloads"></span>
+          <a class="btn-download" href="#">⬇ Descargar</a>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="assets/config.js"></script>
+  <script src="assets/gallery.js"></script>
+  <script src="assets/fx.js"></script>
+</body>
+</html>

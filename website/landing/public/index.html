@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#09080d">
+<title>AnimaLinux — mascotas animadas para tu escritorio Linux</title>
+<meta name="description" content="Mascotas animadas para Hyprland, GNOME, KDE, Xfce, Cinnamon y MATE. Editor de píxeles y pintura, packs compartibles, modo Vida.">
+<meta property="og:title" content="AnimaLinux — mascotas animadas para tu escritorio Linux">
+<meta property="og:description" content="Editor de píxeles y pintura, packs .alpack y un modo Vida con física real.">
+<meta property="og:image" content="assets/logo.png">
+<link rel="icon" href="assets/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<div id="prog"></div>
+<div class="bg"><i></i><i></i><i></i></div>
+<div id="spot"></div>
+
+<header class="nav">
+  <a class="brand" href="/"><img src="assets/logo.png" alt="">AnimaLinux</a>
+  <a class="l hide" href="#features">Funciones</a>
+  <a class="l hide" href="#instalar">Instalar</a>
+  <a class="l hide" href="#cambios">Cambios</a>
+  <a class="l hide" href="https://github.com/Sergi122/AnimalinuxApp">GitHub</a>
+  <a class="l hide" href="/donaciones">Donar</a>
+  <a class="btn primary sm cta" href="https://animalinux-community.web.app">Comunidad</a>
+</header>
+
+<main>
+<section class="hero">
+  <div class="wrap g">
+    <div>
+      <a class="pill" href="#cambios"><b>v0.4.8</b> Actualización automática ya disponible →</a>
+      <h1 data-words>Mascotas <span class="grad">con vida</span> para tu escritorio Linux</h1>
+      <p class="sub">Dibuja con el editor de píxeles o de pintura, comparte packs <code>.alpack</code> y deja que tu mascota camine, salte, salude y te agarre el ratón. Con física real.</p>
+      <div class="acts">
+        <a class="btn primary" href="#instalar">Instalar ahora ↓</a>
+        <a class="btn" href="https://animalinux-community.web.app">🔍 Buscar animaciones</a>
+        <a class="btn" href="https://github.com/Sergi122/AnimalinuxApp">GitHub</a>
+      </div>
+    </div>
+    <div class="desk" aria-label="Demostración: mascota caminando por el escritorio">
+      <div class="bar"><span></span><span></span><span></span></div>
+      <div class="win"><em>$</em> animalinux --show<br><u>✓</u> overlay listo · 8 poses<br><u>✓</u> física activada<br><em>›</em> la mascota te está mirando…</div>
+      <div class="win win2"><em>idle</em> · <em>walk</em> · <em>greet</em><br><em>kiss</em> · <em>jump</em> · <em>angry</em></div>
+      <div class="floor"></div>
+      <div class="pet" title="¡Haz clic!"><img src="assets/ejemplo_vida_default.png" alt="Mascota de ejemplo"></div>
+      <span class="hint">haz clic en la mascota</span>
+    </div>
+  </div>
+</section>
+
+<div class="marq" aria-hidden="true"><div>
+  <span>Hyprland</span><span>Sway</span><span>GNOME</span><span>KDE Plasma</span><span>Xfce</span><span>Cinnamon</span><span>MATE</span><span>Arch</span><span>Ubuntu</span><span>Fedora</span><span>Linux Mint</span>
+  <span>Hyprland</span><span>Sway</span><span>GNOME</span><span>KDE Plasma</span><span>Xfce</span><span>Cinnamon</span><span>MATE</span><span>Arch</span><span>Ubuntu</span><span>Fedora</span><span>Linux Mint</span>
+</div></div>
+
+<section id="features"><div class="wrap">
+  <p class="eyebrow rv">Qué incluye</p>
+  <h2 class="rv">Todo para crear, animar<br>y <span class="grad">compartir</span>.</h2>
+  <p class="lede rv">Desde el primer píxel hasta tu mascota caminando sobre tus ventanas.</p>
+  <div class="bento">
+    <div class="card b1 rv" data-tilt><div class="ico">✏️</div><h3>Editor de píxeles</h3><p>Estilo Aseprite: lápiz, relleno, outline, línea, dither, simetría, varita, selección y 48 colores.</p></div>
+    <div class="card b2 rv" data-tilt style="--d:80ms"><div class="ico">🖌</div><h3>Editor de pintura</h3><p>Estilo Clip Studio Paint: 12 pinceles, 10 blend modes, capas, zoom continuo, timeline y exportar GIF/MP4.</p></div>
+    <div class="card b3 rv" data-tilt><div class="ico">🪟</div><h3>Overlay transparente</h3><p>Una ventana por mascota con física real y 8 poses: idle, walk, greet, kiss, jump, angry, grab y fall.</p></div>
+    <div class="card b4 rv" data-tilt style="--d:80ms"><div class="ico">📦</div><h3>Packs .alpack</h3><p>Importa o exporta personajes completos con todas sus poses y compártelos con la comunidad.</p></div>
+    <div class="card b5 rv" data-tilt style="--d:160ms"><div class="ico">🐧</div><h3>Multi-escritorio</h3><p>Hyprland/Sway con layer-shell y GNOME, KDE, Xfce, Cinnamon o MATE por X11.</p></div>
+    <div class="card b6 rv">
+      <div><h3 style="margin-top:0">En números</h3><p>Lo que trae la app hoy.</p></div>
+      <div class="stats">
+        <div class="stat"><b data-count="12">0</b><span>pinceles</span></div>
+        <div class="stat"><b data-count="10">0</b><span>blend modes</span></div>
+        <div class="stat"><b data-count="48">0</b><span>colores de píxel</span></div>
+        <div class="stat"><b data-count="8">0</b><span>poses</span></div>
+        <div class="stat"><b data-count="7">0</b><span>idiomas</span></div>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<section id="modos"><div class="wrap">
+  <p class="eyebrow rv">Modos</p>
+  <h2 class="rv">Dos modos, <span class="grad">una mascota</span>.</h2>
+  <p class="lede rv">Elige cómo la quieres en tu escritorio: quieta o con vida propia.</p>
+  <div class="modes">
+    <div class="card mode life rv" data-tilt>
+      <div class="stage"><img src="assets/ejemplo_vida_default.png" alt="Ejemplo modo Con vida"></div>
+      <h3>🧬 Con vida</h3>
+      <p>Camina sola, salta, saluda, se enoja, duerme, trepa por ventanas y reacciona al cursor, con varias poses.</p>
+    </div>
+    <div class="card mode gif rv" data-tilt style="--d:100ms">
+      <div class="stage"><img src="assets/ejemplo_sinvida.png" alt="Ejemplo modo Sin vida"></div>
+      <h3>🖼 Sin vida</h3>
+      <p>Un GIF en bucle flotando en el escritorio. Ideal para un icono animado quieto, sin física ni comportamiento.</p>
+    </div>
+  </div>
+</div></section>
+
+<section id="instalar"><div class="wrap">
+  <p class="eyebrow rv">Instalación</p>
+  <h2 class="rv">Listo en <span class="grad">un minuto</span>.</h2>
+  <p class="lede rv">Elige tu distribución.</p>
+  <div class="tabs rv">
+    <button class="tab on" data-tab="arch">Arch / Manjaro</button>
+    <button class="tab" data-tab="debian">Debian / Ubuntu / Mint</button>
+    <button class="tab" data-tab="fedora">Fedora / openSUSE</button>
+  </div>
+  <div class="term rv">
+    <div class="th"><i></i><i></i><i></i><span>bash</span></div>
+    <div class="panel on" id="tab-arch"><pre><button class="copy">Copiar</button><span class="c"># Opción recomendada, AUR</span>
+<span class="p">$</span> paru -S animalinux
+<span class="c"># o compilando tú mismo</span>
+<span class="p">$</span> git clone https://github.com/Sergi122/AnimalinuxApp.git &amp;&amp; cd AnimalinuxApp
+<span class="p">$</span> makepkg -si</pre></div>
+    <div class="panel" id="tab-debian"><pre><button class="copy">Copiar</button><span class="p">$</span> sudo apt install python3 python3-gi gir1.2-gtk-4.0 python3-pip python3-pil \
+                  gir1.2-ayatanaappindicator3-0.1 gir1.2-wnck-3.0
+
+<span class="p">$</span> git clone https://github.com/Sergi122/AnimalinuxApp.git
+<span class="p">$</span> cd AnimalinuxApp
+<span class="p">$</span> pip install --user --break-system-packages .
+<span class="p">$</span> animalinux --show</pre></div>
+    <div class="panel" id="tab-fedora"><pre><button class="copy">Copiar</button><span class="c"># Fedora</span>
+<span class="p">$</span> sudo dnf install python3 python3-gobject gtk4 python3-pillow \
+                  libappindicator-gtk3 libwnck3
+
+<span class="c"># openSUSE</span>
+<span class="p">$</span> sudo zypper install python3 python3-gobject gtk4 python3-Pillow libwnck3
+
+<span class="p">$</span> git clone https://github.com/Sergi122/AnimalinuxApp.git
+<span class="p">$</span> cd AnimalinuxApp
+<span class="p">$</span> pip install --user --break-system-packages .
+<span class="p">$</span> animalinux --show</pre></div>
+  </div>
+  <p class="note rv"><code>gtk4-layer-shell</code> solo hace falta en Hyprland/Sway. En GNOME, Cinnamon, MATE y Xfce la app usa su propio backend X11; <code>libwnck</code> es opcional.</p>
+</div></section>
+
+<section id="cambios"><div class="wrap">
+  <p class="eyebrow rv">Historial</p>
+  <h2 class="rv">Cambios <span class="grad">recientes</span>.</h2>
+  <p class="lede rv">Versión actual: <strong>0.4.8</strong></p>
+  <div class="tl">
+    <div class="changelog-item rv">
+      <h3>v0.4.8</h3>
+      <span class="date">29 de septiembre de 2026</span>
+      <ul>
+        <li><strong>Actualización automática:</strong> la app avisa cuando hay una versión nueva y la instala con un clic (<em>Actualizar ahora</em>). Se puede desactivar en Configuración.</li>
+        <li>Limpieza interna del código (imports sin usar y una función duplicada).</li>
+      </ul>
+    </div>
+    <div class="changelog-item rv">
+      <h3>v0.4.7</h3>
+      <span class="date">22 de julio de 2026</span>
+      <ul>
+        <li>El botón "🌐 Compartir" ahora también está disponible en mascotas <strong>sin vida</strong>: exporta el pack y abre la web de la comunidad para subirlo, igual que ya pasaba con las mascotas con vida.</li>
+      </ul>
+    </div>
+    <div class="changelog-item rv">
+      <h3>v0.4.6</h3>
+      <span class="date">22 de julio de 2026</span>
+      <ul>
+        <li>Nuevo botón "🌐 Compartir" en mascotas con vida: exporta el pack y abre directo la web de la comunidad para subirlo, sin pasos manuales.</li>
+      </ul>
+    </div>
+    <div class="changelog-item rv">
+      <h3>v0.4.5</h3>
+      <span class="date">22 de julio de 2026</span>
+      <ul>
+        <li>Fix: los archivos que ya vienen con fondo transparente (stickers/emotes GIF, WebP, APNG) ya no se vuelven a recortar con IA — antes eso podía decolorar detalles finos y oscuros (correas, guantes) por error de la máscara.</li>
+      </ul>
+    </div>
+    <div class="changelog-item rv more">
+      <h3>v0.4.4</h3>
+      <span class="date">22 de julio de 2026</span>
+      <ul>
+        <li>Nuevo link "📰 Novedades" en la barra superior de la app, directo al historial de cambios.</li>
+        <li>El pie de la ventana ahora muestra la versión instalada de AnimaLinux.</li>
+      </ul>
+    </div>
+    <div class="changelog-item rv more">
+      <h3>v0.4.3</h3>
+      <span class="date">22 de julio de 2026</span>
+      <ul>
+        <li>Exportar una mascota <strong>sin vida</strong> ahora genera un GIF o MP4 real, en vez de forzar siempre <code>.alpack</code>.</li>
+        <li>Fix al importar un <code>.alpack</code>: se clasifica como con vida / sin vida según tenga varias o una sola pose (antes quedaba siempre como "con vida").</li>
+      </ul>
+    </div>
+    <div class="changelog-item rv more">
+      <h3>v0.4.2</h3>
+      <span class="date">22 de julio de 2026</span>
+      <ul>
+        <li>El agarre del ratón ("grab") ahora gira el sprite según hacia dónde lo arrastrás.</li>
+        <li>Nueva pose opcional <strong>fall</strong>: cae y se levanta al soltar el agarre.</li>
+      </ul>
+    </div>
+    <div class="changelog-item rv more">
+      <h3>v0.4.1</h3>
+      <span class="date">22 de julio de 2026</span>
+      <ul>
+        <li>Tutoriales de los editores de píxeles y pintura rediseñados.</li>
+        <li>Fix: diálogos sin botón de cerrar.</li>
+        <li>Iconos de bandeja y menú de apps consistentes.</li>
+      </ul>
+    </div>
+    <div class="changelog-item rv more">
+      <h3>v0.4.0</h3>
+      <span class="date">22 de julio de 2026</span>
+      <ul>
+        <li>Backend X11/EWMH: soporte para GNOME, Cinnamon, MATE y Xfce (Ubuntu, Linux Mint...).</li>
+        <li>Modo Vida rediseñado: poses siempre dibujadas, tema B/N, idioma completo.</li>
+        <li>Suite de tests + guía de publicación en AUR.</li>
+        <li>Optimización de consumo en equipos modestos.</li>
+        <li>Varios fixes de foco de teclado, parpadeo y overlay en distintos entornos X11.</li>
+      </ul>
+    </div>
+    <div class="changelog-item rv more">
+      <h3>v0.3.0</h3>
+      <span class="date">23 de junio de 2026</span>
+      <ul>
+        <li>Arranque automático (on/off) al encender la sesión.</li>
+        <li>Enlace a la web de la comunidad en el pie de la ventana de Control.</li>
+      </ul>
+    </div>
+    <div class="changelog-item rv more">
+      <h3>v0.2.0</h3>
+      <span class="date">18 de junio de 2026</span>
+      <ul>
+        <li>Icono propio de la app.</li>
+        <li>Modo Vida: berrinche por aburrimiento, dormir, trepar por ventanas, squash &amp; stretch.</li>
+        <li>Fix de fullscreen: la mascota ya no se congela con otra ventana en pantalla completa.</li>
+      </ul>
+    </div>
+    <div class="changelog-item rv more">
+      <h3>v0.1.0</h3>
+      <span class="date">17 de junio de 2026</span>
+      <ul>
+        <li>Primera versión pública: editores de píxeles y pintura, overlay con física, modo Vida.</li>
+      </ul>
+    </div>
+  </div>
+  <div style="text-align:center;margin-top:8px"><button class="btn" id="more">Ver historial completo</button></div>
+</div></section>
+
+<section id="apoyo"><div class="wrap">
+  <div class="cta-box rv">
+    <h2>¿Te gusta <span class="grad">AnimaLinux</span>?</h2>
+    <p>Ayuda a financiar futuras mejoras con una donación.</p>
+    <a class="btn primary" href="/donaciones">💜 Apoya el proyecto</a>
+  </div>
+  <div class="split">
+    <div class="card rv"><h3 style="margin:0">🐞 ¿Encontraste un problema?</h3><p>Cuéntanos qué pasó y en qué distro o escritorio estabas. Se responde directo en el repo.</p><a class="btn" href="https://github.com/Sergi122/AnimalinuxApp/issues/new">Reportar bug</a></div>
+    <div class="card rv" style="--d:100ms"><h3 style="margin:0">🌐 Comunidad</h3><p>Descarga animaciones de otros y comparte las tuyas como packs <code>.alpack</code>.</p><a class="btn" href="https://animalinux-community.web.app">Explorar la galería</a></div>
+  </div>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <span>AnimaLinux · MIT License</span>
+  <span><a href="https://github.com/Sergi122/AnimalinuxApp">github.com/Sergi122/AnimalinuxApp</a></span>
+</div></footer>
+
+<div id="buddy" aria-hidden="true"><img src="assets/ejemplo_vida_default.png" alt=""></div>
+<script src="assets/site.js"></script>
+</body>
+</html>

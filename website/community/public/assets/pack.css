@@ -1,0 +1,200 @@
+/* ── Pack detail page ────────────────────────────────────────────────── */
+.pack-detail-main {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 36px 20px 60px;
+  flex: 1;
+}
+
+/* ── Spinner ─────────────────────────────────────────────────────────── */
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--widget);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Hero ────────────────────────────────────────────────────────────── */
+.pack-hero {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+  margin-bottom: 52px;
+  flex-wrap: wrap;
+}
+.pack-hero-preview {
+  flex-shrink: 0;
+  width: 200px;
+  height: 200px;
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+#hero-canvas {
+  image-rendering: pixelated;
+  max-width: 180px;
+  max-height: 180px;
+}
+.canvas-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  background: var(--panel);
+}
+.canvas-loading.hidden { display: none; }
+#hero-media { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+#hero-media img { image-rendering: pixelated; max-width: 180px; max-height: 180px; }
+#hero-media video { max-width: 100%; max-height: 100%; }
+
+.pack-hero-info {
+  flex: 1;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pack-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.mode-badge {
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.mode-badge.vida {
+  background: rgba(124,111,224,0.2);
+  border: 1.5px solid var(--accent);
+  color: var(--accent2);
+}
+.mode-badge.simple {
+  background: rgba(166,173,200,0.1);
+  border: 1.5px solid var(--border);
+  color: var(--text2);
+}
+.info-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  background: var(--widget);
+  border: 1px solid var(--border);
+  color: var(--text2);
+}
+#pack-name {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.pack-author-line { color: var(--text2); font-size: 0.9rem; }
+.pack-description { color: var(--text2); font-size: 0.92rem; line-height: 1.6; }
+.pack-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag-badge {
+  background: var(--widget);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  font-size: 0.78rem;
+  padding: 2px 10px;
+  border-radius: 12px;
+}
+.pack-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.downloads-count { font-size: 0.85rem; color: var(--text2); }
+.pack-import-hint {
+  font-size: 0.82rem;
+  color: var(--text2);
+}
+.pack-import-hint code {
+  font-size: 0.82rem;
+  color: var(--accent2);
+}
+
+/* ── Poses section ───────────────────────────────────────────────────── */
+.poses-section { margin-top: 8px; }
+.section-header { margin-bottom: 24px; }
+.section-header h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.section-sub { color: var(--text2); font-size: 0.88rem; }
+
+.poses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+/* ── Pose card ───────────────────────────────────────────────────────── */
+.pose-card {
+  background: var(--panel);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.pose-card:hover { border-color: var(--accent); }
+.pose-canvas-wrap {
+  background: var(--widget);
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.pose-canvas {
+  image-rendering: pixelated;
+  max-width: 120px;
+  max-height: 120px;
+}
+.pose-canvas-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  background: var(--widget);
+}
+.pose-canvas-loading.hidden { display: none; }
+.pose-info {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.pose-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--accent2);
+}
+.pose-frames { font-size: 0.78rem; color: var(--text2); }
+
+/* ── GIF-only notice ─────────────────────────────────────────────────── */
+.gif-only-section { margin-top: 12px; }
+.gif-only-box {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  background: var(--panel);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 24px;
+}
+.gif-only-box .big-icon { font-size: 2.5rem; flex-shrink: 0; }
+.gif-only-box h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+.gif-only-box p { color: var(--text2); font-size: 0.88rem; line-height: 1.6; }
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .pack-hero { flex-direction: column; align-items: center; }
+  .pack-hero-preview { width: 160px; height: 160px; }
+  #pack-name { font-size: 1.5rem; }
+  .poses-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+}
