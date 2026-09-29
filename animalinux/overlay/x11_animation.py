@@ -29,7 +29,8 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, GLib, GObject, Graphene  # noqa: E402
 
 from .live_animation import LiveAnimationMixin, MANDATORY_POSES  # noqa: E402
-from . import _x11_hints  # noqa: E402
+from . import _x11_hints
+from .clock import Clock  # noqa: E402
 from .. import settings
 
 _CSS_APPLIED = False
@@ -154,6 +155,17 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self._dragging = False
         self._grabbing = False   # True mientras sigue el cursor (modo grab)
         self._xlib_disp = None   # conexión perezosa para sondear el cursor global
+        # Modo compacto (experimental, opción compact_x11 en library.json): la
+        # ventana mide lo que el sprite (+ holgura para squash/bob) y se MUEVE
+        # por Xlib, en vez de una ventana transparente del tamaño del monitor.
+        # Con 8 mascotas evita 8 superficies ARGB a pantalla completa que el
+        # compositor tiene que mezclar en cada fotograma.
+        self._compact = bool(app.library.config.get("compact_x11", False))
+        self._pad = 0
+        self._xdpy = None
+        self._xwin = None
+        self._cursor_task = None
+        self._drag_ptr0 = None
 
         # estado de comportamiento
         self._state = "idle"
@@ -199,6 +211,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         h = int(anim.get("height", 100) * scale)
         self._cat_w = w
         self._cat_h = h
+        self._pad = self._calc_pad()
 
         # El sprite se muestra a través de un ScaledPaintable: una sola vez se
         # asigna al picture y luego sólo cambiamos su textura (cada frame) y su
@@ -239,6 +252,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self._set_position(anim.get("x", 100), anim.get("y", 100))
         # refrescar la región de input al mapear/redibujar (evita bloquear clics)
         self.connect("map", lambda *_: self._update_input_region())
+        self.connect("map", lambda *_: self._move_x11() if self._compact else None)
 
         _apply_transparency(self.get_display() or Gdk.Display.get_default())
 
@@ -269,7 +283,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         # motion en la VENTANA fullscreen: en modo grab el sprite sigue el cursor
         # por todo el escritorio (la región de input cubre toda la pantalla).
         win_motion = Gtk.EventControllerMotion()
-        win_motion.connect("motion", self._on_grab_motion)
+        win_motion.connect("motion", lambda c, x, y: None if self._compact else self._on_grab_motion(c, x, y))
         self.add_controller(win_motion)
 
         # estado de interacción
@@ -308,9 +322,42 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
     def _set_position(self, x, y):
         self._x = max(0, int(x))
         self._y = max(0, int(y))
-        self._overlay.set_margin_start(self._x)
-        self._overlay.set_margin_top(self._y)
+        if self._compact:
+            self._overlay.set_margin_start(self._pad)
+            self._overlay.set_margin_top(self._pad)
+            self._move_x11()
+        else:
+            self._overlay.set_margin_start(self._x)
+            self._overlay.set_margin_top(self._y)
         self._update_input_region()
+
+    # ---------- modo compacto ----------
+    def _calc_pad(self):
+        return int(0.45 * max(self._cat_w, self._cat_h)) + 6 if self._compact else 0
+
+    def _win_dims(self):
+        if self._compact:
+            return (self._cat_w + 2 * self._pad, self._cat_h + 2 * self._pad)
+        return (self._screen_w, self._win_h())
+
+    def _apply_win_size(self):
+        w, h = self._win_dims()
+        self.set_size_request(w, h)
+        self.set_default_size(w, h)
+
+    def _move_x11(self):
+        """Coloca la ventana compacta en coordenadas globales (Xlib)."""
+        try:
+            if self._xwin is None:
+                r = _x11_hints._x11_window(self)
+                if r is None:
+                    return
+                self._xdpy, self._xwin = r
+            self._xwin.configure(x=int(self._mon_x + self._x - self._pad),
+                                 y=int(self._mon_y + self._y - self._pad))
+            self._xdpy.flush()
+        except Exception:  # noqa: BLE001
+            pass
 
     def _update_input_region(self):
         """Limita lo clicable a la caja del sprite. Antes, en modo grab, esto
@@ -329,8 +376,8 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
             return
         try:
             import cairo
-            reg = cairo.Region(cairo.RectangleInt(
-                self._x, self._y, self._cat_w, self._cat_h))
+            ix, iy = (self._pad, self._pad) if self._compact else (self._x, self._y)
+            reg = cairo.Region(cairo.RectangleInt(ix, iy, self._cat_w, self._cat_h))
             surf.set_input_region(reg)
         except Exception:  # noqa: BLE001
             pass
@@ -349,9 +396,45 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self._react_ttl = 0
         self._greet_ttl = 0
         self._last_drag = (GLib.get_monotonic_time(), 0.0, 0.0)
+        if self._compact:
+            # la ventana se mueve con el puntero: los offsets del gesto no
+            # sirven; se sigue el puntero global por Xlib
+            self._drag_ptr0 = self._global_pointer()
+            self._cursor_task = Clock.get().every(16, self._drag_poll)
+
+    def _global_pointer(self):
+        try:
+            from Xlib import display as xlib_display
+            if self._xlib_disp is None:
+                self._xlib_disp = xlib_display.Display()
+            ptr = self._xlib_disp.screen().root.query_pointer()
+            return ptr.root_x, ptr.root_y
+        except Exception:  # noqa: BLE001
+            return None
+
+    def _drag_poll(self):
+        if not self._dragging:
+            self._cursor_task = None
+            return False
+        p = self._global_pointer()
+        if p is not None and self._drag_ptr0 is not None:
+            self._drag_follow(p[0] - self._drag_ptr0[0], p[1] - self._drag_ptr0[1])
+        return True
+
+    def _drag_follow(self, ox, oy):
+        x0, y0 = self._drag_origin
+        self._set_position(x0 + ox, y0 + oy)
+        now = GLib.get_monotonic_time()
+        if self._last_drag:
+            t0, ox0, oy0 = self._last_drag
+            dt = (now - t0) / 1_000_000.0
+            if dt > 0.01:
+                self._drag_vx = (ox - ox0) / dt
+                self._drag_vy = (oy - oy0) / dt
+                self._last_drag = (now, ox, oy)
 
     def _on_drag_update(self, gesture, ox, oy):
-        if self._state == "grab":
+        if self._state == "grab" or self._compact:
             return
         x0, y0 = self._drag_origin
         self._set_position(x0 + ox, y0 + oy)
@@ -366,6 +449,9 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
 
     def _on_drag_end(self, gesture, ox, oy):
         self._dragging = False
+        if self._cursor_task is not None:
+            Clock.get().cancel(self._cursor_task)
+            self._cursor_task = None
         if self.mode == "life" and self._state != "grab":
             vx = getattr(self, "_drag_vx", 0.0)   # px/seg (medido en drag-update)
             vy = getattr(self, "_drag_vy", 0.0)
@@ -598,16 +684,16 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         # monitor (con la pantalla primaria como estimación previa al
         # mapeo) evitamos depender de ese resize tardío.
         self._update_screen_size()
-        self.set_size_request(self._screen_w, self._win_h())
-        self.set_default_size(self._screen_w, self._win_h())
+        self._apply_win_size()
         self.present()
         # Refinar tras mapear: el monitor real (si hay varios, o difiere del
         # supuesto por defecto) solo se conoce con certeza una vez la
         # superficie está asociada a uno concreto.
         self._update_screen_size()
-        self.set_size_request(self._screen_w, self._win_h())
-        self.set_default_size(self._screen_w, self._win_h())
+        self._apply_win_size()
         self.queue_resize()
+        if self._compact:
+            self._move_x11()
         if self.mode == "life":
             self._enter_life()
         else:
@@ -673,6 +759,9 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         h = int(self.anim.get("height", 100) * scale)
         self._cat_w = w
         self._cat_h = h
+        self._pad = self._calc_pad()
+        if self._compact:
+            self._apply_win_size()
         self._paintable.set_scale_factor(scale)
         self.picture.queue_resize()
         self._overlay.queue_resize()
@@ -706,4 +795,12 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         if self._tick_id is not None:
             self.remove_tick_callback(self._tick_id)
             self._tick_id = None
+        if self._cursor_task is not None:
+            Clock.get().cancel(self._cursor_task)
+            self._cursor_task = None
+        try:
+            if self._xdpy is not None:
+                self._xdpy.close()
+        except Exception:  # noqa: BLE001
+            pass
         self.destroy()
