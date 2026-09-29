@@ -101,11 +101,17 @@ class LiveAnimationMixin:
         cada estado moviendo el sprite entero (caminar con rebote y
         balanceo, respirar en reposo, botar al saludar, estirarse al saltar)
         sin necesitar cuadros extra. Si la pose actual trae sus propios
-        cuadros (dibujados por el usuario) no se toca: ya se anima sola."""
+        cuadros (dibujados por el usuario) se aplica a media intensidad."""
         self._body_t += 1
+        # con cuadros propios (dibujados por el usuario) el movimiento del
+        # cuerpo se suma a media intensidad: las poses casi estáticas cobran
+        # vida sin pisar lo dibujado.
+        k = 0.5 if (self._pose != "default" and self._has_pose(self._pose)) else 1.0
+        sx, sy, lean, bob = self._body_raw()
+        return 1.0 + (sx - 1.0) * k, 1.0 + (sy - 1.0) * k, lean * k, bob * k
+
+    def _body_raw(self):
         t = self._body_t
-        if self._pose != "default" and self._has_pose(self._pose):
-            return 1.0, 1.0, 0.0, 0.0
         st = self._state
         if st in ("walk", "to_climb"):
             p = self._walk_phase * math.pi        # un paso por unidad de fase

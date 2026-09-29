@@ -9,6 +9,7 @@ def _stub(state, pose="default", has=False, **kw):
         _state=state, _pose=pose, _has_pose=lambda n: has, _walk_phase=0.5,
         _greet_ttl=0, _react_ttl=0, _jump_vy=-18.0, _toss_vy=0.0, _body_t=0, **kw)
     o._body_motion = types.MethodType(LiveAnimationMixin._body_motion, o)
+    o._body_raw = types.MethodType(LiveAnimationMixin._body_raw, o)
     return o
 
 
@@ -34,6 +35,7 @@ def test_jump_stretches():
     assert sy > 1.0 and sx < 1.0
 
 
-def test_own_frames_untouched():
-    o = _stub("walk", pose="walk", has=True)
-    assert o._body_motion() == (1.0, 1.0, 0.0, 0.0)
+def test_own_frames_half_intensity():
+    full = _stub("walk")._body_motion()
+    half = _stub("walk", pose="walk", has=True)._body_motion()
+    assert abs(half[2] - full[2] / 2) < 1e-9 and abs(half[3] - full[3] / 2) < 1e-9
