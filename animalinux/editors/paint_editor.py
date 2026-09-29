@@ -1,2636 +1,1086 @@
 """
-Editor de animación — AnimaLinux  (v3 profesional)
-Pincel suave, múltiples tipos de pincel, capas con blend modes extendidos,
-zoom continuo, simetría, smudge, gradiente, formas, varita mágica,
-selección, colores recientes, HSV, HEX y papel cebolla rojo/azul.
+Editor de animación — AnimaLinux (v4, disposición y funciones estilo Toon Boom Harmony)
 
-Atajos: B=pincel  E=borrador  U=difuminar  F=relleno  G=gradiente
-        L=línea  I=cuentagotas  S=selección  M=mover  W=varita
-        X=cambiar FG/BG
-        Z/Ctrl+Z=deshacer  Y/Ctrl+Y=rehacer
-        [ ]=tamaño pincel   Ctrl+Scroll=zoom   Espacio+drag=pan
+  ┌ menús: Archivo Editar Vista Reproducir Insertar Escena Dibujo Animación Ventanas Ayuda ┐
+  │ barra de herramientas (archivo · edición · vista)                                       │
+  ├ caja de ┬──── Cámara | Dibujo ────────────────────┬─ Propiedades de herramienta | Capa ┤
+  │ herram. │     vista con papel cebolla,             │                                    │
+  │         │     mesa de luz y guías                  ├─ Color | Cámara ───────────────────┤
+  ├─────────┴──────────────────────────────────────────┴────────────────────────────────────┤
+  │ Reproducir · Bucle · Sonido · Fotograma · Inicio · Fin · FPS                            │
+  │ Línea de tiempo: capas × fotogramas (hoja de exposición), cabezal y rango               │
+  └──────────────────────────────────────────────────────────────────────────────────────────┘
+
+Teclas: V seleccionar · A contorno · B pincel · N lápiz · E borrador · U dedo · P pintar
+        G degradado · I cuentagotas · L línea · R rectángulo · O elipse · Y polilínea
+        Q lazo · H mano · Z zoom · C cámara · X intercambiar colores · [ ] tamaño
+        , . fotograma anterior/siguiente · Enter reproducir · Espacio+arrastrar mover vista
+        F5 extender exposición · F6 dibujo nuevo · F7 duplicar dibujo · Supr limpiar celda
 """
-import colorsys
-import math
-from collections import deque
+import subprocess
+import tempfile
+import shutil
 from pathlib import Path
 
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, GLib, Gio
 
-import cairo
-from PIL import Image, ImageDraw, ImageFilter
+from . import anim_engine as ae
+from .anim_canvas import AnimCanvas
+from .anim_widgets import Timeline, ToolProps, LayerProps, ColorDock, CameraDock
+from .icons import icon_image
+from ..ui import guide_widgets as gw
 
-try:
-    import numpy as np
-    _NP = True
-except ImportError:
-    _NP = False
+ICO = "#e6e6e6"
 
-# ── constantes ───────────────────────────────────────────────────────────────
-ZOOM_MIN    = 0.05
-ZOOM_MAX    = 32.0
-MAX_UNDO    = 30
-ONION_ALPHA = 0.25
-THUMB       = 56
-MAX_FRAMES  = 120
-STAB_FACTOR = 0.55
-
-BLEND_MODES = [
-    "Normal", "Multiplicar", "Pantalla", "Superponer",
-    "Añadir", "Diferencia", "Luz dura", "Luz suave",
-    "Eludir color", "Quemar color",
+PALETTE = [
+    (0, 0, 0, 255), (60, 60, 60, 255), (120, 120, 120, 255), (190, 190, 190, 255), (255, 255, 255, 255),
+    (180, 30, 30, 255), (230, 70, 50, 255), (240, 140, 40, 255), (245, 200, 50, 255), (170, 210, 60, 255),
+    (60, 170, 70, 255), (30, 120, 90, 255), (50, 190, 180, 255), (70, 140, 220, 255), (40, 70, 190, 255),
+    (90, 50, 180, 255), (150, 70, 200, 255), (215, 90, 190, 255), (235, 130, 185, 255), (255, 200, 220, 255),
+    (120, 75, 35, 255), (170, 110, 60, 255), (215, 165, 115, 255), (255, 225, 190, 255), (0, 0, 0, 0),
 ]
 
-BRUSH_TYPES  = ["round", "pencil", "airbrush", "texture",
-                 "chalk", "watercolor", "marker", "crayon", "sponge", "pixel",
-                 "fan", "ink"]
-BRUSH_LABELS = ["Redondo suave", "Lápiz (duro)", "Aerógrafo", "Textura",
-                 "Tiza", "Acuarela", "Marcador", "Crayón", "Esponja", "Píxel exacto",
-                 "Abanico", "Tinta (pluma)"]
+# id, icono, nombre, tecla
+TOOLS = [
+    ("select",   "arrow",        "Seleccionar (V)", "V"),
+    ("contour",  "contour_edit", "Editor de contorno (A)", "A"),
+    ("brush",    "brush",        "Pincel (B)", "B"),
+    ("pencil",   "pencil",       "Lápiz (N)", "N"),
+    ("eraser",   "eraser",       "Borrador (E)", "E"),
+    ("smudge",   "smudge",       "Dedo / difuminar (U)", "U"),
+    ("paint",    "fill",         "Pintar — bote con cierre de huecos (P)", "P"),
+    ("gradient", "gradient",     "Degradado (G)", "G"),
+    ("dropper",  "pick",         "Cuentagotas (I) — Alt+clic con otra herramienta", "I"),
+    ("line",     "line",         "Línea (L)", "L"),
+    ("rect",     "outline",      "Rectángulo (R)", "R"),
+    ("ellipse",  "ellipse",      "Elipse (O)", "O"),
+    ("polyline", "polyline",     "Polilínea (Y)", "Y"),
+    ("lasso",    "lasso",        "Lazo (Q)", "Q"),
+    ("hand",     "hand",         "Mano (H) — o mantén Espacio", "H"),
+    ("zoom",     "zoom_in",      "Zoom (Z) — clic acerca, clic derecho aleja", "Z"),
+    ("camera",   "camera",       "Cámara (C) — en la vista Cámara", "C"),
+]
+KEY_TOOLS = {t[3].lower(): t[0] for t in TOOLS}
+
+CSS = """
+window.hm, window.hm box { background-color: #3c3c3c; }
+window.hm, window.hm label { color: #dcdcdc; }
+window.hm .hm-menu { background-color: #2c2c2c; border-bottom: 1px solid #1a1a1a; padding: 0 2px; }
+window.hm .hm-menu > item { padding: 3px 9px; color: #dcdcdc; }
+window.hm .hm-menu > item:hover { background-color: #494949; }
+window.hm .hm-bar { background-color: #333333; border-bottom: 1px solid #1a1a1a; padding: 3px 6px; }
+window.hm .hm-tools { background-color: #2f2f2f; border-right: 1px solid #1a1a1a; padding: 4px 3px; }
+window.hm .hm-view { background-color: #808080; }
+window.hm .hm-viewbar { background-color: #333333; border-top: 1px solid #1a1a1a; padding: 2px 6px; }
+window.hm .hm-tabs { background-color: #2f2f2f; padding: 0 4px; }
+window.hm .hm-dock { background-color: #444444; border-left: 1px solid #1a1a1a; }
+window.hm .hm-tl { background-color: #3c3c3c; border-top: 1px solid #1a1a1a; }
+window.hm .hm-status { background-color: #2c2c2c; border-top: 1px solid #1a1a1a; padding: 2px 8px; }
+window.hm button { background-image: none; background-color: #4d4d4d; border: 1px solid #262626; border-radius: 3px;
+   color: #e6e6e6; padding: 2px 7px; min-height: 22px; box-shadow: none; }
+window.hm button:hover { background-color: #5d5d5d; }
+window.hm button:checked, window.hm button:active { background-color: #3d6f9c; border-color: #1d3f5f; }
+window.hm button.hm-tool { padding: 3px; min-width: 28px; min-height: 28px; background-color: transparent; border-color: transparent; }
+window.hm button.hm-tool:hover { background-color: #484848; }
+window.hm button.hm-tool:checked { background-color: #3d6f9c; border-color: #24455f; }
+window.hm button.hm-tab { border-radius: 3px 3px 0 0; background-color: #3a3a3a; }
+window.hm button.hm-tab:checked { background-color: #808080; color: #1a1a1a; }
+window.hm button.suggested-action { background-color: #3d7fbf; color: #fff; }
+window.hm entry, window.hm spinbutton, window.hm spinbutton text { background-color: #2b2b2b; color: #e6e6e6;
+   border-radius: 3px; min-height: 22px; border-color: #202020; }
+window.hm entry text, window.hm text { color: #e6e6e6; background-color: transparent; }
+window.hm spinbutton button { min-height: 18px; padding: 0 3px; }
+window.hm separator { background-color: #232323; min-width: 1px; }
+window.hm notebook > header { background-color: #2f2f2f; }
+window.hm notebook > header > tabs > tab { padding: 4px 10px; color: #cfcfcf; }
+window.hm notebook > header > tabs > tab:checked { background-color: #444444; color: #ffffff; }
+window.hm notebook > stack { background-color: #444444; }
+window.hm scale trough { background-color: #262626; min-height: 4px; }
+window.hm scale highlight { background-color: #5e93c4; }
+window.hm scale slider { background-color: #d8d8d8; border: 1px solid #111; min-width: 12px; min-height: 12px; }
+window.hm scrolledwindow { background-color: #3c3c3c; }
+window.hm .dim-label { color: #a9a9a9; }
+window.hm .heading { font-weight: bold; color: #ffffff; }
+"""
+
+_css = False
+
+
+def _load_css():
+    global _css
+    if _css: return
+    prov = Gtk.CssProvider()
+    try: prov.load_from_string(CSS)
+    except AttributeError: prov.load_from_data(CSS.encode())
+    d = Gdk.Display.get_default()
+    if d:
+        Gtk.StyleContext.add_provider_for_display(d, prov, Gtk.STYLE_PROVIDER_PRIORITY_USER + 5); _css = True
 
-RANDOM_BRUSHES = {"texture", "watercolor", "sponge", "chalk"}
 
-
-# ── helpers ──────────────────────────────────────────────────────────────────
-from .editor_utils import pil_to_cairo as _pil_to_cairo  # noqa: E402
-from .icons import icon_image, icon_button  # noqa: E402
-from ..ui import guide_widgets as gw  # noqa: E402
-
-
-def _make_stamp(radius: int, softness: float, color, opacity: int,
-                brush_type: str = "round") -> Image.Image:
-    size = max(3, radius * 2 + 2)
-    if _NP:
-        cx = cy = radius
-        ys, xs = np.ogrid[:size, :size]
-        d = np.sqrt((xs - cx)**2 + (ys - cy)**2)
-
-        if brush_type == "pencil":
-            t = (d <= radius).astype(np.float32)
-        elif brush_type == "airbrush":
-            sig = max(radius, 1)
-            t = np.exp(-0.5 * (d / sig) ** 2) * 0.35
-        elif brush_type == "texture":
-            soft = np.clip(1.0 - d / max(radius, 1), 0, 1) ** (1.0 / max(softness, 0.05))
-            noise = np.random.rand(size, size).astype(np.float32)
-            t = soft * noise
-        elif brush_type == "chalk":
-            # bordes duros granulados como tiza
-            soft  = np.clip(1.0 - d / max(radius, 1), 0, 1)
-            grain = (np.random.rand(size, size) * 0.6 + 0.4).astype(np.float32)
-            t = np.where(d < radius * 0.9, soft * grain * 0.85, 0)
-        elif brush_type == "watercolor":
-            # borde irregular, semi-transparente, efecto mojado
-            warp = (np.sin(np.arctan2(ys - cy, xs - cx) * 7) * 0.15 +
-                    np.random.rand(size, size).astype(np.float32) * 0.08)
-            d2 = np.clip(d / max(radius, 1) + warp, 0, 2)
-            t = np.clip(1.0 - d2, 0, 1) ** 0.4 * 0.55
-        elif brush_type == "marker":
-            # plano y sólido, borde ligeramente suave
-            inner = radius * 0.82
-            t = np.where(d <= inner, 0.9,
-                np.clip(0.9 * (1.0 - (d - inner) / max(radius - inner, 1)), 0, 1))
-        elif brush_type == "crayon":
-            # rayas direccionales como crayón
-            soft   = np.clip(1.0 - d / max(radius, 1), 0, 1) ** 1.5
-            streak = (np.abs(np.sin((xs * 0.7 + ys * 0.25) * math.pi * 0.8))
-                      * 0.5 + 0.5).astype(np.float32)
-            noise  = np.random.rand(size, size).astype(np.float32) * 0.25
-            t = soft * (streak * 0.75 + noise)
-        elif brush_type == "sponge":
-            # puntos dispersos superpuestos
-            t  = np.zeros((size, size), dtype=np.float32)
-            dr = max(2, radius // 4)
-            rng = np.random.default_rng(radius * 7)
-            ndots = max(6, radius * 4)
-            offsets = rng.integers(-radius, radius + 1, (ndots, 2))
-            for ddx, ddy in offsets:
-                if ddx*ddx + ddy*ddy > radius*radius: continue
-                d2 = np.sqrt((xs - (cx + ddx))**2 + (ys - (cy + ddy))**2)
-                t  = np.maximum(t, np.clip(1.0 - d2 / max(dr, 1), 0, 1))
-            t *= 0.72
-        elif brush_type == "pixel":
-            # círculo exacto, sin anti-aliasing
-            t = (d <= radius + 0.5).astype(np.float32)
-        elif brush_type == "fan":
-            # abanico: semicírculo con rayas radiales
-            angle = np.arctan2(ys - cy, xs - cx)
-            mask  = (d <= radius).astype(np.float32)
-            rays  = (np.cos(angle * 8) * 0.5 + 0.5)
-            soft  = np.clip(1.0 - d / max(radius, 1), 0, 1) ** 0.5
-            t = mask * rays * soft * 0.8
-        elif brush_type == "ink":
-            # pluma de tinta: punta elíptica, más opaca en centro
-            d_ell = np.sqrt(((xs - cx) * 1.6)**2 + (ys - cy)**2)
-            t = np.clip(1.0 - d_ell / max(radius, 1), 0, 1) ** 0.7
-        else:  # round
-            t = np.clip(1.0 - d / max(radius, 1), 0, 1) ** (1.0 / max(softness, 0.05))
-
-        alpha = (t * opacity).clip(0, 255).astype(np.uint8)
-        arr   = np.zeros((size, size, 4), dtype=np.uint8)
-        arr[:, :, 0] = color[0]; arr[:, :, 1] = color[1]
-        arr[:, :, 2] = color[2]; arr[:, :, 3] = alpha
-        return Image.fromarray(arr, "RGBA")
-
-    # fallback sin numpy
-    im  = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(im)
-    cx = cy = radius
-    for r in range(radius, -1, -1):
-        t = (1.0 - r / max(radius, 1)) ** (1.0 / max(softness, 0.05))
-        draw.ellipse([cx-r, cy-r, cx+r, cy+r],
-                     fill=(*color[:3], int(opacity * t)))
-    return im
-
-
-def _chaikin(pts, iters=2):
-    """Suavizado de trazo: algoritmo de Chaikin (curva de subdivisión)."""
-    for _ in range(iters):
-        new = []
-        for i in range(len(pts) - 1):
-            x0, y0 = pts[i]; x1, y1 = pts[i + 1]
-            new.append((0.75*x0 + 0.25*x1, 0.75*y0 + 0.25*y1))
-            new.append((0.25*x0 + 0.75*x1, 0.25*y0 + 0.75*y1))
-        pts = [pts[0]] + new + [pts[-1]]
-    return pts
-
-
-def _apply_camera(im: Image.Image, cam: dict) -> Image.Image:
-    """Aplica transformación de cámara (translate, scale, rotate) a la imagen compuesta."""
-    w, h = im.size
-    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    cx, cy = w / 2, h / 2
-    angle  = -cam.get("rot", 0.0)
-    scale  = cam.get("scale", 1.0)
-    tx, ty = cam.get("tx", 0.0), cam.get("ty", 0.0)
-    if scale != 1.0:
-        new_w, new_h = int(w * scale), int(h * scale)
-        im = im.resize((new_w, new_h), Image.LANCZOS)
-        paste_x = int(cx - new_w/2 + tx)
-        paste_y = int(cy - new_h/2 + ty)
-        out.paste(im, (paste_x, paste_y), im)
-    else:
-        out.paste(im, (int(tx), int(ty)), im)
-    if angle != 0.0:
-        out = out.rotate(angle, resample=Image.BICUBIC, center=(cx, cy), expand=False)
-    return out
-
-
-def _interp(x0, y0, x1, y1):
-    pts, dx, dy = [], abs(x1 - x0), abs(y1 - y0)
-    sx = 1 if x1 > x0 else -1
-    sy = 1 if y1 > y0 else -1
-    err = dx - dy
-    while True:
-        pts.append((x0, y0))
-        if x0 == x1 and y0 == y1: break
-        e2 = 2 * err
-        if e2 > -dy: err -= dy; x0 += sx
-        if e2 <  dx: err += dx; y0 += sy
-    return pts
-
-
-def _blend_images(base: Image.Image, top: Image.Image,
-                  mode: str, opacity: int) -> Image.Image:
-    if opacity == 0: return base.copy()
-    if not _NP or mode == "Normal":
-        if opacity < 255:
-            r, g, b, a = top.split()
-            a = a.point(lambda x: x * opacity // 255)
-            top = Image.merge("RGBA", (r, g, b, a))
-        result = base.copy()
-        result.alpha_composite(top)
-        return result
-
-    b = np.array(base, dtype=np.float32) / 255.0
-    t = np.array(top,  dtype=np.float32) / 255.0
-    t[:, :, 3] *= opacity / 255.0
-
-    br, bg, bb = b[:, :, 0], b[:, :, 1], b[:, :, 2]
-    tr, tg, tb = t[:, :, 0], t[:, :, 1], t[:, :, 2]
-
-    if mode == "Multiplicar":
-        cr2, cg2, cb2 = br*tr, bg*tg, bb*tb
-    elif mode == "Pantalla":
-        cr2 = 1-(1-br)*(1-tr); cg2 = 1-(1-bg)*(1-tg); cb2 = 1-(1-bb)*(1-tb)
-    elif mode == "Superponer":
-        cr2 = np.where(br<0.5, 2*br*tr, 1-2*(1-br)*(1-tr))
-        cg2 = np.where(bg<0.5, 2*bg*tg, 1-2*(1-bg)*(1-tg))
-        cb2 = np.where(bb<0.5, 2*bb*tb, 1-2*(1-bb)*(1-tb))
-    elif mode == "Añadir":
-        cr2 = np.clip(br+tr, 0, 1); cg2 = np.clip(bg+tg, 0, 1); cb2 = np.clip(bb+tb, 0, 1)
-    elif mode == "Diferencia":
-        cr2, cg2, cb2 = np.abs(br-tr), np.abs(bg-tg), np.abs(bb-tb)
-    elif mode == "Luz dura":
-        cr2 = np.where(tr<0.5, 2*br*tr, 1-2*(1-br)*(1-tr))
-        cg2 = np.where(tg<0.5, 2*bg*tg, 1-2*(1-bg)*(1-tg))
-        cb2 = np.where(tb<0.5, 2*bb*tb, 1-2*(1-bb)*(1-tb))
-    elif mode == "Luz suave":
-        cr2 = (1-2*tr)*br**2 + 2*tr*br
-        cg2 = (1-2*tg)*bg**2 + 2*tg*bg
-        cb2 = (1-2*tb)*bb**2 + 2*tb*bb
-    elif mode == "Eludir color":
-        cr2 = np.clip(br/(1-tr+1e-7), 0, 1)
-        cg2 = np.clip(bg/(1-tg+1e-7), 0, 1)
-        cb2 = np.clip(bb/(1-tb+1e-7), 0, 1)
-    elif mode == "Quemar color":
-        cr2 = np.clip(1-(1-br)/(tr+1e-7), 0, 1)
-        cg2 = np.clip(1-(1-bg)/(tg+1e-7), 0, 1)
-        cb2 = np.clip(1-(1-bb)/(tb+1e-7), 0, 1)
-    else:
-        cr2, cg2, cb2 = tr, tg, tb
-
-    ta = t[:, :, 3:4]; ba = b[:, :, 3:4]
-    out_a = ta + ba*(1-ta)
-    safe  = np.where(out_a > 0, out_a, 1)
-    mixed = np.stack([cr2, cg2, cb2], axis=2)
-    out_rgb = np.where(out_a > 0, (mixed*ta + b[:,:,:3]*ba*(1-ta))/safe, 0)
-    out = np.clip(np.concatenate([out_rgb, out_a*255], axis=2), 0, 255).astype(np.uint8)
-    return Image.fromarray(out, "RGBA")
-
-
-# ── Layer ────────────────────────────────────────────────────────────────────
-class Layer:
-    def __init__(self, w: int, h: int, name: str = "Capa"):
-        self.name         = name
-        self.image        = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-        self.visible      = True
-        self.opacity      = 255
-        self.blend_mode   = "Normal"
-        self.locked       = False
-        self.alpha_locked = False
-
-
-# ── PaintCanvas ──────────────────────────────────────────────────────────────
-class PaintCanvas(Gtk.DrawingArea):
-    def __init__(self, cw: int = 512, ch: int = 512):
-        super().__init__()
-        self.cw, self.ch = cw, ch
-
-        self.tool       = "brush"
-        self.fg_color   = (0, 0, 0, 255)
-        self.bg_color   = (255, 255, 255, 255)
-        self.brush_r    = 12
-        self.softness   = 0.5
-        self.opacity    = 200
-        self.onion      = False
-        self.stabilizer = True
-        self.symmetry   = "none"
-        self.brush_type = "round"
-        self.magic_wand_tolerance = 32
-        self.smooth_strokes = False
-        self._pressure  = 1.0
-        self._stroke_pts: list[tuple] = []
-        self._prestroke_snap = None
-
-        self._frames: list[list[Layer]] = [[Layer(cw, ch, "Capa 1")]]
-        self._frame_labels: list[str] = [""]
-        self._frame_camera: list[dict] = [{"tx": 0.0, "ty": 0.0, "scale": 1.0, "rot": 0.0}]
-        self._cur    = 0
-        self._active = 0
-        self._clip_frame: list[Layer] | None = None
-
-        self._zoom = 1.0
-        self._off  = [0.0, 0.0]
-
-        self._comp_cache: dict[int, bytearray] = {}
-        self._comp_dirty: set[int] = {0}
-        self._stamp_cache: dict[tuple, Image.Image] = {}
-
-        self._undo: list = []
-        self._redo: list = []
-
-        self._drawing    = False
-        self._panning    = False
-        self._space_held = False
-        self._drag_sx = self._drag_sy = 0.0
-        self._pan_ox  = self._pan_oy  = 0.0
-        self._pan_sx  = self._pan_sy  = 0.0
-        self._last_cx = self._last_cy = -1.0
-        self._lazy_x: float | None = None
-        self._lazy_y: float | None = None
-        self._cursor_sx = self._cursor_sy = -1.0
-
-        self._line_start    = None
-        self._line_preview  = None
-        self._grad_start    = None
-        self._grad_preview  = None
-        self._shape_start   = None
-        self._shape_preview = None
-        self._sel_rect      = None
-        self._sel_origin    = None
-        self._sel_img       = None
-        self._sel_mask      = None
-
-        self.recent_colors: deque = deque(maxlen=12)
-
-        self.on_pick          = None
-        self.on_frame_changed = None
-        self.on_layer_changed = None
-        self.on_cursor_moved  = None
-
-        self.set_draw_func(self._draw)
-        self.set_hexpand(True); self.set_vexpand(True); self.set_focusable(True)
-
-        d1 = Gtk.GestureDrag(); d1.set_button(1)
-        d1.connect("drag-begin",  self._db)
-        d1.connect("drag-update", self._du)
-        d1.connect("drag-end",    self._de)
-        self.add_controller(d1)
-
-        d2 = Gtk.GestureDrag(); d2.set_button(2)
-        d2.connect("drag-begin",  self._pb)
-        d2.connect("drag-update", self._pu)
-        self.add_controller(d2)
-
-        mo = Gtk.EventControllerMotion()
-        mo.connect("motion", self._on_motion)
-        mo.connect("leave", self._on_leave)
-        self.add_controller(mo)
-
-        sc = Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.VERTICAL)
-        sc.connect("scroll", self._on_scroll)
-        self.add_controller(sc)
-
-        ky = Gtk.EventControllerKey()
-        ky.connect("key-pressed",  self._on_kp)
-        ky.connect("key-released", self._on_kr)
-        self.add_controller(ky)
-
-        # presión de tableta / stylus via eventos legacy
-        leg = Gtk.EventControllerLegacy()
-        leg.connect("event", self._on_legacy_event)
-        self.add_controller(leg)
-
-    def _on_legacy_event(self, ctrl, event):
-        """Captura presión de stylus/tableta."""
-        if event is None:
-            return False
-        try:
-            t = event.get_event_type()
-            if t in (Gdk.EventType.MOTION_NOTIFY, Gdk.EventType.BUTTON_PRESS):
-                ok, val = event.get_axis(Gdk.AxisUse.PRESSURE)
-                if ok and val > 0:
-                    self._pressure = float(val)
-                else:
-                    self._pressure = 1.0
-        except Exception:
-            pass
-        return False
-
-    # ── coordenadas ──────────────────────────────────────────────────────────
-    def _origin(self):
-        w = self.get_allocated_width()
-        h = self.get_allocated_height()
-        ox = self._off[0] + (w - self.cw * self._zoom) / 2
-        oy = self._off[1] + (h - self.ch * self._zoom) / 2
-        return ox, oy
-
-    def _s2c(self, sx, sy):
-        ox, oy = self._origin()
-        return (sx - ox) / self._zoom, (sy - oy) / self._zoom
-
-    # ── zoom ─────────────────────────────────────────────────────────────────
-    def zoom_at(self, factor, sx, sy):
-        old = self._zoom
-        new = max(ZOOM_MIN, min(ZOOM_MAX, old * factor))
-        if new == old: return
-        cx, cy = self._s2c(sx, sy)
-        self._zoom = new
-        ox, oy = self._origin()
-        self._off[0] += sx - (ox + cx * new)
-        self._off[1] += sy - (oy + cy * new)
-        self.queue_draw()
-
-    def zoom_fit(self):
-        w = self.get_allocated_width(); h = self.get_allocated_height()
-        if w <= 0 or h <= 0: return
-        self._zoom = min(w / self.cw, h / self.ch) * 0.92
-        self._off  = [0.0, 0.0]; self.queue_draw()
-
-    # ── estabilizador ─────────────────────────────────────────────────────────
-    def _stabilize(self, cx, cy):
-        if not self.stabilizer or self._lazy_x is None:
-            self._lazy_x, self._lazy_y = float(cx), float(cy)
-        else:
-            f = STAB_FACTOR
-            self._lazy_x += (cx - self._lazy_x) * (1 - f)
-            self._lazy_y += (cy - self._lazy_y) * (1 - f)
-        return self._lazy_x, self._lazy_y
-
-    # ── capas ─────────────────────────────────────────────────────────────────
-    @property
-    def active_layer(self) -> Layer:
-        layers = self._frames[self._cur]
-        return layers[max(0, min(self._active, len(layers) - 1))]
-
-    def _sym_points(self, cx: int, cy: int):
-        pts = [(cx, cy)]
-        if self.symmetry in ("h", "hv"):  pts.append((self.cw - 1 - cx, cy))
-        if self.symmetry in ("v", "hv"):  pts.append((cx, self.ch - 1 - cy))
-        if self.symmetry == "hv":         pts.append((self.cw - 1 - cx, self.ch - 1 - cy))
-        return pts
-
-    # ── stamp cache ───────────────────────────────────────────────────────────
-    def _stamp(self, color=None) -> Image.Image:
-        c = color or self.fg_color
-        eff_opacity = max(1, int(self.opacity * self._pressure))
-        if self.brush_type in RANDOM_BRUSHES:
-            return _make_stamp(self.brush_r, self.softness, c, eff_opacity, self.brush_type)
-        key = (self.brush_r, round(self.softness, 2), c, eff_opacity, self.brush_type)
-        if key not in self._stamp_cache:
-            if len(self._stamp_cache) > 64:
-                self._stamp_cache.pop(next(iter(self._stamp_cache)))
-            self._stamp_cache[key] = _make_stamp(
-                self.brush_r, self.softness, c, eff_opacity, self.brush_type)
-        return self._stamp_cache[key]
-
-    # ── undo/redo ─────────────────────────────────────────────────────────────
-    def _snapshot(self):
-        snap = []
-        for frame in self._frames:
-            snap.append([(l.name, l.image.copy(), l.visible, l.opacity,
-                          l.blend_mode, l.locked, l.alpha_locked)
-                         for l in frame])
-        return snap
-
-    def snap_undo(self):
-        self._undo.append(self._snapshot())
-        if len(self._undo) > MAX_UNDO: self._undo.pop(0)
-        self._redo.clear()
-
-    def _restore(self, snap):
-        self._frames = []
-        for frame_snap in snap:
-            layers = []
-            for name, img, vis, opa, bm, lk, alk in frame_snap:
-                l = Layer(self.cw, self.ch, name)
-                l.image = img; l.visible = vis; l.opacity = opa
-                l.blend_mode = bm; l.locked = lk; l.alpha_locked = alk
-                layers.append(l)
-            self._frames.append(layers)
-        self._cur    = min(self._cur, len(self._frames) - 1)
-        self._active = min(self._active, len(self._frames[self._cur]) - 1)
-        self._comp_dirty = set(range(len(self._frames)))
-
-    def _restore_snap(self, snap):
-        """Restaura un snapshot dado sin toccar undo/redo (para smooth strokes)."""
-        self._restore(snap)
-
-    def undo(self):
-        if not self._undo: return
-        self._redo.append(self._snapshot()); self._restore(self._undo.pop())
-        self.queue_draw()
-        if self.on_frame_changed: self.on_frame_changed()
-        if self.on_layer_changed: self.on_layer_changed()
-
-    def redo(self):
-        if not self._redo: return
-        self._undo.append(self._snapshot()); self._restore(self._redo.pop())
-        self.queue_draw()
-        if self.on_frame_changed: self.on_frame_changed()
-        if self.on_layer_changed: self.on_layer_changed()
-
-    # ── composición ───────────────────────────────────────────────────────────
-    def _composite(self, fi: int) -> Image.Image:
-        result = Image.new("RGBA", (self.cw, self.ch), (0, 0, 0, 0))
-        for layer in self._frames[fi]:
-            if layer.visible:
-                result = _blend_images(result, layer.image, layer.blend_mode, layer.opacity)
-        # aplicar cámara si hay transformación
-        cam = self._frame_camera[fi] if fi < len(self._frame_camera) else None
-        if cam and (cam["tx"] != 0 or cam["ty"] != 0 or cam["scale"] != 1.0 or cam["rot"] != 0.0):
-            result = _apply_camera(result, cam)
-        return result
-
-    def _get_surf(self, fi: int) -> cairo.ImageSurface:
-        if fi in self._comp_dirty or fi not in self._comp_cache:
-            data = _pil_to_cairo(self._composite(fi))
-            self._comp_cache[fi] = data; self._comp_dirty.discard(fi)
-        d = self._comp_cache[fi]
-        return cairo.ImageSurface.create_for_data(
-            d, cairo.Format.ARGB32, self.cw, self.ch, self.cw * 4)
-
-    def _dirty(self): self._comp_dirty.add(self._cur)
-
-    # ── herramientas de dibujo ────────────────────────────────────────────────
-    def _do_brush(self, cx: float, cy: float):
-        layer = self.active_layer
-        if layer.locked: return
-        img   = layer.image
-        stamp = self._stamp()
-        sw, sh = stamp.size
-
-        if layer.alpha_locked and _NP:
-            alpha_orig = np.array(img)[:, :, 3].copy()
-
-        for px, py in self._sym_points(int(cx), int(cy)):
-            tmp = Image.new("RGBA", img.size, (0, 0, 0, 0))
-            try: tmp.paste(stamp, (px - sw//2, py - sh//2), stamp)
-            except Exception: pass
-            img.alpha_composite(tmp)
-
-        if layer.alpha_locked and _NP:
-            arr = np.array(img)
-            arr[:, :, 3] = alpha_orig
-            layer.image = Image.fromarray(arr, "RGBA")
-
-        self._dirty()
-
-    def _do_eraser(self, cx: float, cy: float):
-        layer = self.active_layer
-        if layer.locked: return
-        img = layer.image
-        if _NP:
-            arr = np.array(img)
-            for px, py in self._sym_points(int(cx), int(cy)):
-                r = self.brush_r
-                ys, xs = np.ogrid[:img.height, :img.width]
-                mask = (xs-px)**2 + (ys-py)**2 <= r*r
-                arr[mask, 3] = np.maximum(
-                    0, arr[mask, 3].astype(int) - self.opacity).astype(np.uint8)
-            layer.image = Image.fromarray(arr, "RGBA")
-        else:
-            draw = ImageDraw.Draw(img)
-            for px, py in self._sym_points(int(cx), int(cy)):
-                r = self.brush_r
-                draw.ellipse([px-r, py-r, px+r, py+r], fill=(0, 0, 0, 0))
-        self._dirty()
-
-    def _do_smudge(self, cx: float, cy: float):
-        layer = self.active_layer
-        if layer.locked or not _NP: return
-        arr = np.array(layer.image)
-        r   = max(2, self.brush_r)
-        for px, py in self._sym_points(int(cx), int(cy)):
-            x1, y1 = max(0, px-r), max(0, py-r)
-            x2, y2 = min(self.cw, px+r+1), min(self.ch, py+r+1)
-            if x2 <= x1 or y2 <= y1: continue
-            patch = arr[y1:y2, x1:x2, :3]
-            blurred = np.array(
-                Image.fromarray(patch, "RGB").filter(
-                    ImageFilter.GaussianBlur(radius=max(1, r//3))))
-            arr[y1:y2, x1:x2, :3] = blurred
-        layer.image = Image.fromarray(arr, "RGBA")
-        self._dirty()
-
-    def _do_fill(self, cx: float, cy: float):
-        layer = self.active_layer
-        if layer.locked: return
-        x, y = max(0, min(int(cx), self.cw-1)), max(0, min(int(cy), self.ch-1))
-        img  = layer.image
-        target = img.getpixel((x, y))
-        nc = tuple(self.fg_color)
-        if tuple(target) == nc: return
-        if _NP:
-            arr = np.array(img)
-            tgt = np.array(target, dtype=np.uint8)
-            vis = np.zeros((self.ch, self.cw), dtype=bool)
-            stk = [(x, y)]
-            while stk:
-                px, py = stk.pop()
-                if px<0 or px>=self.cw or py<0 or py>=self.ch: continue
-                if vis[py,px]: continue
-                if not np.array_equal(arr[py,px], tgt): continue
-                vis[py,px] = True; arr[py,px] = nc
-                stk += [(px+1,py),(px-1,py),(px,py+1),(px,py-1)]
-            layer.image = Image.fromarray(arr, "RGBA")
-        else:
-            ImageDraw.floodfill(img, (x, y), nc)
-        self._dirty()
-
-    def _do_gradient(self, x1: float, y1: float, x2: float, y2: float):
-        layer = self.active_layer
-        if layer.locked or not _NP: return
-        dx, dy = x2-x1, y2-y1
-        length = math.sqrt(dx*dx + dy*dy)
-        if length < 1: return
-        arr = np.array(layer.image, dtype=np.float32)
-        h, w = arr.shape[:2]
-        ys, xs = np.mgrid[:h, :w]
-        t = np.clip(((xs-x1)*dx + (ys-y1)*dy) / (length*length), 0, 1)
-        fg = np.array(self.fg_color, dtype=np.float32)
-        bg = np.array(self.bg_color, dtype=np.float32)
-        grad = fg[None,None,:] * (1-t[:,:,None]) + bg[None,None,:] * t[:,:,None]
-        ga, aa = grad[:,:,3:4]/255.0, arr[:,:,3:4]/255.0
-        out_a = ga + aa*(1-ga)
-        safe  = np.where(out_a > 0, out_a, 1)
-        rgb   = (grad[:,:,:3]*ga + arr[:,:,:3]*aa*(1-ga)) / safe
-        out   = np.clip(np.concatenate([rgb, out_a*255], axis=2), 0, 255).astype(np.uint8)
-        layer.image = Image.fromarray(out, "RGBA")
-        self._dirty()
-
-    def _do_pick(self, cx: float, cy: float):
-        x, y = int(cx), int(cy)
-        if 0 <= x < self.cw and 0 <= y < self.ch:
-            c = self._composite(self._cur).getpixel((x, y))
-            self._add_recent(c)
-            if self.on_pick: self.on_pick(c)
-
-    def _do_magic_wand(self, cx: float, cy: float):
-        x, y = int(cx), int(cy)
-        x, y = max(0, min(x, self.cw-1)), max(0, min(y, self.ch-1))
-        tol = getattr(self, 'magic_wand_tolerance', 32)
-        img = self.active_layer.image
-        target = img.getpixel((x, y))
-        if _NP:
-            arr = np.array(img, dtype=np.int32)
-            tgt = np.array(target[:3], dtype=np.int32)
-            diff = np.sqrt(np.sum((arr[:,:,:3] - tgt[None,None,:])**2, axis=2))
-            mask = (diff <= tol)
-            rows = np.any(mask, axis=1); cols = np.any(mask, axis=0)
-            if rows.any():
-                self._sel_rect = (float(cols.argmax()), float(rows.argmax()),
-                                  float(self.cw-1-cols[::-1].argmax()),
-                                  float(self.ch-1-rows[::-1].argmax()))
-                self._sel_mask = mask
-        self._dirty(); self.queue_draw()
-
-    def _do_shape(self, x1: float, y1: float, x2: float, y2: float):
-        layer = self.active_layer
-        if layer.locked: return
-        img  = layer.image
-        draw = ImageDraw.Draw(img)
-        ix1, iy1 = int(min(x1,x2)), int(min(y1,y2))
-        ix2, iy2 = int(max(x1,x2)), int(max(y1,y2))
-        lw = max(1, self.brush_r * 2)
-        fc = tuple(self.fg_color)
-        if   self.tool == "rect_fill":
-            draw.rectangle([ix1,iy1,ix2,iy2], fill=fc)
-        elif self.tool == "rect_outline":
-            draw.rectangle([ix1,iy1,ix2,iy2], fill=None, outline=fc, width=lw)
-        elif self.tool == "ellipse_fill":
-            draw.ellipse([ix1,iy1,ix2,iy2], fill=fc)
-        elif self.tool == "ellipse_outline":
-            draw.ellipse([ix1,iy1,ix2,iy2], fill=None, outline=fc, width=lw)
-        self._dirty()
-
-    def _add_recent(self, color):
-        color = tuple(color)
-        if color in self.recent_colors: self.recent_colors.remove(color)
-        self.recent_colors.appendleft(color)
-
-    # ── selección / mover ─────────────────────────────────────────────────────
-    def _lift_selection(self):
-        if not self._sel_rect: return
-        x1,y1,x2,y2 = self._sel_rect
-        x1i, y1i = max(0,int(x1)), max(0,int(y1))
-        x2i, y2i = min(self.cw,int(x2)+1), min(self.ch,int(y2)+1)
-        if x2i<=x1i or y2i<=y1i: return
-        self.snap_undo()
-        img = self.active_layer.image
-        self._sel_img       = img.crop((x1i,y1i,x2i,y2i)).copy()
-        self._sel_lift_orig = (x1i, y1i)
-        draw = ImageDraw.Draw(img)
-        draw.rectangle([x1i,y1i,x2i,y2i], fill=(0,0,0,0))
-        self._dirty()
-
-    def _move_selection(self, cx, cy):
-        if self._sel_img is None or self._sel_origin is None: return
-        ox, oy = self._sel_origin
-        x1,y1,x2,y2 = self._sel_rect
-        w = x2-x1; h = y2-y1
-        nx1, ny1 = x1+(cx-ox), y1+(cy-oy)
-        self._sel_rect  = (nx1, ny1, nx1+w, ny1+h)
-        self._sel_origin = (cx, cy)
-        self.queue_draw()
-
-    def commit_selection(self):
-        if self._sel_img is None or self._sel_rect is None: return
-        x1,y1,_,_ = self._sel_rect
-        img = self.active_layer.image
-        img.alpha_composite(self._sel_img, dest=(int(x1), int(y1)))
-        self._sel_img = None; self._sel_origin = None
-        self._dirty(); self.queue_draw()
-
-    # ── pan ──────────────────────────────────────────────────────────────────
-    def _pan_begin_xy(self, sx, sy):
-        self._panning = True
-        self._pan_ox, self._pan_oy = self._off[0], self._off[1]
-        self._pan_sx, self._pan_sy = sx, sy
-
-    def _pb(self, g, sx, sy): self._pan_begin_xy(sx, sy)
-
-    def _pu(self, g, dx, dy):
-        if not self._panning: return
-        self._off[0] = self._pan_ox + dx; self._off[1] = self._pan_oy + dy
-        self.queue_draw()
-
-    # ── entrada gestos ────────────────────────────────────────────────────────
-    def _db(self, g, sx, sy):
-        self._drag_sx, self._drag_sy = sx, sy
-        self._lazy_x = self._lazy_y = None
-        if self._space_held:
-            self._pan_begin_xy(sx, sy); return
-        self._drawing = True
-        cx, cy = self._s2c(sx, sy)
-
-        if self.tool in ("gradient", "line"):
-            self.snap_undo()
-            self._grad_start = (cx, cy); self._grad_preview = None; return
-
-        if self.tool in ("rect_fill","rect_outline","ellipse_fill","ellipse_outline"):
-            self.snap_undo()
-            self._shape_start = (cx, cy); self._shape_preview = None; return
-
-        if self.tool == "select":
-            self._sel_rect   = (cx, cy, cx, cy)
-            self._sel_origin = None; self._sel_img = None
-            self.queue_draw(); return
-
-        if self.tool == "move":
-            if self._sel_rect and self._sel_img is None:
-                self._lift_selection()
-            self._sel_origin = (cx, cy); return
-
-        if self.tool == "magic_wand":
-            self._do_magic_wand(cx, cy); return
-
-        if self.tool == "vec_pen":
-            layer = self.active_layer
-            if isinstance(layer, VectorLayer):
-                self.snap_undo()
-                layer.begin_path(int(cx), int(cy), self.fg_color, max(1, self.brush_r//2))
-            return
-
-        self.snap_undo()
-        self._prestroke_snap = self._snapshot() if self.smooth_strokes else None
-        self._stroke_pts = []
-        lx, ly = self._stabilize(cx, cy)
-        self._apply_point(int(lx), int(ly))
-        self._last_cx, self._last_cy = lx, ly
-        self._stroke_pts.append((lx, ly))
-        self.queue_draw()
-
-    def _du(self, g, dx, dy):
-        if self._space_held and self._panning:
-            self._pu(g, dx, dy); return
-        if not self._drawing: return
-        cx, cy = self._s2c(self._drag_sx+dx, self._drag_sy+dy)
-
-        if self.tool in ("gradient","line"):
-            self._grad_preview = (cx, cy); self.queue_draw(); return
-
-        if self.tool in ("rect_fill","rect_outline","ellipse_fill","ellipse_outline"):
-            self._shape_preview = (cx, cy); self.queue_draw(); return
-
-        if self.tool == "select":
-            x0,y0,_,_ = self._sel_rect
-            self._sel_rect = (x0,y0,cx,cy); self.queue_draw(); return
-
-        if self.tool == "move" and self._sel_rect and self._sel_origin:
-            self._move_selection(cx, cy); return
-
-        if self.tool == "vec_pen":
-            layer = self.active_layer
-            if isinstance(layer, VectorLayer):
-                layer.add_point(int(cx), int(cy)); self.queue_draw()
-            return
-
-        lx, ly = self._stabilize(cx, cy)
-        if self.tool in ("brush","eraser","smudge"):
-            for px, py in _interp(int(self._last_cx), int(self._last_cy),
-                                   int(lx), int(ly)):
-                self._apply_point(px, py)
-            self._last_cx, self._last_cy = lx, ly
-            self._stroke_pts.append((lx, ly))
-        elif self.tool == "fill":
-            self._apply_point(int(lx), int(ly))
-        self.queue_draw()
-
-    def _de(self, g, dx, dy):
-        if self._space_held: self._panning = False; return
-        if not self._drawing: self._drawing = False; return
-        cx, cy = self._s2c(self._drag_sx+dx, self._drag_sy+dy)
-
-        if self.tool == "line" and self._grad_start:
-            img  = self.active_layer.image
-            draw = ImageDraw.Draw(img)
-            lw   = max(1, self.brush_r * 2)
-            draw.line([tuple(map(int, self._grad_start)), (int(cx), int(cy))],
-                      fill=tuple(self.fg_color), width=lw)
-            self._dirty()
-            self._grad_start = self._grad_preview = None
-
-        elif self.tool == "gradient" and self._grad_start:
-            self._do_gradient(*self._grad_start, cx, cy)
-            self._grad_start = self._grad_preview = None
-
-        elif self.tool in ("rect_fill","rect_outline","ellipse_fill","ellipse_outline"):
-            if self._shape_start:
-                self._do_shape(*self._shape_start, cx, cy)
-            self._shape_start = self._shape_preview = None
-
-        elif self.tool == "select":
-            x0,y0,_,_ = self._sel_rect
-            self._sel_rect = (min(x0,cx), min(y0,cy), max(x0,cx), max(y0,cy))
-
-        elif self.tool == "pick":
-            self._do_pick(cx, cy)
-
-        elif self.tool == "vec_pen":
-            layer = self.active_layer
-            if isinstance(layer, VectorLayer):
-                layer.add_point(int(cx), int(cy))
-                layer.end_path(closed=False)
-                self._dirty(); self.queue_draw()
-                if self.on_layer_changed: self.on_layer_changed()
-
-        # suavizado de trazo post-stroke (Chaikin)
-        if (self.smooth_strokes and self._prestroke_snap
-                and self.tool in ("brush","eraser")
-                and len(self._stroke_pts) > 4):
-            self._restore_snap(self._prestroke_snap)
-            smoothed = _chaikin(self._stroke_pts, iters=3)
-            for i in range(len(smoothed) - 1):
-                for px, py in _interp(int(smoothed[i][0]),   int(smoothed[i][1]),
-                                       int(smoothed[i+1][0]), int(smoothed[i+1][1])):
-                    self._apply_point(px, py)
-            self._dirty()
-
-        self._stroke_pts = []; self._prestroke_snap = None
-        self._drawing = False; self.queue_draw()
-
-    def _apply_point(self, cx: int, cy: int):
-        if   self.tool == "brush":  self._do_brush(cx, cy)
-        elif self.tool == "eraser": self._do_eraser(cx, cy)
-        elif self.tool == "smudge": self._do_smudge(cx, cy)
-        elif self.tool == "fill":   self._do_fill(cx, cy)
-        elif self.tool == "pick":   self._do_pick(cx, cy)
-
-    # ── motion / scroll / teclado ─────────────────────────────────────────────
-    def _on_motion(self, ctrl, sx, sy):
-        self._cursor_sx, self._cursor_sy = sx, sy
-        cx, cy = self._s2c(sx, sy)
-        if self.on_cursor_moved and 0 <= int(cx) < self.cw and 0 <= int(cy) < self.ch:
-            comp  = self._composite(self._cur)
-            color = comp.getpixel((int(cx), int(cy)))
-            self.on_cursor_moved(cx, cy, color)
-        self.queue_draw()
-
-    def _on_leave(self, ctrl):
-        # al salir del canvas, oculta el cursor de pincel para que no quede
-        # un círculo "fantasma" dibujado encima del lienzo
-        self._cursor_sx = self._cursor_sy = -1.0
-        self.queue_draw()
-
-    def _on_scroll(self, ctrl, dx, dy):
-        mods = ctrl.get_current_event_state()
-        if mods & Gdk.ModifierType.CONTROL_MASK:
-            factor = 0.8 if dy > 0 else 1.25
-            self.zoom_at(factor, self._cursor_sx, self._cursor_sy)
-            return True
-        return False
-
-    def _on_kp(self, ctrl, kv, kc, mods):
-        if Gdk.keyval_name(kv) == "space":
-            self._space_held = True
-            if not self._panning and not self._drawing:
-                self._pan_begin_xy(self._cursor_sx, self._cursor_sy)
-            return True
-        return False
-
-    def _on_kr(self, ctrl, kv, kc, mods):
-        if Gdk.keyval_name(kv) == "space":
-            self._space_held = False; self._panning = False; return True
-        return False
-
-    # ── cairo render ──────────────────────────────────────────────────────────
-    def _draw_checker(self, cr, ox, oy):
-        sq, z = 16, self._zoom
-        for y in range(0, self.ch, sq):
-            for x in range(0, self.cw, sq):
-                v = 0.22 if (x//sq + y//sq) % 2 == 0 else 0.16
-                cr.set_source_rgb(v, v, v)
-                cr.rectangle(ox+x*z, oy+y*z, min(sq,self.cw-x)*z, min(sq,self.ch-y)*z)
-                cr.fill()
-
-    def _draw(self, area, cr, width, height):
-        ox, oy = self._origin()
-        z = self._zoom
-
-        cr.set_source_rgb(0.118, 0.118, 0.180); cr.paint()
-
-        cr.save()
-        cr.rectangle(ox, oy, self.cw*z, self.ch*z); cr.clip()
-        self._draw_checker(cr, ox, oy)
-        cr.restore()
-
-        # onion skin rojo/azul multi-frame
-        if self.onion:
-            for delta, tint, am in [(-2,(1,.3,.3),.12),(-1,(1,.55,.55),.22),
-                                     (1,(.55,.55,1),.18),(2,(.4,.6,1),.10)]:
-                fi = self._cur + delta
-                if 0 <= fi < len(self._frames):
-                    surf = self._get_surf(fi)
-                    cr.save(); cr.translate(ox, oy); cr.scale(z, z)
-                    pat = cairo.SurfacePattern(surf)
-                    pat.set_filter(cairo.Filter.BILINEAR)
-                    cr.set_source(pat)
-                    cr.paint_with_alpha(am * 3.0)
-                    cr.set_source_rgba(*tint, am)
-                    cr.paint(); cr.restore()
-
-        # composición actual
-        surf = self._get_surf(self._cur)
-        cr.save(); cr.translate(ox, oy); cr.scale(z, z)
-        pat = cairo.SurfacePattern(surf)
-        pat.set_filter(cairo.Filter.BILINEAR)
-        cr.set_source(pat); cr.paint()
-
-        # preview gradiente/línea
-        gp = self._grad_preview
-        if self.tool in ("gradient","line") and gp and self._grad_start and self._drawing:
-            cr.set_source_rgba(*(c/255 for c in self.fg_color))
-            cr.set_line_width(max(1, self.brush_r))
-            cr.move_to(*self._grad_start); cr.line_to(*gp); cr.stroke()
-        cr.restore()
-
-        # shape preview
-        sp = self._shape_preview
-        if self.tool in ("rect_fill","rect_outline","ellipse_fill","ellipse_outline"):
-            if self._drawing and self._shape_start and sp:
-                x1,y1 = self._shape_start; x2,y2 = sp
-                rx1,ry1 = ox+min(x1,x2)*z, oy+min(y1,y2)*z
-                rw,rh = abs(x2-x1)*z, abs(y2-y1)*z
-                cr.set_source_rgba(*(c/255 for c in self.fg_color[:3]), 0.75)
-                cr.set_line_width(1.5); cr.set_dash([4.0,4.0])
-                if "rect" in self.tool:
-                    cr.rectangle(rx1,ry1,rw,rh)
-                else:
-                    if rw > 0 and rh > 0:
-                        cr.save()
-                        cr.translate(rx1+rw/2, ry1+rh/2)
-                        cr.scale(rw/2, rh/2)
-                        cr.arc(0, 0, 1, 0, 2*math.pi)
-                        cr.restore()
-                cr.stroke(); cr.set_dash([])
-
-        # borde lienzo
-        cr.set_source_rgba(0.4, 0.4, 0.5, 0.5)
-        cr.set_line_width(1.0)
-        cr.rectangle(ox, oy, self.cw*z, self.ch*z); cr.stroke()
-
-        self._draw_sym_guides(cr, ox, oy, z)
-        self._draw_sel(cr, ox, oy, z)
-        self._draw_cursor(cr, ox, oy, z)
-
-    def _draw_sym_guides(self, cr, ox, oy, z):
-        if self.symmetry == "none": return
-        cr.set_source_rgba(0.8, 0.4, 1.0, 0.55)
-        cr.set_line_width(1.0); cr.set_dash([6.0, 4.0])
-        if self.symmetry in ("h","hv"):
-            mx = ox + self.cw/2*z
-            cr.move_to(mx, oy); cr.line_to(mx, oy+self.ch*z); cr.stroke()
-        if self.symmetry in ("v","hv"):
-            my = oy + self.ch/2*z
-            cr.move_to(ox, my); cr.line_to(ox+self.cw*z, my); cr.stroke()
-        cr.set_dash([])
-
-    def _draw_sel(self, cr, ox, oy, z):
-        if not self._sel_rect: return
-        x1,y1,x2,y2 = self._sel_rect
-        cr.set_source_rgba(0.8, 0.65, 1.0, 0.9)
-        cr.set_line_width(1.0); cr.set_dash([4.0, 4.0])
-        cr.rectangle(ox+x1*z, oy+y1*z, (x2-x1)*z, (y2-y1)*z); cr.stroke()
-        cr.set_dash([])
-
-    def _draw_cursor(self, cr, ox, oy, z):
-        sx, sy = self._cursor_sx, self._cursor_sy
-        if sx < 0: return
-        cx, cy = self._s2c(sx, sy)
-        if not (0 <= cx < self.cw and 0 <= cy < self.ch): return
-
-        if self.tool in ("brush","eraser","smudge"):
-            r = self.brush_r * z
-            cr.set_source_rgba(1, 1, 1, 0.85); cr.set_line_width(2.0)
-            cr.arc(sx, sy, max(2, r), 0, 2*math.pi); cr.stroke()
-            cr.set_source_rgba(0, 0, 0, 0.45); cr.set_line_width(1.0)
-            cr.arc(sx, sy, max(1, r-1.5), 0, 2*math.pi); cr.stroke()
-            blue = (0.8, 0.4, 1.0, 0.7)
-            if self.symmetry in ("h","hv"):
-                mx = ox + (self.cw-1-cx)*z
-                cr.set_source_rgba(*blue); cr.set_line_width(1.5)
-                cr.arc(mx, sy, max(2, r), 0, 2*math.pi); cr.stroke()
-            if self.symmetry in ("v","hv"):
-                my = oy + (self.ch-1-cy)*z
-                cr.set_source_rgba(*blue); cr.set_line_width(1.5)
-                cr.arc(sx, my, max(2, r), 0, 2*math.pi); cr.stroke()
-            if self.symmetry == "hv":
-                mx2 = ox + (self.cw-1-cx)*z; my2 = oy + (self.ch-1-cy)*z
-                cr.set_source_rgba(*blue); cr.set_line_width(1.5)
-                cr.arc(mx2, my2, max(2, r), 0, 2*math.pi); cr.stroke()
-        else:
-            cr.set_source_rgba(1, 1, 1, 0.9); cr.set_line_width(1.5); sz = 8
-            cr.move_to(sx-sz, sy); cr.line_to(sx+sz, sy)
-            cr.move_to(sx, sy-sz); cr.line_to(sx, sy+sz); cr.stroke()
-
-    # ── frames ────────────────────────────────────────────────────────────────
-    @property
-    def frame_count(self): return len(self._frames)
-
-    def _cam_default(self):
-        return {"tx": 0.0, "ty": 0.0, "scale": 1.0, "rot": 0.0}
-
-    def _sync_meta(self):
-        """Asegura que _frame_labels y _frame_camera tengan misma longitud que _frames."""
-        n = len(self._frames)
-        while len(self._frame_labels) < n:  self._frame_labels.append("")
-        while len(self._frame_camera) < n:  self._frame_camera.append(self._cam_default())
-        self._frame_labels = self._frame_labels[:n]
-        self._frame_camera  = self._frame_camera[:n]
-
-    def add_frame(self):
-        self.snap_undo()
-        self._frames.insert(self._cur+1, [Layer(self.cw, self.ch, "Capa 1")])
-        self._frame_labels.insert(self._cur+1, "")
-        self._frame_camera.insert(self._cur+1, self._cam_default())
-        self._cur += 1; self._comp_dirty.add(self._cur)
-        self.queue_draw()
-        if self.on_frame_changed: self.on_frame_changed()
-        if self.on_layer_changed: self.on_layer_changed()
-
-    def duplicate_frame(self):
-        self.snap_undo()
-        new_layers = []
-        for l in self._frames[self._cur]:
-            nl = Layer(self.cw, self.ch, l.name)
-            nl.image = l.image.copy(); nl.visible = l.visible
-            nl.opacity = l.opacity; nl.blend_mode = l.blend_mode
-            nl.locked = l.locked; nl.alpha_locked = l.alpha_locked
-            new_layers.append(nl)
-        self._frames.insert(self._cur+1, new_layers)
-        self._frame_labels.insert(self._cur+1, self._frame_labels[self._cur])
-        self._frame_camera.insert(self._cur+1, dict(self._frame_camera[self._cur]))
-        self._cur += 1; self._comp_dirty.add(self._cur)
-        self.queue_draw()
-        if self.on_frame_changed: self.on_frame_changed()
-        if self.on_layer_changed: self.on_layer_changed()
-
-    def delete_frame(self):
-        if len(self._frames) <= 1: return
-        self.snap_undo()
-        self._frames.pop(self._cur)
-        if self._cur < len(self._frame_labels): self._frame_labels.pop(self._cur)
-        if self._cur < len(self._frame_camera):  self._frame_camera.pop(self._cur)
-        self._cur = min(self._cur, len(self._frames)-1)
-        self._comp_dirty = set(range(len(self._frames)))
-        self.queue_draw()
-        if self.on_frame_changed: self.on_frame_changed()
-
-    def go_to(self, idx: int):
-        self._cur = max(0, min(idx, len(self._frames)-1))
-        self.queue_draw()
-        if self.on_frame_changed: self.on_frame_changed()
-        if self.on_layer_changed: self.on_layer_changed()
-
-    def copy_frame(self):
-        src = self._frames[self._cur]
-        clip = []
-        for l in src:
-            nl = Layer(self.cw, self.ch, l.name)
-            nl.image = l.image.copy(); nl.visible = l.visible
-            nl.opacity = l.opacity; nl.blend_mode = l.blend_mode
-            nl.locked = l.locked; nl.alpha_locked = l.alpha_locked
-            clip.append(nl)
-        self._clip_frame = clip
-
-    def paste_frame(self):
-        if self._clip_frame is None: return
-        self.snap_undo()
-        new_layers = []
-        for l in self._clip_frame:
-            nl = Layer(self.cw, self.ch, l.name)
-            nl.image = l.image.copy(); nl.visible = l.visible
-            nl.opacity = l.opacity; nl.blend_mode = l.blend_mode
-            nl.locked = l.locked; nl.alpha_locked = l.alpha_locked
-            new_layers.append(nl)
-        self._frames.insert(self._cur+1, new_layers)
-        self._cur += 1; self._comp_dirty.add(self._cur)
-        self.queue_draw()
-        if self.on_frame_changed: self.on_frame_changed()
-        if self.on_layer_changed: self.on_layer_changed()
-
-    # ── operaciones de capa ───────────────────────────────────────────────────
-    def add_layer(self):
-        self.snap_undo()
-        layers = self._frames[self._cur]
-        layers.append(Layer(self.cw, self.ch, f"Capa {len(layers)+1}"))
-        self._active = len(layers)-1
-        self._dirty(); self.queue_draw()
-        if self.on_layer_changed: self.on_layer_changed()
-
-    def delete_layer(self):
-        layers = self._frames[self._cur]
-        if len(layers) <= 1: return
-        self.snap_undo()
-        layers.pop(self._active)
-        self._active = max(0, self._active-1)
-        self._dirty(); self.queue_draw()
-        if self.on_layer_changed: self.on_layer_changed()
-
-    def duplicate_layer(self):
-        self.snap_undo()
-        layers = self._frames[self._cur]
-        src = layers[self._active]
-        nl = Layer(self.cw, self.ch, src.name+" copia")
-        nl.image = src.image.copy(); nl.visible = src.visible
-        nl.opacity = src.opacity; nl.blend_mode = src.blend_mode
-        nl.locked = src.locked; nl.alpha_locked = src.alpha_locked
-        layers.insert(self._active+1, nl)
-        self._active += 1
-        self._dirty(); self.queue_draw()
-        if self.on_layer_changed: self.on_layer_changed()
-
-    def merge_down(self):
-        layers = self._frames[self._cur]
-        if self._active == 0: return
-        self.snap_undo()
-        top = layers[self._active]; bot = layers[self._active-1]
-        bot.image = _blend_images(bot.image, top.image, top.blend_mode, top.opacity)
-        layers.pop(self._active); self._active -= 1
-        self._dirty(); self.queue_draw()
-        if self.on_layer_changed: self.on_layer_changed()
-
-    def flatten(self):
-        self.snap_undo()
-        comp = self._composite(self._cur)
-        nl = Layer(self.cw, self.ch, "Fondo"); nl.image = comp
-        self._frames[self._cur] = [nl]; self._active = 0
-        self._dirty(); self.queue_draw()
-        if self.on_layer_changed: self.on_layer_changed()
-
-    def move_layer(self, delta: int):
-        layers = self._frames[self._cur]
-        i, j = self._active, self._active+delta
-        if not (0 <= j < len(layers)): return
-        self.snap_undo()
-        layers[i], layers[j] = layers[j], layers[i]
-        self._active = j
-        self._dirty(); self.queue_draw()
-        if self.on_layer_changed: self.on_layer_changed()
-
-    def set_layer_prop(self, idx, **kw):
-        layers = self._frames[self._cur]
-        if not (0 <= idx < len(layers)): return
-        l = layers[idx]
-        for k, v in kw.items(): setattr(l, k, v)
-        self._dirty(); self.queue_draw()
-
-    # ── importar / cargar ─────────────────────────────────────────────────────
-    def import_image(self, path):
-        im = Image.open(path).convert("RGBA").resize((self.cw,self.ch), Image.LANCZOS)
-        self.snap_undo()
-        self.active_layer.image = im
-        self._dirty(); self.queue_draw()
-
-    def load_from_dir(self, frames_dir: Path):
-        files = sorted(frames_dir.glob("frame_*.png"))[:MAX_FRAMES]
-        if not files: return False
-        first = Image.open(files[0]).convert("RGBA")
-        w, h  = first.size; self.cw, self.ch = w, h
-        self._frames = []
-        for fp in files:
-            im = Image.open(fp).convert("RGBA")
-            if im.size != (w,h): im = im.resize((w,h), Image.LANCZOS)
-            nl = Layer(w, h, "Fondo"); nl.image = im
-            self._frames.append([nl])
-        self._cur = 0; self._active = 0
-        self._comp_cache.clear()
-        self._comp_dirty = set(range(len(self._frames)))
-        self.queue_draw()
-        if self.on_frame_changed: self.on_frame_changed()
-        if self.on_layer_changed: self.on_layer_changed()
-        return True
-
-    # ── exportar ──────────────────────────────────────────────────────────────
-    def thumbnail(self, fi=None) -> Gdk.Texture:
-        fi  = self._cur if fi is None else fi
-        im  = self._composite(fi).resize((THUMB, THUMB), Image.LANCZOS)
-        raw = GLib.Bytes.new(im.tobytes())
-        return Gdk.MemoryTexture.new(THUMB, THUMB, Gdk.MemoryFormat.R8G8B8A8, raw, THUMB*4)
-
-    def to_pil(self, fi: int) -> Image.Image:
-        return self._composite(fi)
-
-    def add_vector_layer(self):
-        """Añade una capa vectorial al frame actual."""
-        self.snap_undo()
-        layers = self._frames[self._cur]
-        vl = VectorLayer(self.cw, self.ch, f"Vector {len(layers)+1}")
-        layers.append(vl)
-        self._active = len(layers) - 1
-        self._dirty(); self.queue_draw()
-        if self.on_layer_changed: self.on_layer_changed()
-
-    # ── proyecto (.alproj) ────────────────────────────────────────────────────
-    def save_project(self, path: str):
-        """Guarda el proyecto completo: capas, blend modes, frames, cámara, etiquetas."""
-        import zipfile, json, io
-        self._sync_meta()
-        meta = {
-            "version": 1,
-            "canvas":  {"w": self.cw, "h": self.ch},
-            "cur":     self._cur,
-            "frame_labels":  self._frame_labels,
-            "frame_camera":  self._frame_camera,
-            "frames": []
-        }
-        with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
-            for fi, layers in enumerate(self._frames):
-                frame_info = {"layers": []}
-                for li, layer in enumerate(layers):
-                    lmeta = {
-                        "name":         layer.name,
-                        "visible":      layer.visible,
-                        "opacity":      layer.opacity,
-                        "blend_mode":   layer.blend_mode,
-                        "locked":       layer.locked,
-                        "alpha_locked": layer.alpha_locked,
-                        "img":          f"f{fi}/l{li}.png",
-                        "type":         "raster",
-                    }
-                    # capas vectoriales: guardar también las trayectorias para
-                    # poder seguir editándolas como vectores al reabrir.
-                    if isinstance(layer, VectorLayer):
-                        lmeta["type"]  = "vector"
-                        lmeta["paths"] = [
-                            {"points": [list(p) for p in pa["points"]],
-                             "color":  list(pa["color"]),
-                             "width":  pa["width"],
-                             "closed": pa.get("closed", False)}
-                            for pa in layer.paths
-                        ]
-                    frame_info["layers"].append(lmeta)
-                    buf = io.BytesIO()
-                    layer.image.save(buf, "PNG")
-                    zf.writestr(f"f{fi}/l{li}.png", buf.getvalue())
-                meta["frames"].append(frame_info)
-            zf.writestr("project.json", json.dumps(meta, indent=2))
-
-    def load_project(self, path: str) -> bool:
-        """Carga un proyecto .alproj y restaura todo el estado del editor."""
-        import zipfile, json, io
-        try:
-            with zipfile.ZipFile(path, "r") as zf:
-                meta = json.loads(zf.read("project.json"))
-                if meta.get("version", 0) != 1:
-                    return False
-                cw = meta["canvas"]["w"]
-                ch = meta["canvas"]["h"]
-                self.cw, self.ch = cw, ch
-                self._frames = []
-                for fi, finfo in enumerate(meta["frames"]):
-                    layers = []
-                    for li, lm in enumerate(finfo["layers"]):
-                        if lm.get("type") == "vector":
-                            layer = VectorLayer(cw, ch, lm["name"])
-                            layer.paths = [
-                                {"points": [tuple(p) for p in pa["points"]],
-                                 "color":  tuple(pa["color"]),
-                                 "width":  pa["width"],
-                                 "closed": pa.get("closed", False)}
-                                for pa in lm.get("paths", [])
-                            ]
-                        else:
-                            layer = Layer(cw, ch, lm["name"])
-                        layer.visible      = lm.get("visible", True)
-                        layer.opacity      = lm.get("opacity", 255)
-                        layer.blend_mode   = lm.get("blend_mode", "Normal")
-                        layer.locked       = lm.get("locked", False)
-                        layer.alpha_locked = lm.get("alpha_locked", False)
-                        img_bytes = zf.read(lm["img"])
-                        layer.image = Image.open(io.BytesIO(img_bytes)).convert("RGBA")
-                        layers.append(layer)
-                    self._frames.append(layers)
-                self._frame_labels = meta.get("frame_labels", [""] * len(self._frames))
-                self._frame_camera = meta.get("frame_camera",
-                    [{"tx":0,"ty":0,"scale":1.0,"rot":0.0}] * len(self._frames))
-                self._cur    = min(meta.get("cur", 0), len(self._frames) - 1)
-                self._active = 0
-                self._undo.clear(); self._redo.clear()
-                self._comp_cache.clear()
-                self._comp_dirty = set(range(len(self._frames)))
-                self.queue_draw()
-                if self.on_frame_changed: self.on_frame_changed()
-                if self.on_layer_changed: self.on_layer_changed()
-                return True
-        except Exception:
-            return False
-
-
-# ── VectorLayer ───────────────────────────────────────────────────────────────
-class VectorLayer(Layer):
-    """Capa vectorial: almacena trayectorias cairo, rasteriza on-demand."""
-    def __init__(self, w: int, h: int, name: str = "Vector"):
-        super().__init__(w, h, name)
-        self.paths: list[dict] = []   # [{points, color, width, closed}]
-        self._cur_path: list[tuple] | None = None
-
-    def begin_path(self, x: int, y: int, color, width: int):
-        self._cur_path = [(x, y)]
-        self._path_color = tuple(color)
-        self._path_width = width
-
-    def add_point(self, x: int, y: int):
-        if self._cur_path is not None:
-            self._cur_path.append((x, y))
-
-    def end_path(self, closed: bool = False):
-        if self._cur_path and len(self._cur_path) >= 2:
-            self.paths.append({
-                "points": list(self._cur_path),
-                "color":  self._path_color,
-                "width":  self._path_width,
-                "closed": closed,
-            })
-        self._cur_path = None
-        self._rasterize()
-
-    def _rasterize(self):
-        """Rasteriza todos los paths vectoriales a self.image."""
-        w, h = self.image.size
-        self.image = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-        if not self.paths:
-            return
-        surf = cairo.ImageSurface(cairo.Format.ARGB32, w, h)
-        cr   = cairo.Context(surf)
-        cr.set_line_cap(cairo.LineCap.ROUND)
-        cr.set_line_join(cairo.LineJoin.ROUND)
-        for path in self.paths:
-            pts = path["points"]
-            if len(pts) < 2: continue
-            r, g, b, a = (c/255 for c in path["color"])
-            cr.set_source_rgba(r, g, b, a)
-            cr.set_line_width(path["width"])
-            # Catmull-Rom spline via bezier approximation
-            cr.move_to(*pts[0])
-            if len(pts) == 2:
-                cr.line_to(*pts[1])
-            else:
-                for i in range(1, len(pts)-1):
-                    xc = (pts[i][0] + pts[i+1][0]) / 2
-                    yc = (pts[i][1] + pts[i+1][1]) / 2
-                    cr.curve_to(pts[i][0], pts[i][1], pts[i][0], pts[i][1], xc, yc)
-                cr.line_to(*pts[-1])
-            if path["closed"]: cr.close_path()
-            cr.stroke()
-        # ARGB32 cairo → RGBA PIL
-        data = surf.get_data()
-        arr  = (np.frombuffer(data, np.uint8).reshape(h, w, 4)
-                if _NP else None)
-        if arr is not None:
-            rgba = np.empty_like(arr)
-            a_ch = arr[:, :, 3:4].astype(np.float32) / 255.0
-            a_ch = np.where(a_ch > 0, a_ch, 1.0)
-            rgba[:, :, 0] = np.clip(arr[:, :, 2].astype(np.float32) / a_ch[:, :, 0], 0, 255)
-            rgba[:, :, 1] = np.clip(arr[:, :, 1].astype(np.float32) / a_ch[:, :, 0], 0, 255)
-            rgba[:, :, 2] = np.clip(arr[:, :, 0].astype(np.float32) / a_ch[:, :, 0], 0, 255)
-            rgba[:, :, 3] = arr[:, :, 3]
-            self.image = Image.fromarray(rgba.astype(np.uint8), "RGBA")
-
-
-# ── LayerPanel ───────────────────────────────────────────────────────────────
-class LayerPanel(Gtk.Box):
-    def __init__(self, canvas: PaintCanvas):
-        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=3)
-        self._c = canvas
-        canvas.on_layer_changed = self.rebuild
-        self.set_size_request(210, -1)
-        self.set_margin_start(4); self.set_margin_end(8); self.set_margin_top(6)
-
-        head = Gtk.Label(label="CAPAS", xalign=0)
-        head.add_css_class("panel-head"); head.set_hexpand(True)
-        hdr = Gtk.Box(spacing=2); hdr.append(head)
-        for ic, tip, fn in [
-            ("add", "Nueva capa", canvas.add_layer),
-            ("duplicate", "Duplicar capa", canvas.duplicate_layer),
-            ("merge", "Fusionar con la de abajo", canvas.merge_down),
-            ("flatten", "Aplanar todas", canvas.flatten),
-        ]:
-            b = icon_button(ic, tip)
-            b.connect("clicked", lambda _, f=fn: f()); hdr.append(b)
-        db = icon_button("trash", "Eliminar capa")
-        db.connect("clicked", lambda _: canvas.delete_layer()); hdr.append(db)
-        self.append(hdr)
-
-        mv = Gtk.Box(spacing=2); mv.set_halign(Gtk.Align.START)
-        up_b = icon_button("up", "Subir capa")
-        up_b.connect("clicked", lambda _: canvas.move_layer(-1))
-        dn_b = icon_button("down", "Bajar capa")
-        dn_b.connect("clicked", lambda _: canvas.move_layer(1))
-        vec_b = icon_button("vec_pen", "Añadir capa vectorial")
-        vec_b.connect("clicked", lambda _: canvas.add_vector_layer())
-        mv.append(up_b); mv.append(dn_b); mv.append(vec_b); self.append(mv)
-
-        sc = Gtk.ScrolledWindow(); sc.set_vexpand(True)
-        sc.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self._list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        sc.set_child(self._list); self.append(sc)
-        self.rebuild()
-
-    def _layer_thumb(self, layer) -> Gdk.Texture:
-        im  = layer.image.resize((44, 44), Image.LANCZOS)
-        raw = GLib.Bytes.new(im.tobytes())
-        return Gdk.MemoryTexture.new(44, 44, Gdk.MemoryFormat.R8G8B8A8, raw, 44*4)
-
-    def rebuild(self):
-        child = self._list.get_first_child()
-        while child:
-            nxt = child.get_next_sibling()
-            self._list.remove(child); child = nxt
-
-        canvas = self._c
-        layers = canvas._frames[canvas._cur]
-        active = canvas._active
-
-        for i in range(len(layers)-1, -1, -1):
-            l = layers[i]
-            outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
-
-            row = Gtk.Box(spacing=2)
-            row.set_margin_start(2); row.set_margin_end(2)
-            if i == active: row.add_css_class("card")
-
-            # thumbnail
-            thumb_pic = Gtk.Picture()
-            thumb_pic.set_size_request(44, 44)
-            thumb_pic.set_content_fit(Gtk.ContentFit.CONTAIN)
-            try: thumb_pic.set_paintable(self._layer_thumb(l))
-            except Exception: pass
-            row.append(thumb_pic)
-
-            # ojo (visibilidad)
-            eye = Gtk.ToggleButton(); eye.add_css_class("tool-btn")
-            eye.set_child(icon_image("eye" if l.visible else "eye_off", 16))
-            eye.set_active(l.visible); eye.set_tooltip_text("Visibilidad")
-            eye.connect("toggled", lambda b,idx=i: (
-                canvas.set_layer_prop(idx, visible=b.get_active()),
-                b.set_child(icon_image("eye" if b.get_active() else "eye_off", 16))))
-            row.append(eye)
-
-            # lock
-            lk = icon_button("lock", "Bloquear capa", size=16, toggle=True)
-            lk.set_active(l.locked)
-            lk.connect("toggled", lambda b,idx=i:
-                canvas.set_layer_prop(idx, locked=b.get_active()))
-            row.append(lk)
-
-            # alpha lock
-            alk = Gtk.ToggleButton(label="α"); alk.add_css_class("tool-btn")
-            alk.set_active(l.alpha_locked)
-            alk.set_tooltip_text("Bloquear alpha (pintar solo píxeles existentes)")
-            alk.connect("toggled", lambda b,idx=i:
-                canvas.set_layer_prop(idx, alpha_locked=b.get_active()))
-            row.append(alk)
-
-            # nombre
-            nb = Gtk.Button(label=(l.name[:10] if len(l.name)<=10 else l.name[:9]+"…"))
-            nb.set_hexpand(True)
-            nb.connect("clicked", lambda _,idx=i: self._select(idx))
-            row.append(nb)
-            outer.append(row)
-
-            # blend + opacidad
-            sub = Gtk.Box(spacing=2); sub.set_margin_start(6)
-            dd = Gtk.DropDown.new_from_strings(BLEND_MODES)
-            dd.set_size_request(120,-1)
-            try:  dd.set_selected(BLEND_MODES.index(l.blend_mode))
-            except ValueError: dd.set_selected(0)
-            dd.connect("notify::selected", lambda d,_,idx=i:
-                canvas.set_layer_prop(idx, blend_mode=BLEND_MODES[d.get_selected()]))
-            sub.append(dd)
-
-            opa = Gtk.SpinButton(adjustment=Gtk.Adjustment(
-                value=l.opacity, lower=0, upper=255, step_increment=5))
-            opa.set_size_request(58,-1)
-            opa.connect("value-changed", lambda s,idx=i:
-                canvas.set_layer_prop(idx, opacity=int(s.get_value())))
-            sub.append(opa)
-            outer.append(sub)
-
-            self._list.append(outer)
-
-    def _select(self, idx: int):
-        self._c._active = idx; self.rebuild()
-
-
-def _apply_theme(window: Gtk.Window):
-    from ..ui import theme as _theme
-    _theme.apply(window)
-
-
-# ── PaintEditor (ventana) ─────────────────────────────────────────────────────
 class PaintEditor(Gtk.Window):
-    def __init__(self, app, anim_id=None, pose=None, guided=False):
-        super().__init__(application=app, title="Editor de Pintura — AnimaLinux")
-        self.app         = app
-        self.anim_id     = anim_id
-        self._guided     = guided
-        self._playing    = False
-        self._play_id    = None
-        self._audio_path = None
-        self._audio_proc = None
+    def __init__(self, app, anim_id=None, pose=None, guided=False, project=None):
+        super().__init__(application=app, title="Editor de Animación — AnimaLinux")
+        self.app = app
+        self.anim_id = anim_id
+        self._guided = guided
+        self._playing = False
+        self._play_id = None
+        self._audio = None
+        self._status_id = None
+        self._syncing = False
+        self._project_path = None
 
-        self.canvas      = PaintCanvas(512, 512)
-        self.canvas.on_pick          = self._on_pick
-        self.canvas.on_frame_changed = self._rebuild_strip
-        self.canvas.on_cursor_moved  = self._on_cursor
+        from ..ui import theme
+        theme.apply(self)
+        _load_css()
+        self.add_css_class("hm")
+        self.set_default_size(1420, 880)
 
-        self.layer_panel = LayerPanel(self.canvas)
+        from .. import settings as _s
+        saved = _s.get("anim_palette", None)
+        self.palette = [tuple(c) for c in saved] if saved else list(PALETTE)
 
-        self.set_default_size(1360, 860)
+        self.canvas = AnimCanvas(ae.Scene(512, 512, 12))
+        c = self.canvas
+        c.on_frame = self._sync; c.on_layers = self._sync
+        c.on_cursor = self._on_cursor; c.on_zoom = self._on_zoom
+        c.on_status = self._flash; c.on_tool = self._select_tool
+        c.on_pick = self._on_pick
+
+        self._build_actions()
         self._build_ui()
-        _apply_theme(self)
+        self.connect("close-request", self._on_close_request)
 
-        if pose:
-            self.pose_entry.set_text(pose)
-        elif guided:
-            self._suggest_next_pose()
+        if pose: self.pose_entry.set_text(pose)
+        elif guided: self._suggest_next_pose()
 
         if anim_id is not None and pose in (None, "default"):
-            fd = app.library.frames_dir(anim_id)
-            if self.canvas.load_from_dir(fd):
-                self._rebuild_strip(); self.layer_panel.rebuild()
+            if c.load_from_dir(app.library.frames_dir(anim_id)):
+                fps = app.library.animations.get(anim_id, {}).get("fps")
+                if fps: c.scene.fps = int(fps)
+                self._sync()
 
-        if anim_id is None:
-            # el tutorial se muestra recién tras confirmar el tamaño (ver
-            # _apply_size) — mostrar los dos diálogos a la vez hacía que se
-            # superpusieran y no se pudiera leer ninguno.
-            GLib.idle_add(self._ask_canvas_size)
-        else:
-            GLib.idle_add(self._show_tutorial)
-
-    # ── UI ────────────────────────────────────────────────────────────────────
-    def _build_ui(self):
-        root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.set_child(root)
-        root.append(self._build_toolbar())
-        root.append(self._build_tool_options_bar())   # barra de opciones de herramienta
-
-        body = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        body.set_vexpand(True)
-
-        # status bar primero para que canvas_size_lbl exista antes de _rebuild_strip
-        status_bar = self._build_status_bar()
-        body.append(self._build_left_panel())
-        body.append(self.canvas)
-        body.append(self._build_right_panel())        # solo capas
-        root.append(body)
-        root.append(self._build_timeline())           # timeline horizontal al fondo
-        root.append(status_bar)
-
-        key = Gtk.EventControllerKey()
-        key.connect("key-pressed", self._on_key)
-        self.add_controller(key)
-
-    def _build_toolbar(self):
-        bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=3)
-        bar.add_css_class("editor-toolbar")
-        sepv = lambda: bar.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))
-
-        # zoom
-        zm_out = icon_button("zoom_out", "Alejar")
-        zm_out.connect("clicked", lambda _: (
-            self.canvas.zoom_at(0.8, self.canvas.get_allocated_width()/2,
-                                self.canvas.get_allocated_height()/2), self._upd_zoom()))
-        self.zoom_lbl = Gtk.Label(label="100%"); self.zoom_lbl.set_size_request(48,-1)
-        self.zoom_lbl.add_css_class("monospace")
-        zm_in = icon_button("zoom_in", "Acercar")
-        zm_in.connect("clicked", lambda _: (
-            self.canvas.zoom_at(1.25, self.canvas.get_allocated_width()/2,
-                                self.canvas.get_allocated_height()/2), self._upd_zoom()))
-        fit_b = icon_button("fit", "Ajustar zoom (Ctrl+0)")
-        fit_b.connect("clicked", lambda _: (self.canvas.zoom_fit(), self._upd_zoom()))
-        bar.append(zm_out); bar.append(self.zoom_lbl); bar.append(zm_in); bar.append(fit_b)
-        sepv()
-
-        bar.append(Gtk.Label(label="FPS"))
-        self.fps_spin = Gtk.SpinButton(
-            adjustment=Gtk.Adjustment(value=12, lower=1, upper=60, step_increment=1))
-        self.fps_spin.set_size_request(55,-1); bar.append(self.fps_spin)
-        self.play_btn = icon_button("play", "Reproducir (Espacio)", toggle=True)
-        self.play_btn.connect("toggled", self._on_play_toggle); bar.append(self.play_btn)
-
-        onion = icon_button("onion", "Papel cebolla rojo/azul multi-frame", toggle=True)
-        onion.connect("toggled", lambda b: setattr(self.canvas,"onion",b.get_active())
-                      or self.canvas.queue_draw())
-        bar.append(onion)
-
-        stab = icon_button("stabilizer", "Estabilizador de trazo", toggle=True)
-        stab.set_active(True)
-        stab.connect("toggled", lambda b: setattr(self.canvas,"stabilizer",b.get_active()))
-        bar.append(stab)
-
-        smooth = icon_button("smooth", "Suavizado de trazo (Chaikin)", toggle=True)
-        smooth.connect("toggled", lambda b: setattr(self.canvas,"smooth_strokes",b.get_active()))
-        bar.append(smooth)
-        sepv()
-
-        # simetría
-        self._sym_btns = {}
-        for ic, val, tip in [("sym_none","none","Sin simetría"),
-                             ("sym_h","h","Simetría horizontal"),
-                             ("sym_v","v","Simetría vertical"),
-                             ("sym_hv","hv","Simetría H+V")]:
-            b = icon_button(ic, tip, toggle=True)
-            b.connect("toggled", self._on_sym_toggle, val)
-            self._sym_btns[val] = b; bar.append(b)
-        self._sym_btns["none"].set_active(True)
-        sepv()
-
-        # cámara / audio
-        cam_reset = icon_button("reset", "Resetear cámara de este frame")
-        cam_reset.connect("clicked", lambda _: self._cam_reset()); bar.append(cam_reset)
-        cam_b = icon_button("camera", "Editar cámara del frame actual")
-        cam_b.connect("clicked", lambda _: self._cam_dialog()); bar.append(cam_b)
-        self._audio_btn = icon_button("audio", "Importar audio para sincronizar")
-        self._audio_btn.connect("clicked", lambda _: self._import_audio()); bar.append(self._audio_btn)
-        sepv()
-
-        imp = icon_button("import", "Importar imagen")
-        imp.connect("clicked", self._on_import); bar.append(imp)
-        undo = icon_button("undo", "Deshacer (Z/Ctrl+Z)")
-        undo.connect("clicked", lambda _: self.canvas.undo()); bar.append(undo)
-        redo = icon_button("redo", "Rehacer (Y/Ctrl+Y)")
-        redo.connect("clicked", lambda _: self.canvas.redo()); bar.append(redo)
-        sepv()
-
-        save_proj = icon_button("save", "Guardar proyecto .alproj con capas (Ctrl+Shift+S)")
-        save_proj.connect("clicked", lambda _: self._save_project_dialog()); bar.append(save_proj)
-        open_proj = icon_button("folder_open", "Abrir proyecto .alproj")
-        open_proj.connect("clicked", lambda _: self._load_project_dialog()); bar.append(open_proj)
-
-        spacer = Gtk.Box(); spacer.set_hexpand(True); bar.append(spacer)
-        help_btn = icon_button("help", "Guía rápida del editor")
-        help_btn.connect("clicked", lambda _: self._show_tutorial(force=True))
-        bar.append(help_btn)
-
-        close_btn = icon_button("close", "Cerrar el editor (Ctrl+W)")
-        close_btn.add_css_class("close-btn")
-        close_btn.connect("clicked", lambda _: self._confirm_close())
-        bar.append(close_btn)
-
-        return bar
-
-    def _build_tool_options_bar(self):
-        """Barra de opciones de herramienta — siempre visible debajo del toolbar."""
-        bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        bar.set_margin_start(8); bar.set_margin_end(8)
-        bar.set_margin_top(3); bar.set_margin_bottom(3)
-
-        sep = lambda: Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
-
-        bar.append(Gtk.Label(label="Pincel:"))
-        bt_dd = Gtk.DropDown.new_from_strings(BRUSH_LABELS)
-        bt_dd.set_size_request(148, -1)
-        bt_dd.connect("notify::selected", lambda d, _: (
-            setattr(self.canvas, "brush_type", BRUSH_TYPES[d.get_selected()]),
-            self.canvas._stamp_cache.clear()))
-        self._brush_dd = bt_dd
-        bar.append(bt_dd)
-
-        bar.append(sep())
-        bar.append(Gtk.Label(label="Radio:"))
-        self.size_spin = Gtk.SpinButton(
-            adjustment=Gtk.Adjustment(value=12, lower=1, upper=200, step_increment=2))
-        self.size_spin.set_size_request(72, -1)
-        self.size_spin.set_tooltip_text("Tamaño del pincel ( [ ] )")
-        self.size_spin.connect("value-changed",
-            lambda s: setattr(self.canvas, "brush_r", int(s.get_value())))
-        bar.append(self.size_spin)
-
-        bar.append(sep())
-        bar.append(Gtk.Label(label="Suavidad:"))
-        self.soft_spin = Gtk.SpinButton(digits=2,
-            adjustment=Gtk.Adjustment(value=0.5, lower=0.05, upper=1.0, step_increment=0.05))
-        self.soft_spin.set_size_request(72, -1)
-        self.soft_spin.connect("value-changed",
-            lambda s: (setattr(self.canvas, "softness", s.get_value()),
-                       self.canvas._stamp_cache.clear()))
-        bar.append(self.soft_spin)
-
-        bar.append(sep())
-        bar.append(Gtk.Label(label="Opacidad:"))
-        self.opac_spin = Gtk.SpinButton(
-            adjustment=Gtk.Adjustment(value=200, lower=1, upper=255, step_increment=10))
-        self.opac_spin.set_size_request(72, -1)
-        self.opac_spin.connect("value-changed",
-            lambda s: (setattr(self.canvas, "opacity", int(s.get_value())),
-                       self.canvas._stamp_cache.clear()))
-        bar.append(self.opac_spin)
-
-        bar.append(sep())
-        bar.append(Gtk.Label(label="Varita tol.:"))
-        self.wand_tol = Gtk.SpinButton(
-            adjustment=Gtk.Adjustment(value=32, lower=0, upper=255, step_increment=8))
-        self.wand_tol.set_size_request(72, -1)
-        self.wand_tol.connect("value-changed",
-            lambda s: setattr(self.canvas, "magic_wand_tolerance", int(s.get_value())))
-        bar.append(self.wand_tol)
-
-        return bar
-
-    def _build_left_panel(self):
-        """Panel izquierdo: herramientas + colores. Controles de pincel en la barra superior."""
-        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        outer.add_css_class("editor-panel")
-        outer.set_size_request(126, -1)
-
-        sc = Gtk.ScrolledWindow()
-        sc.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        sc.set_vexpand(True)
-
-        panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
-        panel.set_margin_start(6); panel.set_margin_end(6); panel.set_margin_top(6)
-
-        # ── herramientas ──
-        tools_lbl = Gtk.Label(label="HERRAMIENTAS", xalign=0)
-        tools_lbl.add_css_class("panel-head")
-        panel.append(tools_lbl)
-        tools = [
-            ("brush",          "Pincel (B)"),
-            ("eraser",         "Borrador (E)"),
-            ("smudge",         "Difuminar"),
-            ("fill",           "Relleno (G)"),
-            ("gradient",       "Gradiente"),
-            ("line",           "Línea"),
-            ("pick",           "Cuentagotas (I)"),
-            ("select",         "Selección (S)"),
-            ("move",           "Mover (M)"),
-            ("magic_wand",     "Varita mágica (W)"),
-            ("rect_fill",      "Rectángulo relleno"),
-            ("rect_outline",   "Rectángulo contorno"),
-            ("ellipse_fill",   "Elipse rellena"),
-            ("ellipse_outline","Elipse contorno"),
-            ("vec_pen",        "Pluma vectorial"),
-        ]
-        # nombre de tool -> nombre de icono (cuando difieren)
-        icon_for = {"magic_wand": "wand", "rect_outline": "outline",
-                    "ellipse_outline": "ellipse"}
-        self._tool_btns = {}
-        grid = Gtk.Grid()
-        grid.set_row_spacing(3); grid.set_column_spacing(3)
-        grid.set_halign(Gtk.Align.CENTER)
-        for i, (tid, tip) in enumerate(tools):
-            btn = icon_button(icon_for.get(tid, tid), tip, size=20, toggle=True)
-            if tid == "brush": btn.set_active(True)
-            btn.connect("toggled", self._on_tool_toggle, tid)
-            self._tool_btns[tid] = btn
-            grid.attach(btn, i % 2, i // 2, 1, 1)
-        panel.append(grid)
-
-        panel.append(Gtk.Separator())
-
-        # ── colores FG / BG ──
-        color_lbl = Gtk.Label(label="COLORES", xalign=0)
-        color_lbl.add_css_class("panel-head")
-        panel.append(color_lbl)
-
-        colors_row = Gtk.Box(spacing=4)
-        fg_col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        fg_col.append(Gtk.Label(label="FG"))
-        self._fg_btn = Gtk.ColorButton(); self._fg_btn.set_use_alpha(True)
-        rgba = Gdk.RGBA(); rgba.red=rgba.green=rgba.blue=0; rgba.alpha=1
-        self._fg_btn.set_rgba(rgba)
-        self._fg_btn.connect("color-set", self._on_fg_set)
-        fg_col.append(self._fg_btn)
-        colors_row.append(fg_col)
-
-        bg_col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        bg_col.append(Gtk.Label(label="BG"))
-        self._bg_btn = Gtk.ColorButton(); self._bg_btn.set_use_alpha(True)
-        rgba2 = Gdk.RGBA(); rgba2.red=rgba2.green=rgba2.blue=1; rgba2.alpha=1
-        self._bg_btn.set_rgba(rgba2)
-        self._bg_btn.connect("color-set", self._on_bg_set)
-        bg_col.append(self._bg_btn)
-        colors_row.append(bg_col)
-        panel.append(colors_row)
-
-        swap_btn = Gtk.Button(label="⇌ FG ↔ BG  (X)")
-        swap_btn.set_tooltip_text("Intercambiar colores FG/BG (X)")
-        swap_btn.connect("clicked", lambda _: self._swap_colors())
-        panel.append(swap_btn)
-
-        hex_row = Gtk.Box(spacing=2)
-        hex_row.append(Gtk.Label(label="#"))
-        self._hex_entry = Gtk.Entry()
-        self._hex_entry.set_max_length(8); self._hex_entry.set_size_request(90, -1)
-        self._hex_entry.set_text("000000ff")
-        self._hex_entry.set_placeholder_text("RRGGBBAA")
-        self._hex_entry.connect("activate", self._on_hex_activate)
-        hex_row.append(self._hex_entry)
-        panel.append(hex_row)
-
-        for lbl2, attr, upper in [("H", "_hsv_h", 360), ("S", "_hsv_s", 100), ("V", "_hsv_v", 100)]:
-            row = Gtk.Box(spacing=2)
-            lbl_w = Gtk.Label(label=lbl2); lbl_w.set_size_request(14, -1)
-            row.append(lbl_w)
-            sp = Gtk.SpinButton(adjustment=Gtk.Adjustment(
-                value=0, lower=0, upper=upper, step_increment=1))
-            sp.set_size_request(80, -1)
-            sp.connect("value-changed", self._on_hsv_changed)
-            setattr(self, attr + "_spin", sp)
-            row.append(sp)
-            panel.append(row)
-
-        panel.append(Gtk.Separator())
-
-        # ── colores recientes ──
-        rec_lbl = Gtk.Label(label="Recientes")
-        rec_lbl.add_css_class("caption")
-        panel.append(rec_lbl)
-        self._recent_grid = Gtk.Grid()
-        self._recent_grid.set_row_spacing(2); self._recent_grid.set_column_spacing(2)
-        panel.append(self._recent_grid)
-        self._rebuild_recent()
-
-        sc.set_child(panel)
-        outer.append(sc)
-        return outer
-
-    def _rebuild_recent(self):
-        child = self._recent_grid.get_first_child()
-        while child:
-            nxt = child.get_next_sibling()
-            self._recent_grid.remove(child); child = nxt
-        recent = list(self.canvas.recent_colors)
-        for i in range(12):
-            da = Gtk.DrawingArea(); da.set_size_request(20,20)
-            if i < len(recent):
-                c = recent[i]
-                da.set_draw_func(lambda a,cr,w,h,col=c:(
-                    cr.set_source_rgba(col[0]/255,col[1]/255,col[2]/255,col[3]/255),
-                    cr.paint()))
-                da.set_tooltip_text(f"#{c[0]:02x}{c[1]:02x}{c[2]:02x}")
-                click = Gtk.GestureClick()
-                click.connect("pressed", lambda g,n,x,y,col=c: self._set_fg(col))
-                da.add_controller(click)
+        if project:
+            if c.load_project(project):
+                self._project_path = project; self._started = True; self._sync()
+                self._flash(f"Proyecto cargado: {Path(project).name}")
             else:
-                da.set_draw_func(lambda a,cr,w,h:(cr.set_source_rgb(0.2,0.2,0.3),cr.paint()))
-            self._recent_grid.attach(da, i%6, i//6, 1, 1)
+                self._flash("No se pudo abrir el proyecto")
+        elif anim_id is None: GLib.idle_add(self._ask_scene_size)
+        else: GLib.idle_add(self._show_tutorial)
 
-    def _build_right_panel(self):
-        """Panel derecho: solo capas (el timeline va al fondo)."""
-        return self.layer_panel
+    # ══ acciones ══════════════════════════════════════════════════════════════
+    def _build_actions(self):
+        self._grp = Gio.SimpleActionGroup(); self.insert_action_group("an", self._grp)
+        c = self.canvas
 
-    def _build_timeline(self):
-        """Timeline horizontal estilo CSP — frames en fila al fondo de la ventana."""
-        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        outer.add_css_class("timeline")
+        def act(name, cb, state=None, ptype=None):
+            if state is None:
+                a = Gio.SimpleAction.new(name, None); a.connect("activate", lambda *_: cb())
+            elif ptype is None:
+                a = Gio.SimpleAction.new_stateful(name, None, GLib.Variant.new_boolean(state))
+                a.connect("change-state", lambda x, v: (x.set_state(v), cb(v.get_boolean())))
+            else:
+                a = Gio.SimpleAction.new_stateful(name, GLib.VariantType.new("s"), GLib.Variant.new_string(state))
+                a.connect("change-state", lambda x, v: (x.set_state(v), cb(v.get_string())))
+            self._grp.add_action(a); return a
 
-        bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-        bar.set_margin_start(6); bar.set_margin_end(6)
-        bar.set_margin_top(4); bar.set_margin_bottom(4)
-
-        # controles de frame (izquierda) — con iconos
-        ctrl = Gtk.Box(spacing=2)
-        ctrl.set_margin_end(4)
-
-        for ic, tip, fn in [
-            ("add",       "Añadir frame (Ctrl+N)",   self.canvas.add_frame),
-            ("duplicate", "Duplicar frame (Ctrl+D)", self.canvas.duplicate_frame),
-            ("copy",      "Copiar frame (Ctrl+C)",   self.canvas.copy_frame),
-            ("paste",     "Pegar frame (Ctrl+V)",    self.canvas.paste_frame),
-            ("trash",     "Borrar frame (Supr)",     self.canvas.delete_frame),
-        ]:
-            b = icon_button(ic, tip)
-            b.connect("clicked", lambda _, f=fn: (
-                f(), self._rebuild_strip(), self.layer_panel.rebuild()))
-            ctrl.append(b)
-
-        ctrl.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))
-
-        gif_b = Gtk.Button(); gb = Gtk.Box(spacing=4)
-        gb.append(icon_image("gif", 16)); gb.append(Gtk.Label(label="GIF")); gif_b.set_child(gb)
-        gif_b.set_tooltip_text("Exportar como GIF animado")
-        gif_b.connect("clicked", lambda _: self._export_gif_dialog())
-        ctrl.append(gif_b)
-
-        mp4_b = Gtk.Button(); mb = Gtk.Box(spacing=4)
-        mb.append(icon_image("gif", 16)); mb.append(Gtk.Label(label="MP4")); mp4_b.set_child(mb)
-        mp4_b.set_tooltip_text("Exportar como MP4 (requiere ffmpeg)")
-        mp4_b.connect("clicked", lambda _: self._export_mp4_dialog())
-        ctrl.append(mp4_b)
-
-        bar.append(ctrl)
-
-        # tira de frames desplazable (horizontal)
-        sc = Gtk.ScrolledWindow()
-        sc.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER)
-        sc.set_hexpand(True)
-        sc.set_size_request(-1, THUMB + 46)
-        self.strip_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
-        self.strip_box.set_margin_start(4); self.strip_box.set_margin_end(4)
-        self.strip_box.set_margin_top(2); self.strip_box.set_margin_bottom(2)
-        sc.set_child(self.strip_box)
-        bar.append(sc)
-
-        outer.append(bar)
-        self._rebuild_strip()
-        return outer
-
-    def _build_status_bar(self):
-        bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        bar.add_css_class("editor-statusbar")
-        bar.set_margin_start(8); bar.set_margin_end(8)
-        bar.set_margin_top(3); bar.set_margin_bottom(3)
-
-        self.cursor_lbl = Gtk.Label(label="X:— Y:—")
-        self.cursor_lbl.set_size_request(90,-1)
-        self.cursor_lbl.add_css_class("monospace"); bar.append(self.cursor_lbl)
-
-        self.px_lbl = Gtk.Label(label="")
-        self.px_lbl.add_css_class("monospace"); self.px_lbl.set_hexpand(True)
-        bar.append(self.px_lbl)
-
-        self.zoom_status = Gtk.Label(label="100%")
-        self.zoom_status.add_css_class("dim-label"); bar.append(self.zoom_status)
-
-        self.canvas_size_lbl = Gtk.Label(label="512×512")
-        self.canvas_size_lbl.add_css_class("dim-label"); bar.append(self.canvas_size_lbl)
-
-        if self.anim_id is None:
-            bar.append(Gtk.Label(label="Nombre:"))
-            self.name_entry = Gtk.Entry()
-            self.name_entry.set_placeholder_text("Mi animación")
-            self.name_entry.set_size_request(110,-1); bar.append(self.name_entry)
-        else:
-            self.name_entry = None
-
-        bar.append(Gtk.Label(label="Pose:"))
-        self.pose_entry = Gtk.Entry(); self.pose_entry.set_text("default")
-        self.pose_entry.set_size_request(84,-1); bar.append(self.pose_entry)
-
-        self.save_status = Gtk.Label(label=""); self.save_status.add_css_class("dim-label")
-        bar.append(self.save_status)
-
-        save_btn = Gtk.Button(); save_btn.add_css_class("suggested-action")
-        sb = Gtk.Box(spacing=5); sb.append(icon_image("save", 16))
-        sb.append(Gtk.Label(label="Guardar pose")); save_btn.set_child(sb)
-        save_btn.connect("clicked", lambda _: self._save_pose())
-        bar.append(save_btn)
-        return bar
-
-    # ── tira de frames (timeline) ─────────────────────────────────────────────
-    def _rebuild_strip(self):
-        child = self.strip_box.get_first_child()
-        while child:
-            nxt = child.get_next_sibling()
-            self.strip_box.remove(child); child = nxt
-        self.canvas._sync_meta()
-
-        for i in range(self.canvas.frame_count):
-            # contenedor por frame: botón + entry de etiqueta (fuera del botón)
-            outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
-            outer.set_margin_bottom(2)
-
-            # thumbnail del frame dentro del botón
-            pic = Gtk.Picture()
-            pic.set_size_request(THUMB, THUMB)
-            pic.set_content_fit(Gtk.ContentFit.CONTAIN)
-            pic.set_paintable(self.canvas.thumbnail(i))
-
-            # número de frame + icono de cámara si tiene transform
-            cam = self.canvas._frame_camera[i]
-            cam_icon = " 🎥" if (cam["tx"] or cam["ty"] or cam["scale"] != 1.0 or cam["rot"]) else ""
-            num_lbl = Gtk.Label(label=f"{i+1}{cam_icon}")
-            num_lbl.add_css_class("caption")
-
-            inner = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
-            inner.append(num_lbl)
-            inner.append(pic)
-
-            btn = Gtk.Button()
-            btn.set_child(inner)
-            btn.add_css_class("frame-cell")
-            if i == self.canvas._cur:
-                btn.add_css_class("current")
-            btn.connect("clicked", lambda _,idx=i: (
-                self.canvas.go_to(idx), self._rebuild_strip(), self.layer_panel.rebuild()))
-            outer.append(btn)
-
-            # entry de etiqueta FUERA del botón (interactivo independiente)
-            tag_entry = Gtk.Entry()
-            tag_entry.set_placeholder_text("etiqueta…")
-            tag_entry.set_text(self.canvas._frame_labels[i])
-            tag_entry.set_size_request(THUMB, 22)
-            tag_entry.set_max_length(16)
-            tag_entry.connect("changed", lambda e, idx=i:
-                self._set_frame_label(idx, e.get_text()))
-            outer.append(tag_entry)
-
-            self.strip_box.append(outer)
-
-        self._rebuild_recent()
-        self.canvas_size_lbl.set_text(f"{self.canvas.cw}×{self.canvas.ch}")
-
-    # ── zoom ──────────────────────────────────────────────────────────────────
-    def _upd_zoom(self):
-        pct = f"{self.canvas._zoom*100:.0f}%"
-        self.zoom_lbl.set_text(pct); self.zoom_status.set_text(pct)
-
-    # ── simetría ──────────────────────────────────────────────────────────────
-    def _on_sym_toggle(self, btn, val):
-        if not btn.get_active(): return
-        self.canvas.symmetry = val
-        for k,b in self._sym_btns.items():
-            if k != val and b.get_active(): b.set_active(False)
-        self.canvas.queue_draw()
-
-    # ── color FG/BG ───────────────────────────────────────────────────────────
-    def _sync_color_ui(self, color):
-        """Sincroniza hex entry, HSV spins y fg_btn con el color dado."""
-        r,g,b,a = color
-        h,s,v = colorsys.rgb_to_hsv(r/255, g/255, b/255)
-        self._hex_entry.set_text(f"{r:02x}{g:02x}{b:02x}{a:02x}")
-        self._hsv_h_spin.set_value(round(h*360))
-        self._hsv_s_spin.set_value(round(s*100))
-        self._hsv_v_spin.set_value(round(v*100))
-        rgba = Gdk.RGBA()
-        rgba.red, rgba.green, rgba.blue, rgba.alpha = r/255, g/255, b/255, a/255
-        self._fg_btn.set_rgba(rgba)
-
-    def _on_fg_set(self, btn):
-        rgba = btn.get_rgba()
-        c = (int(rgba.red*255),int(rgba.green*255),int(rgba.blue*255),int(rgba.alpha*255))
-        self.canvas.fg_color = c
-        self.canvas._stamp_cache.clear()
-        self.canvas._add_recent(c)
-        self._sync_color_ui(c)
-        self._rebuild_recent()
-
-    def _on_bg_set(self, btn):
-        rgba = btn.get_rgba()
-        self.canvas.bg_color = (int(rgba.red*255),int(rgba.green*255),
-                                int(rgba.blue*255),int(rgba.alpha*255))
-
-    def _set_fg(self, color):
-        self.canvas.fg_color = tuple(color)
-        self.canvas._stamp_cache.clear()
-        self._sync_color_ui(color)
-
-    def _on_pick(self, color):
-        self._set_fg(color)
-        self._tool_btns["brush"].set_active(True)
-        self._rebuild_recent()
-
-    def _on_hex_activate(self, entry):
-        txt = entry.get_text().strip().lstrip("#")
-        try:
-            if len(txt) == 6:
-                r,g,b = int(txt[0:2],16),int(txt[2:4],16),int(txt[4:6],16)
-                a = 255
-            elif len(txt) == 8:
-                r,g,b,a = int(txt[0:2],16),int(txt[2:4],16),int(txt[4:6],16),int(txt[6:8],16)
-            else: return
-            c = (r,g,b,a)
-            self.canvas.fg_color = c; self.canvas._stamp_cache.clear()
-            self._sync_color_ui(c)
-        except ValueError: pass
-
-    def _on_hsv_changed(self, spin):
-        h = self._hsv_h_spin.get_value() / 360
-        s = self._hsv_s_spin.get_value() / 100
-        v = self._hsv_v_spin.get_value() / 100
-        r,g,b = colorsys.hsv_to_rgb(h, s, v)
-        a = self.canvas.fg_color[3] if self.canvas.fg_color else 255
-        c = (int(r*255), int(g*255), int(b*255), a)
-        self.canvas.fg_color = c; self.canvas._stamp_cache.clear()
-        self._hex_entry.set_text(f"{c[0]:02x}{c[1]:02x}{c[2]:02x}{c[3]:02x}")
-        rgba = Gdk.RGBA(); rgba.red,rgba.green,rgba.blue,rgba.alpha = r,g,b,a/255
-        self._fg_btn.set_rgba(rgba)
-
-    def _swap_colors(self):
-        self.canvas.fg_color, self.canvas.bg_color = (
-            self.canvas.bg_color, self.canvas.fg_color)
-        self.canvas._stamp_cache.clear()
-        self._sync_color_ui(self.canvas.fg_color)
-        rgba2 = Gdk.RGBA()
-        bg = self.canvas.bg_color
-        rgba2.red,rgba2.green,rgba2.blue,rgba2.alpha = (c/255 for c in bg)
-        self._bg_btn.set_rgba(rgba2)
-
-    def _on_cursor(self, cx, cy, color):
-        self.cursor_lbl.set_text(f"X:{int(cx):4d} Y:{int(cy):4d}")
-        self.px_lbl.set_text(
-            f"  R:{color[0]:3d} G:{color[1]:3d} B:{color[2]:3d} A:{color[3]:3d}")
-        self._upd_zoom()
-
-    # ── herramientas ──────────────────────────────────────────────────────────
-    def _on_tool_toggle(self, btn, tid):
-        if not btn.get_active(): return
-        if self.canvas.tool == "move" and tid != "move":
-            self.canvas.commit_selection()
-        self.canvas.tool = tid
-        for k,b in self._tool_btns.items():
-            if k != tid and b.get_active(): b.set_active(False)
-
-    def _select_tool(self, tid):
-        if tid in self._tool_btns:
-            self._tool_btns[tid].set_active(True)
-
-    # ── reproducir ────────────────────────────────────────────────────────────
-    def _tick(self):
-        if not self._playing: return False
-        self.canvas.go_to((self.canvas._cur+1) % self.canvas.frame_count)
-        self._rebuild_strip(); return True
-
-    # ── teclado ───────────────────────────────────────────────────────────────
-    def _on_key(self, ctrl, keyval, keycode, mods):
-        ctrl_h = bool(mods & Gdk.ModifierType.CONTROL_MASK)
-        key    = Gdk.keyval_name(keyval) or ""
-        shift_h = bool(mods & Gdk.ModifierType.SHIFT_MASK)
-        if ctrl_h:
-            if key in ("z","Z"): self.canvas.undo(); return True
-            if key in ("y","Y"): self.canvas.redo(); return True
-            if key in ("s","S"):
-                if shift_h: self._save_project_dialog()
-                else:       self._save_pose()
-                return True
-            if key in ("d","D"): self.canvas.duplicate_frame(); self._rebuild_strip(); return True
-            if key in ("n","N"): self.canvas.add_frame(); self._rebuild_strip(); return True
-            if key in ("c","C"): self.canvas.copy_frame(); return True
-            if key in ("v","V"): self.canvas.paste_frame(); self._rebuild_strip(); self.layer_panel.rebuild(); return True
-            if key in ("w","W"): self._confirm_close(); return True
-        else:
-            if key in ("b","B"): self._select_tool("brush");         return True
-            if key in ("e","E"): self._select_tool("eraser");        return True
-            if key in ("u","U"): self._select_tool("smudge");        return True
-            if key in ("f","F"): self._select_tool("fill");          return True
-            if key in ("g","G"): self._select_tool("gradient");      return True
-            if key in ("l","L"): self._select_tool("line");          return True
-            if key in ("i","I"): self._select_tool("pick");          return True
-            if key in ("s","S"): self._select_tool("select");        return True
-            if key in ("m","M"): self._select_tool("move");          return True
-            if key in ("w","W"): self._select_tool("magic_wand");    return True
-            if key in ("v","V"): self._select_tool("vec_pen");       return True
-            if key in ("x","X"): self._swap_colors();                return True
-            if key in ("z","Z"): self.canvas.undo();                 return True
-            if key in ("y","Y"): self.canvas.redo();                 return True
-            if key == "bracketleft":
-                v = max(1, self.canvas.brush_r-2)
-                self.canvas.brush_r = v; self.size_spin.set_value(v); return True
-            if key == "bracketright":
-                v = min(200, self.canvas.brush_r+2)
-                self.canvas.brush_r = v; self.size_spin.set_value(v); return True
-            if key == "Delete": self.canvas.delete_frame(); self._rebuild_strip(); return True
-            if key == "space":
-                self.play_btn.set_active(not self.play_btn.get_active()); return True
-            if key == "Escape":
-                if self.canvas._sel_rect:
-                    self.canvas.commit_selection()
-                    self.canvas._sel_rect = None; self.canvas.queue_draw(); return True
-        return False
-
-    # ── importar ──────────────────────────────────────────────────────────────
-    def _on_import(self, _):
-        dlg = Gtk.FileDialog(); dlg.set_title("Elige imagen base")
-        dlg.open(self, None, self._on_file_chosen)
-
-    def _on_file_chosen(self, dlg, result):
-        try: gf = dlg.open_finish(result)
-        except GLib.Error: return
-        self.canvas.import_image(gf.get_path()); self._rebuild_strip()
-
-    # ── guardar / abrir proyecto (.alproj) ───────────────────────────────────
-    def _save_project_dialog(self, on_done=None):
-        from .. import projects as _proj
-        self._save_done_cb = on_done
-        dlg = Gtk.FileDialog()
-        dlg.set_title("Guardar proyecto (.alproj)")
-        f = Gtk.FileFilter(); f.set_name("Proyecto AnimaLinux (*.alproj)")
-        f.add_pattern("*.alproj")
-        store = Gio.ListStore.new(Gtk.FileFilter)
-        store.append(f)
-        dlg.set_filters(store)
-        pose = self.pose_entry.get_text().strip() or "proyecto"
-        dlg.set_initial_name(f"{pose}.alproj")
-        proj_dir = _proj.ensure_dir()
-        dlg.set_initial_folder(Gio.File.new_for_path(str(proj_dir)))
-        dlg.save(self, None, self._on_save_proj_done)
-
-    def _on_save_proj_done(self, dlg, result):
-        cb = getattr(self, "_save_done_cb", None)
-        self._save_done_cb = None
-        try:
-            gf = dlg.save_finish(result)
-        except GLib.Error:
-            return   # cancelado: NO cerrar aunque viniera de "Guardar y cerrar"
-        path = gf.get_path()
-        if not path.endswith(".alproj"):
-            path += ".alproj"
-        try:
-            self.canvas.save_project(path)
-            self.save_status.set_text(f"Proyecto guardado: {Path(path).name}")
-            if cb:
-                cb()
-        except Exception as e:
-            self.save_status.set_text(f"Error al guardar: {e}")
-
-    def _load_project_dialog(self):
-        dlg = Gtk.FileDialog()
-        dlg.set_title("Abrir proyecto (.alproj)")
-        f = Gtk.FileFilter(); f.set_name("Proyecto AnimaLinux (*.alproj)")
-        f.add_pattern("*.alproj")
-        store = Gio.ListStore.new(Gtk.FileFilter)
-        store.append(f)
-        dlg.set_filters(store)
-        dlg.open(self, None, self._on_load_proj_done)
-
-    def _on_load_proj_done(self, dlg, result):
-        try:
-            gf = dlg.open_finish(result)
-        except GLib.Error:
-            return
-        path = gf.get_path()
-        ok = self.canvas.load_project(path)
-        if ok:
-            self._rebuild_strip()
-            self.layer_panel.rebuild()
-            self.canvas_size_lbl.set_text(f"{self.canvas.cw}×{self.canvas.ch}")
-            self.save_status.set_text(f"Proyecto cargado: {Path(path).name}")
-        else:
-            self.save_status.set_text("Error: archivo no válido o versión incompatible")
-
-    # ── tutorial ──────────────────────────────────────────────────────────────
-    _TOOLS = [
-        ("brush", "Pincel", "B"), ("eraser", "Borrador", "E"),
-        ("smudge", "Difuminar", None), ("fill", "Relleno", "G"),
-        ("gradient", "Gradiente", None), ("line", "Línea", None),
-        ("pick", "Cuentagotas", "I"), ("select", "Selección", "S"),
-        ("move", "Mover", "M"), ("wand", "Varita mágica", "W"),
-        ("rect_fill", "Rectángulo relleno", None),
-        ("outline", "Rectángulo contorno", None),
-        ("ellipse_fill", "Elipse rellena", None),
-        ("ellipse", "Elipse contorno", None),
-        ("vec_pen", "Pluma vectorial", None),
-    ]
-    _FRAME_ACTIONS = [
-        ("add", "Nuevo frame", "Ctrl+N"), ("duplicate", "Duplicar frame", "Ctrl+D"),
-        ("copy", "Copiar frame", "Ctrl+C"), ("paste", "Pegar frame", "Ctrl+V"),
-        ("trash", "Borrar frame", "Supr"), ("onion", "Papel cebolla", None),
-        ("play", "Reproducir", "Espacio"),
-    ]
+        # archivo
+        act("new", self._ask_scene_size); act("open", self._open_project_dialog)
+        act("save_project", lambda: self._save_project_dialog())
+        act("save_pose", self._save_pose)
+        act("import_image", self._import_image_dialog); act("import_seq", self._import_seq_dialog)
+        act("import_audio", self._import_audio)
+        act("export_gif", self._export_gif_dialog); act("export_mp4", self._export_mp4_dialog)
+        act("export_png", self._export_png_dialog)
+        act("close", self._confirm_close)
+        # editar
+        act("undo", c.undo); act("redo", c.redo)
+        act("cut", lambda: c.copy_selection(cut=True)); act("copy", c.copy_selection); act("paste", c.paste_selection)
+        act("clear", c.clear_selection); act("select_all", c.select_all); act("deselect", c.deselect)
+        act("invert", c.invert_selection)
+        # vista
+        act("zoom_in", lambda: c.zoom_at(1.25)); act("zoom_out", lambda: c.zoom_at(1 / 1.25))
+        act("fit", c.zoom_fit); act("zoom100", lambda: c.zoom_to(1.0))
+        self._a_onion = act("onion", self._set_onion, state=False)
+        self._a_light = act("light", self._set_light, state=False)
+        self._a_grid = act("grid", self._set_grid, state=False)
+        self._a_safe = act("safe", self._set_safe, state=False)
+        self._a_paper = act("paper", self._set_paper, state=False)
+        self._a_mirror = act("mirror", self._set_mirror, state=False)
+        self._a_sym = act("sym", self._set_sym, state="none", ptype="s")
+        self._a_view = act("view", self._set_view, state="draw", ptype="s")
+        # reproducir
+        act("play", lambda: self.play_btn.set_active(not self.play_btn.get_active()))
+        self._a_loop = act("loop", lambda v: self.loop_btn.set_active(v), state=True)
+        act("first", lambda: c.go_to(c.scene.start)); act("last", lambda: c.go_to(c.scene.stop))
+        act("prev", lambda: c.go_to(c.cur - 1)); act("next", lambda: c.go_to(c.cur + 1))
+        act("set_start", lambda: self._set_range(start=c.cur)); act("set_stop", lambda: self._set_range(stop=c.cur))
+        # insertar
+        act("layer_raster", lambda: c.add_layer("raster")); act("layer_vector", lambda: c.add_layer("vector"))
+        act("layer_dup", c.duplicate_layer); act("layer_del", c.remove_layer)
+        act("layer_up", lambda: c.move_layer(1)); act("layer_down", lambda: c.move_layer(-1))
+        act("layer_merge", c.merge_down)
+        act("frame_insert", c.insert_frame); act("frame_delete", c.delete_frame)
+        act("drawing_new", c.new_drawing_here); act("drawing_dup", c.duplicate_drawing_here)
+        act("extend", lambda: c.extend_exposure(1)); act("clear_cell", c.clear_cell)
+        # escena
+        act("scene_size", self._dlg_scene); act("scene_length", self._dlg_length)
+        # dibujo
+        act("flip_h", lambda: c.flip_drawing(True)); act("flip_v", lambda: c.flip_drawing(False))
+        act("rot_cw", lambda: c.rotate_drawing(90)); act("rot_ccw", lambda: c.rotate_drawing(-90))
+        act("rot_180", lambda: c.rotate_drawing(180)); act("nudge_up", lambda: c.nudge(0, -1))
+        # animación
+        act("cam_key", c.camera_key); act("cam_del", c.camera_remove_key); act("cam_reset", c.camera_reset)
+        act("reverse", self._reverse_range); act("pingpong", self._pingpong_range)
+        # ventanas / ayuda
+        act("help", lambda: self._show_tutorial(force=True))
 
     @staticmethod
-    def _tool_grid(items):
-        flow = Gtk.FlowBox()
-        flow.set_selection_mode(Gtk.SelectionMode.NONE)
-        flow.set_max_children_per_line(2)
-        flow.set_column_spacing(8); flow.set_row_spacing(8)
-        flow.set_homogeneous(True)
-        for icon_name, name, tag in items:
-            flow.append(gw.item_row(gw.icon_badge(icon_image(icon_name, 18)),
-                                     name, tag_text=tag))
-        return flow
+    def _it(label, action, accel=None, target=None):
+        it = Gio.MenuItem.new(label, None)
+        if target is None: it.set_detailed_action(action)
+        else: it.set_action_and_target_value(action, GLib.Variant.new_string(target))
+        if accel: it.set_attribute_value("accel", GLib.Variant.new_string(accel))
+        return it
 
-    def _show_tutorial(self, force=False):
-        from .. import settings as _s
-        if not force and _s.get("tutorial_paint_shown", False):
-            return
-        dlg = Gtk.Dialog(title="Editor de Pintura — Guía rápida",
-                         transient_for=self, modal=True)
-        dlg.set_default_size(560, 680)
-        box = dlg.get_content_area()
-        box.set_spacing(0)
+    def _build_menu(self):
+        I = self._it
 
-        sc = Gtk.ScrolledWindow(); sc.set_vexpand(True)
-        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
-        content.set_margin_start(20); content.set_margin_end(20)
-        content.set_margin_top(16); content.set_margin_bottom(16)
+        def sect(*items):
+            m = Gio.Menu()
+            for i in items: m.append_item(i)
+            return m
 
-        content.append(gw.body(
-            "Editor de pintura — animación con capas, estilo Clip Studio. "
-            "Dibuja cada fotograma con pinceles y capas, y guárdalo como "
-            "pose para que tu mascota lo use."))
+        def menu(*sections):
+            m = Gio.Menu()
+            for s in sections: m.append_section(None, s)
+            return m
 
-        content.append(gw.section_title("FLUJO RECOMENDADO"))
-        steps_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        for i, step in enumerate([
-            "Dibuja el primer fotograma (usa capas para separar partes).",
-            "Añade fotogramas y modifica el dibujo en cada uno.",
-            "Reproduce (▶ o Espacio) para ver la animación.",
-            "Escribe el nombre de la pose y pulsa «Guardar pose».",
-            "Guarda un proyecto .alproj para seguir editando luego.",
-        ], start=1):
-            steps_box.append(gw.step_row(i, step))
-        content.append(steps_box)
+        archivo = menu(
+            sect(I("Nueva escena…", "an.new", "<Control>n"), I("Abrir proyecto…", "an.open", "<Control>o"),
+                 I("Guardar proyecto…", "an.save_project", "<Control><Shift>s"), I("Guardar pose", "an.save_pose", "<Control>s")),
+            sect(I("Importar imagen a la celda…", "an.import_image"), I("Importar secuencia de imágenes…", "an.import_seq"),
+                 I("Importar audio…", "an.import_audio")),
+            sect(I("Exportar GIF…", "an.export_gif"), I("Exportar MP4…", "an.export_mp4"),
+                 I("Exportar secuencia PNG…", "an.export_png")),
+            sect(I("Cerrar el editor", "an.close", "<Control>w")))
+        editar = menu(
+            sect(I("Deshacer", "an.undo", "<Control>z"), I("Rehacer", "an.redo", "<Control>y")),
+            sect(I("Cortar", "an.cut", "<Control>x"), I("Copiar", "an.copy", "<Control>c"), I("Pegar", "an.paste", "<Control>v"),
+                 I("Borrar selección", "an.clear", "Delete")),
+            sect(I("Seleccionar todo", "an.select_all", "<Control>a"), I("Deseleccionar", "an.deselect", "<Control>d"),
+                 I("Invertir selección", "an.invert")))
+        sym = sect(I("Sin simetría", "an.sym", target="none"), I("Simetría horizontal", "an.sym", target="h"),
+                   I("Simetría vertical", "an.sym", target="v"), I("Simetría H + V", "an.sym", target="hv"))
+        vista = menu(
+            sect(I("Acercar", "an.zoom_in", "plus"), I("Alejar", "an.zoom_out", "minus"),
+                 I("Ajustar a la ventana", "an.fit", "<Control>0"), I("Tamaño real (100%)", "an.zoom100", "1")),
+            sect(I("Vista Dibujo", "an.view", target="draw"), I("Vista Cámara", "an.view", target="camera")),
+            sect(I("Papel cebolla", "an.onion", "<Alt>o"), I("Mesa de luz", "an.light", "<Shift>l"),
+                 I("Cuadrícula", "an.grid", "<Control>apostrophe"), I("Zona segura", "an.safe"),
+                 I("Fondo de papel", "an.paper"), I("Vista espejo", "an.mirror")),
+            sym)
+        reproducir = menu(
+            sect(I("Reproducir / pausar", "an.play", "Return"), I("Bucle", "an.loop")),
+            sect(I("Ir al inicio del rango", "an.first", "Home"), I("Ir al final del rango", "an.last", "End"),
+                 I("Fotograma anterior", "an.prev", "comma"), I("Fotograma siguiente", "an.next", "period")),
+            sect(I("Fijar inicio en el fotograma actual", "an.set_start"), I("Fijar fin en el fotograma actual", "an.set_stop")))
+        insertar = menu(
+            sect(I("Capa de dibujo", "an.layer_raster", "<Control><Shift>n"), I("Capa vectorial", "an.layer_vector"),
+                 I("Duplicar capa", "an.layer_dup"), I("Borrar capa", "an.layer_del"),
+                 I("Subir capa", "an.layer_up"), I("Bajar capa", "an.layer_down"), I("Unir con la de abajo", "an.layer_merge")),
+            sect(I("Insertar fotograma (todas las capas)", "an.frame_insert", "F8"),
+                 I("Borrar fotograma (todas las capas)", "an.frame_delete", "<Shift>F8")),
+            sect(I("Dibujo nuevo en la celda", "an.drawing_new", "F6"), I("Duplicar dibujo", "an.drawing_dup", "F7"),
+                 I("Extender exposición", "an.extend", "F5"), I("Limpiar celda", "an.clear_cell")))
+        escena = menu(sect(I("Tamaño de la escena…", "an.scene_size"), I("Duración (fotogramas)…", "an.scene_length")))
+        dibujo = menu(
+            sect(I("Voltear dibujo horizontal", "an.flip_h"), I("Voltear dibujo vertical", "an.flip_v"),
+                 I("Girar 90° horario", "an.rot_cw"), I("Girar 90° antihorario", "an.rot_ccw"), I("Girar 180°", "an.rot_180")))
+        animacion = menu(
+            sect(I("Crear clave de cámara", "an.cam_key", "F9"), I("Borrar clave de cámara", "an.cam_del"),
+                 I("Reiniciar cámara", "an.cam_reset")),
+            sect(I("Invertir fotogramas del rango", "an.reverse"), I("Ida y vuelta (ping-pong) del rango", "an.pingpong")))
+        ayuda = menu(sect(I("Guía rápida y atajos", "an.help", "F1")))
+        top = Gio.Menu()
+        for n, m in (("Archivo", archivo), ("Editar", editar), ("Vista", vista), ("Reproducir", reproducir),
+                     ("Insertar", insertar), ("Escena", escena), ("Dibujo", dibujo), ("Animación", animacion),
+                     ("Ayuda", ayuda)):
+            top.append_submenu(n, m)
+        bar = Gtk.PopoverMenuBar.new_from_model(top); bar.add_css_class("hm-menu"); return bar
 
-        content.append(gw.section_title("HERRAMIENTAS"))
-        content.append(self._tool_grid(self._TOOLS))
-        content.append(gw.note(
-            "Barra superior: tipo de pincel, radio, suavidad y opacidad — "
-            "[ ] cambia el radio. Simetría ↔ ↕ ✦ para dibujar en espejo. "
-            "Estabilizador y suavizado dan trazos más limpios."))
+    # ══ interfaz ══════════════════════════════════════════════════════════════
+    @staticmethod
+    def _hscroll(w):
+        sc = Gtk.ScrolledWindow(); sc.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER)
+        sc.set_propagate_natural_height(True); sc.set_min_content_width(40); sc.set_child(w); return sc
 
-        content.append(gw.section_title("TIMELINE"))
-        content.append(self._tool_grid(self._FRAME_ACTIONS))
-        content.append(gw.note(
-            "Clic en un frame para ir a él. El papel cebolla muestra los "
-            "frames vecinos en rojo/azul como guía."))
+    def _ib(self, icon, tip, cb, toggle=False, css=None, size=16):
+        b = Gtk.ToggleButton() if toggle else Gtk.Button()
+        b.set_child(icon_image(icon, size, ICO)); b.set_tooltip_text(tip); b.set_focus_on_click(False)
+        if css: b.add_css_class(css)
+        if toggle: b.connect("toggled", lambda w: cb(w.get_active()))
+        else: b.connect("clicked", lambda w: cb())
+        return b
 
-        content.append(gw.section_title("CAPAS"))
-        content.append(gw.note(
-            "+ nueva capa · ⎘ duplicar · 👁 ocultar/mostrar · 🔒 bloquear · "
-            "α bloquea el alpha (pinta solo píxeles existentes). Cada capa "
-            "tiene su propia opacidad y modo de fusión; arrastrá ▲▼ para "
-            "reordenar."))
+    def _build_ui(self):
+        c = self.canvas
+        root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); self.set_child(root)
 
-        content.append(gw.section_title("GUARDAR"))
-        content.append(gw.note(
-            "POSE para la mascota: escribe el nombre (default, walk, idle, "
-            "greet, jump…) abajo y pulsa «Guardar pose» o Ctrl+S. Aplana "
-            "las capas."))
-        content.append(gw.note(
-            "PROYECTO para seguir editando: Ctrl+Shift+S guarda un .alproj "
-            "con todas las capas intactas en ~/Documents/AnimaLinux/"
-            "projects. Ábrelo con 📂 cuando quieras continuar exactamente "
-            "donde lo dejaste."))
+        top = Gtk.Box(); top.add_css_class("hm-menu")
+        top.append(self._build_menu())
+        self.title_lbl = Gtk.Label(); self.title_lbl.set_hexpand(True); self.title_lbl.add_css_class("dim-label")
+        top.append(self.title_lbl)
+        top.append(self._ib("help", "Guía rápida (F1)", lambda: self._show_tutorial(force=True)))
+        top.append(self._ib("close", "Cerrar el editor (Ctrl+W)", self._confirm_close))
+        root.append(top)
 
-        content.append(gw.note(
-            "Deshacer/rehacer: Ctrl+Z / Ctrl+Y (hasta 30 niveles).\n"
-            "Zoom: Ctrl+Scroll · Espacio+arrastrar = pan · Ctrl+0 ajusta "
-            "al lienzo.\n"
-            "Cerrar: botón ✕ (arriba a la derecha) o Ctrl+W — te "
-            "preguntará si quieres guardar antes de salir."))
+        root.append(self._hscroll(self._build_toolbar()))
 
-        sc.set_child(content)
+        mid = Gtk.Box(); mid.set_vexpand(True); root.append(mid)
+        mid.append(self._build_toolbox())
+
+        center = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); center.set_hexpand(True); mid.append(center)
+        tabs = Gtk.Box(spacing=2); tabs.add_css_class("hm-tabs")
+        self.tab_draw = Gtk.ToggleButton(label="Dibujo"); self.tab_cam = Gtk.ToggleButton(label="Cámara")
+        for b in (self.tab_draw, self.tab_cam): b.add_css_class("hm-tab"); b.set_focus_on_click(False)
+        self.tab_cam.set_group(self.tab_draw); self.tab_draw.set_active(True)
+        self.tab_draw.connect("toggled", lambda b: b.get_active() and self._a_view.change_state(GLib.Variant.new_string("draw")))
+        self.tab_cam.connect("toggled", lambda b: b.get_active() and self._a_view.change_state(GLib.Variant.new_string("camera")))
+        tabs.append(self.tab_draw); tabs.append(self.tab_cam)
+        center.append(tabs)
+        frame = Gtk.Box(); frame.add_css_class("hm-view"); frame.set_vexpand(True); frame.append(self.canvas)
+        center.append(frame)
+        center.append(self._hscroll(self._build_viewbar()))
+        mid.append(self._build_docks())
+
+        root.append(self._build_timeline())
+        root.append(self._hscroll(self._build_status()))
+
+        key = Gtk.EventControllerKey()
+        key.connect("key-pressed", self._on_key); key.connect("key-released", self._on_key_up)
+        self.add_controller(key)
+        self._select_tool("brush")
+        self._sync()
+
+    # ── barra de herramientas ────────────────────────────────────────────────
+    def _build_toolbar(self):
+        bar = Gtk.Box(spacing=3); bar.add_css_class("hm-bar")
+        for icon, tip, name in (("newfile", "Nueva escena (Ctrl+N)", "new"), ("folder_open", "Abrir proyecto (Ctrl+O)", "open"),
+                                ("save", "Guardar proyecto (Ctrl+Shift+S)", "save_project")):
+            bar.append(self._ib(icon, tip, lambda n=name: self._grp.lookup_action(n).activate(None)))
+        bar.append(Gtk.Separator())
+        for icon, tip, name in (("undo", "Deshacer (Ctrl+Z)", "undo"), ("redo", "Rehacer (Ctrl+Y)", "redo"),
+                                ("cut", "Cortar", "cut"), ("copy", "Copiar", "copy"), ("paste", "Pegar", "paste")):
+            bar.append(self._ib(icon, tip, lambda n=name: self._grp.lookup_action(n).activate(None)))
+        bar.append(Gtk.Separator())
+        self.tb_onion = self._ib("onion_skin", "Papel cebolla (Alt+O)", lambda on: self._a_onion.change_state(GLib.Variant.new_boolean(on)), toggle=True)
+        self.tb_light = self._ib("light", "Mesa de luz (Shift+L)", lambda on: self._a_light.change_state(GLib.Variant.new_boolean(on)), toggle=True)
+        self.tb_grid = self._ib("grid", "Cuadrícula", lambda on: self._a_grid.change_state(GLib.Variant.new_boolean(on)), toggle=True)
+        self.tb_mirror = self._ib("mirror", "Vista espejo", lambda on: self._a_mirror.change_state(GLib.Variant.new_boolean(on)), toggle=True)
+        for b in (self.tb_onion, self.tb_light, self.tb_grid, self.tb_mirror): bar.append(b)
+        bar.append(Gtk.Separator())
+        bar.append(self._ib("zoom_out", "Alejar", lambda: c_zoom(self, 1 / 1.25)))
+        bar.append(self._ib("zoom_in", "Acercar", lambda: c_zoom(self, 1.25)))
+        bar.append(self._ib("fit", "Ajustar a la ventana (Ctrl+0)", self.canvas.zoom_fit))
+        sp = Gtk.Box(); sp.set_hexpand(True); bar.append(sp)
+        gif = self._ib("gif", "Exportar GIF", self._export_gif_dialog); bar.append(gif)
+        return bar
+
+    def _build_toolbox(self):
+        col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1); col.add_css_class("hm-tools")
+        self._tool_btns = {}; first = None
+        for tid, ic, tip, _k in TOOLS:
+            b = Gtk.ToggleButton(); b.add_css_class("hm-tool"); b.set_child(icon_image(ic, 18, ICO))
+            b.set_tooltip_text(tip); b.set_focus_on_click(False)
+            if first is None: first = b
+            else: b.set_group(first)
+            b.connect("toggled", lambda w, t=tid: w.get_active() and self._on_tool(t))
+            self._tool_btns[tid] = b; col.append(b)
+        sc = Gtk.ScrolledWindow(); sc.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        sc.set_child(col); sc.set_min_content_width(40); return sc
+
+    def _build_viewbar(self):
+        bar = Gtk.Box(spacing=6); bar.add_css_class("hm-viewbar")
+        self.vb_light = self._ib("light", "Mesa de luz", lambda on: self._a_light.change_state(GLib.Variant.new_boolean(on)), toggle=True, size=14)
+        self.vb_onion = self._ib("onion_skin", "Papel cebolla", lambda on: self._a_onion.change_state(GLib.Variant.new_boolean(on)), toggle=True, size=14)
+        self.vb_grid = self._ib("grid", "Cuadrícula", lambda on: self._a_grid.change_state(GLib.Variant.new_boolean(on)), toggle=True, size=14)
+        self.vb_paper = self._ib("paper", "Fondo de papel", lambda on: self._a_paper.change_state(GLib.Variant.new_boolean(on)), toggle=True, size=14)
+        for b in (self.vb_light, self.vb_onion, self.vb_grid, self.vb_paper): bar.append(b)
+        bar.append(Gtk.Label(label="◀"))
+        self.onion_prev = Gtk.SpinButton.new_with_range(0, 6, 1); self.onion_prev.set_value(2)
+        self.onion_prev.connect("value-changed", lambda w: self._onion_n("prev", w))
+        self.onion_next = Gtk.SpinButton.new_with_range(0, 6, 1); self.onion_next.set_value(2)
+        self.onion_next.connect("value-changed", lambda w: self._onion_n("next", w))
+        bar.append(self.onion_prev); bar.append(Gtk.Label(label="▶")); bar.append(self.onion_next)
+        bar.append(Gtk.Separator())
+        sym = Gtk.DropDown.new_from_strings(["Sin simetría", "Simetría H", "Simetría V", "Simetría H+V"])
+        sym.connect("notify::selected", lambda w, _p: self._a_sym.change_state(
+            GLib.Variant.new_string(("none", "h", "v", "hv")[w.get_selected()])))
+        bar.append(sym)
+        sp = Gtk.Box(); sp.set_hexpand(True); bar.append(sp)
+        self.frame_lbl = Gtk.Label(label="Fotograma 1/1"); bar.append(self.frame_lbl)
+        self.zoom_lbl = Gtk.Label(label="100%"); self.zoom_lbl.set_size_request(52, -1); bar.append(self.zoom_lbl)
+        return bar
+
+    def _build_docks(self):
+        c = self.canvas
+        col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); col.add_css_class("hm-dock"); col.set_size_request(340, -1)
+
+        def nb(*pages):
+            n = Gtk.Notebook(); n.set_vexpand(True)
+            for w, label in pages:
+                sc = Gtk.ScrolledWindow(); sc.set_child(w); sc.set_propagate_natural_height(False)
+                n.append_page(sc, Gtk.Label(label=label))
+            return n
+
+        self.props_panel = ToolProps(c, self._sel_action)
+        self.layer_panel = LayerProps(c, self._sync)
+        col.append(nb((self.props_panel, "Propiedades de herramienta"), (self.layer_panel, "Capa")))
+        self.color_dock = ColorDock(c, self.palette, self._palette_changed)
+        self.cam_dock = CameraDock(c)
+        col.append(nb((self.color_dock, "Color"), (self.cam_dock, "Cámara")))
+        return col
+
+    def _build_timeline(self):
+        c = self.canvas; s = c.scene
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); box.add_css_class("hm-tl")
+        bar = Gtk.Box(spacing=5); bar.add_css_class("hm-bar")
+        self.play_btn = self._ib("play", "Reproducir (Enter)", self._on_play, toggle=True)
+        self.loop_btn = self._ib("loop", "Bucle", lambda on: setattr(self, "_loop", on), toggle=True)
+        self.loop_btn.set_active(True); self._loop = True
+        bar.append(self.play_btn); bar.append(self.loop_btn)
+        bar.append(self._ib("sound", "Importar audio", self._import_audio))
+        bar.append(Gtk.Separator())
+
+        def spin(label, lo, hi, cb):
+            bar.append(Gtk.Label(label=label))
+            sp = Gtk.SpinButton.new_with_range(lo, hi, 1); sp.set_width_chars(4)
+            sp.connect("value-changed", lambda w: cb(int(w.get_value()))); bar.append(sp); return sp
+        self.sp_frame = spin("Fotograma", 1, 2000, lambda v: (not self._syncing) and c.go_to(v - 1))
+        self.sp_start = spin("Inicio", 1, 2000, lambda v: (not self._syncing) and self._set_range(start=v - 1))
+        self.sp_stop = spin("Fin", 1, 2000, lambda v: (not self._syncing) and self._set_range(stop=v - 1))
+        self.sp_fps = spin("FPS", 1, 60, lambda v: (not self._syncing) and setattr(c.scene, "fps", v))
+        bar.append(Gtk.Separator())
+        for icon, tip, name in (("add", "Capa de dibujo nueva", "layer_raster"), ("vec_pen", "Capa vectorial nueva", "layer_vector"),
+                                ("duplicate", "Duplicar capa", "layer_dup"), ("up", "Subir capa", "layer_up"),
+                                ("down", "Bajar capa", "layer_down"), ("merge", "Unir con la de abajo", "layer_merge"),
+                                ("trash", "Borrar capa", "layer_del")):
+            bar.append(self._ib(icon, tip, lambda n=name: self._grp.lookup_action(n).activate(None), size=14))
+        box.append(self._hscroll(bar))
+        self.timeline = Timeline(c, on_rename=self._rename_layer, on_menu=self._cell_menu, on_range=self._sync)
+        sc = Gtk.ScrolledWindow(); sc.set_child(self.timeline)
+        sc.set_min_content_height(150); sc.set_max_content_height(240); sc.set_propagate_natural_height(True)
         box.append(sc)
+        return box
 
-        footer = Gtk.Box(spacing=10)
-        footer.set_margin_start(14); footer.set_margin_end(14)
-        footer.set_margin_top(8); footer.set_margin_bottom(10)
-        no_show = Gtk.CheckButton(label="No mostrar al iniciar el editor")
-        no_show.set_hexpand(True)
-        footer.append(no_show)
-        ok = Gtk.Button(label="✓  Entendido")
-        ok.add_css_class("suggested-action")
-        ok.connect("clicked", lambda _: (
-            _s.set_val("tutorial_paint_shown", no_show.get_active()),
-            dlg.destroy()))
-        footer.append(ok)
-        box.append(footer)
+    def _build_status(self):
+        bar = Gtk.Box(spacing=8); bar.add_css_class("hm-status")
+        self.cursor_lbl = Gtk.Label(label="X:—  Y:—"); self.cursor_lbl.set_size_request(120, -1); self.cursor_lbl.set_xalign(0)
+        bar.append(self.cursor_lbl)
+        self.msg = Gtk.Label(label=""); self.msg.set_hexpand(True); self.msg.set_xalign(0); self.msg.add_css_class("dim-label")
+        bar.append(self.msg)
+        self.size_lbl = Gtk.Label(label="512 × 512"); bar.append(self.size_lbl)
+        bar.append(Gtk.Separator())
+        if self.anim_id is None:
+            bar.append(Gtk.Label(label="Nombre"))
+            self.name_entry = Gtk.Entry(); self.name_entry.set_placeholder_text("Mi mascota"); self.name_entry.set_width_chars(12)
+            bar.append(self.name_entry)
+        else:
+            self.name_entry = None
+        bar.append(Gtk.Label(label="Pose"))
+        self.pose_entry = Gtk.Entry(); self.pose_entry.set_text("default"); self.pose_entry.set_width_chars(8); bar.append(self.pose_entry)
+        save = Gtk.Button(); save.add_css_class("suggested-action")
+        sb = Gtk.Box(spacing=4); sb.append(icon_image("save", 14, "#ffffff")); sb.append(Gtk.Label(label="Guardar pose"))
+        save.set_child(sb); save.connect("clicked", lambda _: self._save_pose()); bar.append(save)
+        return bar
+
+    # ══ estado ════════════════════════════════════════════════════════════════
+    def _sync(self):
+        c = self.canvas; s = c.scene
+        self._syncing = True
+        try:
+            self.timeline.refresh()
+            self.layer_panel.refresh(); self.cam_dock.refresh()
+            for sp, v, hi in ((self.sp_frame, c.cur + 1, s.frame_count), (self.sp_start, s.start + 1, s.frame_count),
+                              (self.sp_stop, s.stop + 1, s.frame_count)):
+                sp.set_range(1, max(1, hi)); sp.set_value(v)
+            self.sp_fps.set_value(s.fps)
+            self.frame_lbl.set_text(f"Fotograma {c.cur + 1}/{s.frame_count}")
+            self.size_lbl.set_text(f"{s.w} × {s.h}")
+            self.title_lbl.set_text(f"{c.layer.name} · fotograma {c.cur + 1}")
+        finally:
+            self._syncing = False
+
+    def _on_cursor(self, x, y):
+        self.cursor_lbl.set_text(f"X:{x:6.1f}  Y:{y:6.1f}")
+
+    def _on_zoom(self):
+        self.zoom_lbl.set_text(f"{round(self.canvas._z * 100)}%")
+
+    def _flash(self, m):
+        self.msg.set_text(m)
+        if self._status_id: GLib.source_remove(self._status_id)
+        self._status_id = GLib.timeout_add(4000, self._clear_flash)
+
+    def _clear_flash(self):
+        self.msg.set_text(""); self._status_id = None; return False
+
+    def _palette_changed(self):
+        from .. import settings as _s
+        _s.set_val("anim_palette", [list(c) for c in self.palette])
+
+    def _on_pick(self, color, right):
+        d = self.color_dock
+        (d.set_colors(self.canvas.fg, color) if right else d.set_colors(color, self.canvas.bg))
+
+    # ── herramientas ─────────────────────────────────────────────────────────
+    def _on_tool(self, tid):
+        self.canvas.set_tool(tid); self.props_panel.show_tool(tid)
+        if tid == "camera" and self.canvas.mode != "camera": self._a_view.change_state(GLib.Variant.new_string("camera"))
+
+    def _select_tool(self, tid):
+        b = self._tool_btns.get(tid)
+        if b is not None: b.set_active(True)
+        self._on_tool(tid)
+
+    def _sel_action(self, name):
+        c = self.canvas
+        {"flip_h": lambda: c.flip_drawing(True), "flip_v": lambda: c.flip_drawing(False),
+         "rot_cw": lambda: c.rotate_drawing(90), "copy": c.copy_selection,
+         "cut": lambda: c.copy_selection(cut=True), "paste": c.paste_selection,
+         "invert": c.invert_selection, "clear": c.clear_selection,
+         "zoom100": lambda: c.zoom_to(1.0), "fit": c.zoom_fit}[name]()
+
+    # ── vista ────────────────────────────────────────────────────────────────
+    def _set_onion(self, on):
+        self.canvas.onion = on; self.canvas.queue_draw()
+        for b in (self.tb_onion, self.vb_onion):
+            if b.get_active() != on: b.set_active(on)
+
+    def _onion_n(self, which, w):
+        setattr(self.canvas, "onion_" + which, int(w.get_value())); self.canvas.queue_draw()
+
+    def _set_light(self, on):
+        self.canvas.light_table = on; self.canvas.queue_draw()
+        for b in (self.tb_light, self.vb_light):
+            if b.get_active() != on: b.set_active(on)
+
+    def _set_grid(self, on):
+        self.canvas.show_grid = on; self.canvas.queue_draw()
+        for b in (self.tb_grid, self.vb_grid):
+            if b.get_active() != on: b.set_active(on)
+
+    def _set_safe(self, on): self.canvas.safe_area = on; self.canvas.queue_draw()
+
+    def _set_paper(self, on):
+        self.canvas.paper = on; self.canvas.queue_draw()
+        if self.vb_paper.get_active() != on: self.vb_paper.set_active(on)
+
+    def _set_mirror(self, on):
+        self.canvas.mirror_view = on; self.canvas.queue_draw()
+        if self.tb_mirror.get_active() != on: self.tb_mirror.set_active(on)
+
+    def _set_sym(self, v): self.canvas.symmetry = v; self.canvas.queue_draw()
+
+    def _set_view(self, v):
+        self.canvas.mode = v; self.canvas.queue_draw()
+        (self.tab_cam if v == "camera" else self.tab_draw).set_active(True)
+
+    # ── rango / reproducción ─────────────────────────────────────────────────
+    def _set_range(self, start=None, stop=None):
+        s = self.canvas.scene
+        if start is not None: s.start = max(0, min(start, s.frame_count - 1)); s.stop = max(s.stop, s.start)
+        if stop is not None: s.stop = max(s.start, min(stop, s.frame_count - 1))
+        self._sync()
+
+    def _on_play(self, on):
+        self._playing = on
+        c = self.canvas; s = c.scene
+        if on:
+            if not (s.start <= c.cur <= s.stop): c.go_to(s.start)
+            self._schedule()
+            if s.audio and shutil.which("mpv"):
+                try:
+                    self._audio = subprocess.Popen(
+                        ["mpv", "--no-video", f"--start={c.cur / max(1, s.fps):.3f}", s.audio],
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                except OSError: self._audio = None
+        else:
+            if self._play_id: GLib.source_remove(self._play_id); self._play_id = None
+            self._stop_audio()
+
+    def _stop_audio(self):
+        if self._audio:
+            try: self._audio.terminate()
+            except OSError: pass
+            self._audio = None
+
+    def _schedule(self):
+        self._play_id = GLib.timeout_add(max(16, 1000 // max(1, self.canvas.scene.fps)), self._tick)
+
+    def _tick(self):
+        self._play_id = None
+        if not self._playing: return False
+        c = self.canvas; s = c.scene
+        nxt = c.cur + 1
+        if nxt > s.stop:
+            if self._loop:
+                nxt = s.start
+                self._stop_audio()
+                if s.audio and shutil.which("mpv"):
+                    try:
+                        self._audio = subprocess.Popen(["mpv", "--no-video", f"--start={nxt / max(1, s.fps):.3f}", s.audio],
+                                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    except OSError: pass
+            else:
+                self.play_btn.set_active(False); return False
+        c.go_to(nxt)
+        self._schedule()
+        return False
+
+    # ── línea de tiempo ──────────────────────────────────────────────────────
+    def _rename_layer(self, li):
+        c = self.canvas
+        dlg = Gtk.Dialog(title="Renombrar capa", transient_for=self, modal=True)
+        box = dlg.get_content_area(); box.set_spacing(8)
+        for m in ("start", "end", "top", "bottom"): getattr(box, f"set_margin_{m}")(14)
+        e = Gtk.Entry(); e.set_text(c.scene.layers[li].name); e.set_activates_default(True); box.append(e)
+        row = Gtk.Box(spacing=8, halign=Gtk.Align.END)
+        cancel = Gtk.Button(label="Cancelar"); cancel.connect("clicked", lambda _: dlg.destroy())
+        ok = Gtk.Button(label="Aceptar"); ok.add_css_class("suggested-action")
+
+        def go(_):
+            c.scene.layers[li].name = e.get_text().strip() or c.scene.layers[li].name; dlg.destroy(); c._changed(True)
+        ok.connect("clicked", go); e.connect("activate", go); row.append(cancel); row.append(ok); box.append(row)
         dlg.present()
 
-    # ── cerrar ────────────────────────────────────────────────────────────────
-    def _confirm_close(self):
-        """Confirma antes de cerrar para no perder el trabajo sin guardar."""
-        dlg = Gtk.AlertDialog()
-        dlg.set_message("¿Cerrar el editor de pintura?")
-        dlg.set_detail("Para continuar más tarde con tus CAPAS intactas, guarda "
-                       "un proyecto .alproj (Ctrl+Shift+S). «Guardar pose» exporta "
-                       "la imagen aplanada a la mascota. Si no guardas, se pierden "
-                       "los cambios.")
-        dlg.set_buttons(["Cancelar", "Guardar proyecto…", "Cerrar sin guardar"])
-        dlg.set_cancel_button(0)
-        dlg.set_default_button(1)
-        dlg.choose(self, None, self._confirm_close_done)
+    def _cell_menu(self, widget, x, y):
+        m = Gio.Menu()
+        I = self._it
+        m.append_item(I("Dibujo nuevo en la celda", "an.drawing_new")); m.append_item(I("Duplicar dibujo", "an.drawing_dup"))
+        m.append_item(I("Extender exposición (+1)", "an.extend")); m.append_item(I("Limpiar celda", "an.clear_cell"))
+        m2 = Gio.Menu()
+        m2.append_item(I("Insertar fotograma", "an.frame_insert")); m2.append_item(I("Borrar fotograma", "an.frame_delete"))
+        m2.append_item(I("Fijar inicio aquí", "an.set_start")); m2.append_item(I("Fijar fin aquí", "an.set_stop"))
+        m.append_section(None, m2)
+        pop = Gtk.PopoverMenu.new_from_model(m); pop.set_parent(widget)
+        r = Gdk.Rectangle(); r.x, r.y, r.width, r.height = int(x), int(y), 1, 1
+        pop.set_pointing_to(r); pop.popup()
 
-    def _confirm_close_done(self, dlg, result):
+    def _reverse_range(self):
+        s = self.canvas.scene; s.reverse_frames(s.start, s.stop); self.canvas._after_struct(False)
+
+    def _pingpong_range(self):
+        s = self.canvas.scene; s.pingpong(s.start, s.stop); self.canvas._after_struct(False)
+
+    # ══ teclado ═══════════════════════════════════════════════════════════════
+    def _typing(self):
+        f = self.get_focus()
+        return isinstance(f, (Gtk.Editable, Gtk.SpinButton))
+
+    def _on_key_up(self, ctrl, kv, kc, mods):
+        if (Gdk.keyval_name(kv) or "") == "space": self.canvas.set_space(False)
+
+    def _on_key(self, ctrl, kv, kc, mods):
+        if self._typing(): return False
+        c = self.canvas
+        key = Gdk.keyval_name(kv) or ""; low = key.lower()
+        ctl = bool(mods & Gdk.ModifierType.CONTROL_MASK); shift = bool(mods & Gdk.ModifierType.SHIFT_MASK)
+        alt = bool(mods & Gdk.ModifierType.ALT_MASK)
+        if key == "space": c.set_space(True); return True
+        if ctl:
+            if low == "z": (c.redo() if shift else c.undo()); return True
+            if low == "y": c.redo(); return True
+            if low == "s": (self._save_project_dialog() if shift else self._save_pose()); return True
+            if low == "o": self._open_project_dialog(); return True
+            if low == "n": (c.add_layer("raster") if shift else self._ask_scene_size()); return True
+            if low == "w": self._confirm_close(); return True
+            if low == "a": c.select_all(); return True
+            if low == "d": c.deselect(); return True
+            if low == "c": c.copy_selection(); return True
+            if low == "x": c.copy_selection(cut=True); return True
+            if low == "v": c.paste_selection(); return True
+            if key == "0": c.zoom_fit(); return True
+            if key == "1": c.zoom_to(1.0); return True
+            arrows = {"Left": (-1, 0), "Right": (1, 0), "Up": (0, -1), "Down": (0, 1)}
+            if key in arrows: c.nudge(*arrows[key]); return True
+            return False
+        if alt:
+            if low == "o": self._a_onion.change_state(GLib.Variant.new_boolean(not c.onion)); return True
+            return False
+        if shift and low == "l": self._a_light.change_state(GLib.Variant.new_boolean(not c.light_table)); return True
+        if key == "F1": self._show_tutorial(force=True); return True
+        if key == "F5": c.extend_exposure(1); return True
+        if key == "F6": c.new_drawing_here(); return True
+        if key == "F7": c.duplicate_drawing_here(); return True
+        if key == "F8": (c.delete_frame() if shift else c.insert_frame()); return True
+        if key == "F9": c.camera_key(); return True
+        if key in ("Return", "KP_Enter"):
+            if c._poly: c.finish_polyline(close=True)
+            else: self.play_btn.set_active(not self.play_btn.get_active())
+            return True
+        if key == "Escape":
+            if c._poly: c.finish_polyline(False)
+            else: c.deselect()
+            return True
+        if key in ("comma", "Left"): c.go_to(c.cur - 1); return True
+        if key in ("period", "Right"): c.go_to(c.cur + 1); return True
+        if key == "Home": c.go_to(c.scene.start); return True
+        if key == "End": c.go_to(c.scene.stop); return True
+        if key == "Delete":
+            if c.layer.kind == "vector" and c.vsel: c.clear_selection()
+            elif c.tool == "contour" and c._vpoint: c.delete_point()
+            elif c.sel is not None: c.clear_selection()
+            else: c.clear_cell()
+            return True
+        if key in ("plus", "equal"): c.zoom_at(1.25); return True
+        if key == "minus": c.zoom_at(1 / 1.25); return True
+        if key == "bracketleft": self._resize_brush(0.85); return True
+        if key == "bracketright": self._resize_brush(1 / 0.85); return True
+        if low == "x" and not shift: self.color_dock.swap(); return True
+        if low in KEY_TOOLS and not shift: self._select_tool(KEY_TOOLS[low]); return True
+        return False
+
+    def _resize_brush(self, f):
+        p = self.canvas.props
+        k = {"brush": "brush_size", "pencil": "pencil_size", "eraser": "eraser_size", "smudge": "smudge_size"}.get(self.canvas.tool)
+        if k:
+            p[k] = max(1.0, min(300.0, p[k] * f)); self.props_panel.show_tool(self.canvas.tool)
+            self.canvas.queue_draw()
+
+    # ══ diálogos / archivos ═══════════════════════════════════════════════════
+    def _dlg(self, title, w=380):
+        dlg = Gtk.Dialog(title=title, transient_for=self, modal=True); dlg.set_default_size(w, 100)
+        box = dlg.get_content_area(); box.set_spacing(8)
+        for m in ("start", "end", "top", "bottom"): getattr(box, f"set_margin_{m}")(14)
+        return dlg, box
+
+    def _dlg_scene(self):
+        s = self.canvas.scene
+        dlg, box = self._dlg("Tamaño de la escena")
+        box.append(gw.note("Cambiar el tamaño reencuadra todos los dibujos (sin escalar). El contenido fuera del nuevo marco se recorta."))
+        grid = Gtk.Grid(row_spacing=6, column_spacing=8)
+        w = Gtk.SpinButton.new_with_range(64, 4096, 16); w.set_value(s.w)
+        h = Gtk.SpinButton.new_with_range(64, 4096, 16); h.set_value(s.h)
+        grid.attach(Gtk.Label(label="Ancho", xalign=0), 0, 0, 1, 1); grid.attach(w, 1, 0, 1, 1)
+        grid.attach(Gtk.Label(label="Alto", xalign=0), 0, 1, 1, 1); grid.attach(h, 1, 1, 1, 1); box.append(grid)
+        row = Gtk.Box(spacing=8, halign=Gtk.Align.END)
+        cancel = Gtk.Button(label="Cancelar"); cancel.connect("clicked", lambda _: dlg.destroy())
+        ok = Gtk.Button(label="Aceptar"); ok.add_css_class("suggested-action")
+        ok.connect("clicked", lambda _: (self._resize_scene(int(w.get_value()), int(h.get_value())), dlg.destroy()))
+        row.append(cancel); row.append(ok); box.append(row); dlg.present()
+
+    def _resize_scene(self, w, h):
+        import numpy as np
+        c = self.canvas; s = c.scene
+        s.snap()
+        ox, oy = (w - s.w) // 2, (h - s.h) // 2
+        for l in s.layers:
+            for i, d in enumerate(l.drawings):
+                if d.kind == "raster":
+                    out = np.zeros((h, w, 4), np.uint8)
+                    sx0, sy0, dx0, dy0 = max(0, -ox), max(0, -oy), max(0, ox), max(0, oy)
+                    cw_, ch_ = min(s.w - sx0, w - dx0), min(s.h - sy0, h - dy0)
+                    if cw_ > 0 and ch_ > 0: out[dy0:dy0 + ch_, dx0:dx0 + cw_] = d.arr[sy0:sy0 + ch_, sx0:sx0 + cw_]
+                    l.drawings[i] = ae.Drawing(w, h, "raster", out)
+                else:
+                    for st in d.strokes: st["pts"] = [(p[0] + ox, p[1] + oy, *p[2:]) for p in st["pts"]]
+                    d.w, d.h = w, h; d.touch()
+        s.w, s.h = w, h
+        c.sel = None; c._sel_segs = None; c._fit_pending = True
+        c._after_struct(False)
+
+    def _dlg_length(self):
+        s = self.canvas.scene
+        dlg, box = self._dlg("Duración de la escena")
+        sp = Gtk.SpinButton.new_with_range(1, 2000, 1); sp.set_value(s.frame_count)
+        box.append(Gtk.Label(label="Fotogramas totales", xalign=0)); box.append(sp)
+        row = Gtk.Box(spacing=8, halign=Gtk.Align.END)
+        cancel = Gtk.Button(label="Cancelar"); cancel.connect("clicked", lambda _: dlg.destroy())
+        ok = Gtk.Button(label="Aceptar"); ok.add_css_class("suggested-action")
+
+        def go(_):
+            n = int(sp.get_value()); s.set_length(n)
+            s.stop = min(s.stop, n - 1) if n < s.stop + 1 else (n - 1 if s.stop == s.frame_count - 1 or n > s.stop else s.stop)
+            self.canvas._after_struct(False); dlg.destroy()
+        ok.connect("clicked", go); row.append(cancel); row.append(ok); box.append(row); dlg.present()
+
+    def _ask_scene_size(self):
+        dlg, box = self._dlg("Nueva escena", 430)
+        box.append(gw.note(
+            "512×512 es un buen punto de partida para mascotas: da espacio para detalle sin generar archivos enormes. "
+            "Las poses guardadas son PNG con transparencia."))
+        grid = Gtk.Grid(row_spacing=6, column_spacing=8)
+        w = Gtk.SpinButton.new_with_range(64, 4096, 16); w.set_value(512)
+        h = Gtk.SpinButton.new_with_range(64, 4096, 16); h.set_value(512)
+        fps = Gtk.SpinButton.new_with_range(1, 60, 1); fps.set_value(12)
+        for r, (lbl, wd) in enumerate((("Ancho (px)", w), ("Alto (px)", h), ("FPS", fps))):
+            grid.attach(Gtk.Label(label=lbl, xalign=0), 0, r, 1, 1); grid.attach(wd, 1, r, 1, 1)
+        box.append(grid)
+        pres = Gtk.Box(spacing=4)
+        for lbl, ww, hh, rec in (("512² ★", 512, 512, True), ("800×600", 800, 600, False), ("1024²", 1024, 1024, False),
+                                 ("1280×720", 1280, 720, False), ("1920×1080", 1920, 1080, False)):
+            b = Gtk.Button(label=lbl)
+            if rec: b.set_tooltip_text("Recomendado")
+            b.connect("clicked", lambda _, a=ww, z=hh: (w.set_value(a), h.set_value(z))); pres.append(b)
+        box.append(pres)
+        row = Gtk.Box(spacing=8, halign=Gtk.Align.END)
+        cancel = Gtk.Button(label="Cancelar")
+        cancel.connect("clicked", lambda _: (dlg.destroy(), (self.close() if self.anim_id is None and not getattr(self, "_started", False) else None)))
+        ok = Gtk.Button(label="Crear escena"); ok.add_css_class("suggested-action")
+
+        def go(_):
+            self._started = True
+            self.canvas.new_scene(int(w.get_value()), int(h.get_value()), int(fps.get_value()))
+            dlg.destroy(); self._sync(); self._show_tutorial()
+        ok.connect("clicked", go); row.append(cancel); row.append(ok); box.append(row); dlg.present()
+        return False
+
+    # proyecto
+    def _ffilter(self, name, *pats):
+        f = Gtk.FileFilter(); f.set_name(name)
+        for p in pats: f.add_pattern(p)
+        fl = Gio.ListStore.new(Gtk.FileFilter); fl.append(f); return fl
+
+    def _save_project_dialog(self, on_done=None):
+        from .. import projects
+        dlg = Gtk.FileDialog(); dlg.set_title("Guardar proyecto (.alproj)")
+        dlg.set_filters(self._ffilter("Proyecto AnimaLinux (*.alproj)", "*.alproj"))
+        try: dlg.set_initial_folder(Gio.File.new_for_path(str(projects.ensure_dir())))
+        except Exception: pass  # noqa: BLE001
+        dlg.set_initial_name(f"{self.pose_entry.get_text().strip() or 'proyecto'}.alproj")
+        dlg.save(self, None, lambda d, r: self._save_project_done(d, r, on_done))
+
+    def _save_project_done(self, dlg, res, on_done):
+        try: gf = dlg.save_finish(res)
+        except GLib.Error: return
+        path = gf.get_path()
+        if not path.endswith(".alproj"): path += ".alproj"
         try:
-            idx = dlg.choose_finish(result)
-        except Exception:  # noqa: BLE001  (cancelado con Esc)
-            return
-        if idx == 1:
-            # guardar proyecto .alproj y cerrar cuando termine el diálogo
-            self._save_project_dialog(on_done=self.close)
-        elif idx == 2:
-            self.close()
+            self.canvas.save_project(path); self._project_path = path
+            self._flash(f"Proyecto guardado: {Path(path).name}")
+            if on_done: on_done()
+        except Exception as e:  # noqa: BLE001
+            self._flash(f"No se pudo guardar: {e}")
 
-    # ── guardar pose ──────────────────────────────────────────────────────────
+    def _open_project_dialog(self):
+        from .. import projects
+        dlg = Gtk.FileDialog(); dlg.set_title("Abrir proyecto (.alproj)")
+        dlg.set_filters(self._ffilter("Proyecto AnimaLinux (*.alproj)", "*.alproj"))
+        try: dlg.set_initial_folder(Gio.File.new_for_path(str(projects.ensure_dir())))
+        except Exception: pass  # noqa: BLE001
+        dlg.open(self, None, self._open_project_done)
+
+    def _open_project_done(self, dlg, res):
+        try: gf = dlg.open_finish(res)
+        except GLib.Error: return
+        if self.canvas.load_project(gf.get_path()):
+            self._project_path = gf.get_path(); self._sync(); self._flash("Proyecto abierto")
+        else: self._flash("No se pudo abrir el proyecto")
+
+    # importar
+    def _import_image_dialog(self):
+        dlg = Gtk.FileDialog(); dlg.set_title("Importar imagen a la celda actual")
+        dlg.open(self, None, lambda d, r: self._file_done(d, r, self.canvas.import_image))
+
+    def _import_seq_dialog(self):
+        dlg = Gtk.FileDialog(); dlg.set_title("Importar secuencia de imágenes")
+        dlg.open_multiple(self, None, self._seq_done)
+
+    def _seq_done(self, dlg, res):
+        try: files = dlg.open_multiple_finish(res)
+        except GLib.Error: return
+        paths = sorted(f.get_path() for f in files)
+        self.canvas.import_sequence(paths); self._flash(f"{len(paths)} imágenes importadas")
+
+    def _file_done(self, dlg, res, cb):
+        try: gf = dlg.open_finish(res)
+        except GLib.Error: return
+        cb(gf.get_path()); self._sync()
+
+    def _import_audio(self):
+        dlg = Gtk.FileDialog(); dlg.set_title("Seleccionar archivo de audio")
+        dlg.open(self, None, self._audio_done)
+
+    def _audio_done(self, dlg, res):
+        try: gf = dlg.open_finish(res)
+        except GLib.Error: return
+        self.canvas.scene.audio = gf.get_path(); self._sync(); self.timeline.refresh()
+        self._flash("Audio cargado: se reproduce con ▶ (requiere mpv)")
+
+    # exportar
+    def _range(self):
+        s = self.canvas.scene; return range(s.start, s.stop + 1)
+
+    def _export_gif_dialog(self):
+        dlg = Gtk.FileDialog(); dlg.set_title("Guardar como GIF animado"); dlg.set_initial_name("animacion.gif")
+        dlg.save(self, None, self._gif_done)
+
+    def _gif_done(self, dlg, res):
+        try: gf = dlg.save_finish(res)
+        except GLib.Error: return
+        path = gf.get_path()
+        frames = [self.canvas.to_pil(i) for i in self._range()]
+        if not frames: return
+        frames[0].save(path, format="GIF", save_all=True, append_images=frames[1:], loop=0,
+                       duration=max(20, 1000 // self.canvas.scene.fps), disposal=2)
+        self._flash(f"GIF guardado: {Path(path).name}")
+
+    def _export_mp4_dialog(self):
+        dlg = Gtk.FileDialog(); dlg.set_title("Exportar como MP4"); dlg.set_initial_name("animacion.mp4")
+        dlg.save(self, None, self._mp4_done)
+
+    def _mp4_done(self, dlg, res):
+        try: gf = dlg.save_finish(res)
+        except GLib.Error: return
+        out = gf.get_path(); s = self.canvas.scene
+        tmp = tempfile.mkdtemp(prefix="animalinux_mp4_")
+        try:
+            for k, i in enumerate(self._range()):
+                im = self.canvas.to_pil(i)
+                bg = __import__("PIL.Image", fromlist=["Image"]).new("RGB", im.size, (255, 255, 255))
+                bg.paste(im, mask=im.split()[3]); bg.save(f"{tmp}/frame_{k:04d}.png")
+            cmd = ["ffmpeg", "-y", "-framerate", str(s.fps), "-i", f"{tmp}/frame_%04d.png"]
+            if s.audio: cmd += ["-i", s.audio, "-shortest"]
+            cmd += ["-c:v", "libx264", "-pix_fmt", "yuv420p", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", out]
+            r = subprocess.run(cmd, capture_output=True)
+            self._flash(f"MP4 guardado: {Path(out).name}" if r.returncode == 0 else "Error: ffmpeg no encontrado o falló.")
+        except FileNotFoundError:
+            self._flash("Error: ffmpeg no está instalado.")
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def _export_png_dialog(self):
+        dlg = Gtk.FileDialog(); dlg.set_title("Elige la carpeta para la secuencia PNG")
+        dlg.select_folder(self, None, self._png_done)
+
+    def _png_done(self, dlg, res):
+        try: gf = dlg.select_folder_finish(res)
+        except GLib.Error: return
+        dest = Path(gf.get_path())
+        for k, i in enumerate(self._range()): self.canvas.to_pil(i).save(dest / f"frame_{k:04d}.png")
+        self._flash(f"Secuencia PNG guardada en {dest.name}/")
+
+    # ── guardar pose ─────────────────────────────────────────────────────────
     def _save_pose(self):
         pose = self.pose_entry.get_text().strip() or "default"
-        fps  = int(self.fps_spin.get_value())
-        cw, ch = self.canvas.cw, self.canvas.ch
+        s = self.canvas.scene; fps = s.fps
         from ..core import image_processor as importer
-
+        n = len(self._range())
         if self.anim_id is None:
-            name = (self.name_entry.get_text().strip() if self.name_entry
-                    else "Sin nombre") or "Sin nombre"
-            aid  = self.app.library.new_id()
-            fd   = self.app.library.frames_dir(aid)
-            pose_dir = fd if pose == "default" else fd/pose
-            pose_dir.mkdir(parents=True, exist_ok=True)
-            self._export_frames(pose_dir)
-            self.app.library.add(aid, name, self.canvas.frame_count, cw, ch)
-            self.app.library.update(aid, fps=fps)
+            name = (self.name_entry.get_text().strip() if self.name_entry else "Sin nombre") or "Sin nombre"
+            aid = self.app.library.new_id(); fd = self.app.library.frames_dir(aid)
+            pose_dir = fd if pose == "default" else fd / pose
+            pose_dir.mkdir(parents=True, exist_ok=True); self._export_frames(pose_dir)
+            self.app.library.add(aid, name, n, s.w, s.h); self.app.library.update(aid, fps=fps)
             importer.ensure_flipped(pose_dir)
             if pose != "default": self.app.register_pose(aid, pose, fps)
-            self.anim_id = aid
-            self.save_status.set_text(f"Animación «{name}» creada.")
+            self.anim_id = aid; self._flash(f"Animación «{name}» creada.")
         else:
             fd = self.app.library.frames_dir(self.anim_id)
-            pose_dir = fd if pose == "default" else fd/pose
-            pose_dir.mkdir(parents=True, exist_ok=True)
-            self._export_frames(pose_dir)
-            importer.ensure_flipped(pose_dir)
-            self.app.register_pose(self.anim_id, pose, fps)
-            self.save_status.set_text(f"Pose «{pose}» guardada.")
-
+            pose_dir = fd if pose == "default" else fd / pose
+            pose_dir.mkdir(parents=True, exist_ok=True); self._export_frames(pose_dir)
+            importer.ensure_flipped(pose_dir); self.app.register_pose(self.anim_id, pose, fps)
+            self._flash(f"Pose «{pose}» guardada.")
         if self.app.control: self.app.control.refresh()
-        if self._guided:     self._suggest_next_pose()
+        if self._guided: self._suggest_next_pose()
 
     def _export_frames(self, dest):
-        for i in range(self.canvas.frame_count):
-            self.canvas.to_pil(i).save(dest/f"frame_{i:04d}.png")
+        for k, i in enumerate(self._range()):
+            self.canvas.to_pil(i).save(dest / f"frame_{k:04d}.png")
 
     def _suggest_next_pose(self):
         if not self.anim_id: return
         from .. import tips
         anim = self.app.library.animations.get(self.anim_id, {})
-        nxt  = tips.next_missing(anim.get("poses",[]))
+        nxt = tips.next_missing(anim.get("poses", []))
         if nxt: self.pose_entry.set_text(nxt); self._show_tip(nxt)
-        else:   self.save_status.set_text("¡Todas las poses creadas!")
+        else: self._flash("¡Todas las poses creadas!")
 
     def _show_tip(self, pose):
         from .. import tips
         info = tips.tip_for(pose)
-        md   = Gtk.AlertDialog()
-        md.set_message(f"Siguiente: {info['titulo']}  (~{info['frames']} cuadros)")
-        md.set_detail("\n".join(f"• {t}" for t in info["tips"]))
-        md.set_buttons(["Entendido"]); md.show(self)
+        md = Gtk.AlertDialog(); md.set_message(f"Siguiente: {info['titulo']}  (~{info['frames']} cuadros)")
+        md.set_detail("\n".join(f"• {t}" for t in info["tips"])); md.set_buttons(["Entendido"]); md.show(self)
 
-    # ── tamaño lienzo ─────────────────────────────────────────────────────────
-    def _ask_canvas_size(self):
-        dlg = Gtk.Dialog(title="Tamaño del lienzo", transient_for=self, modal=True)
-        dlg.set_default_size(400, 340)
-        box = dlg.get_content_area()
-        box.set_spacing(8); box.set_margin_start(16); box.set_margin_end(16)
-        box.set_margin_top(14); box.set_margin_bottom(14)
-
-        box.append(gw.note(
-            "El tamaño no se puede cambiar después de dibujar. 512×512 es "
-            "un buen punto de partida: da espacio para detalle a mano "
-            "alzada sin generar archivos enormes. Usa un tamaño mayor solo "
-            "si necesitás más resolución (ej. para exportar a pantalla "
-            "completa)."))
-
-        box.append(Gtk.Label(label="Ancho (px):"))
-        w_sp = Gtk.SpinButton(adjustment=Gtk.Adjustment(
-            value=512, lower=64, upper=8192, step_increment=64))
-        box.append(w_sp)
-        box.append(Gtk.Label(label="Alto (px):"))
-        h_sp = Gtk.SpinButton(adjustment=Gtk.Adjustment(
-            value=512, lower=64, upper=8192, step_increment=64))
-        box.append(h_sp)
-
-        presets = Gtk.Box(spacing=3)
-        for lbl2,w,h,recommended in [("512² ★",512,512,True),("800×600",800,600,False),
-                          ("1024²",1024,1024,False),("1280×720",1280,720,False),
-                          ("1920×1080",1920,1080,False)]:
-            b = Gtk.Button(label=lbl2)
-            if recommended:
-                b.set_tooltip_text("Recomendado para empezar")
-            b.connect("clicked", lambda _,ww=w,hh=h: (w_sp.set_value(ww),h_sp.set_value(hh)))
-            presets.append(b)
-        box.append(presets)
-
-        btn_row = Gtk.Box(spacing=8, halign=Gtk.Align.END)
-        cancel = Gtk.Button(label="Cancelar")
-        cancel.connect("clicked", lambda _: (dlg.destroy(), self.close()))
-        btn_row.append(cancel)
-        ok = Gtk.Button(label="Crear lienzo"); ok.add_css_class("suggested-action")
-        ok.connect("clicked", lambda _: self._apply_size(
-            dlg, int(w_sp.get_value()), int(h_sp.get_value())))
-        btn_row.append(ok)
-        box.append(btn_row); dlg.present()
+    # ── cerrar ───────────────────────────────────────────────────────────────
+    def _on_close_request(self, *_):
+        self._playing = False
+        if self._play_id: GLib.source_remove(self._play_id); self._play_id = None
+        self._stop_audio()
+        if self._status_id: GLib.source_remove(self._status_id); self._status_id = None
         return False
 
-    def _apply_size(self, dlg, w, h):
-        self.canvas.cw, self.canvas.ch = w, h
-        self.canvas._frames  = [[Layer(w, h, "Capa 1")]]
-        self.canvas._cur     = 0; self.canvas._active = 0
-        self.canvas._undo.clear(); self.canvas._redo.clear()
-        self.canvas._comp_cache.clear(); self.canvas._comp_dirty = {0}
-        self.canvas.queue_draw()
-        self._rebuild_strip(); self.layer_panel.rebuild()
-        self.canvas_size_lbl.set_text(f"{w}×{h}")
-        dlg.destroy()
-        self._show_tutorial()
+    def _confirm_close(self):
+        dlg = Gtk.AlertDialog(); dlg.set_message("¿Cerrar el editor de animación?")
+        dlg.set_detail("Guarda la pose (Ctrl+S) para usarla en tu mascota, o el proyecto (Ctrl+Shift+S) para seguir editándolo con capas.")
+        dlg.set_buttons(["Cancelar", "Guardar pose y cerrar", "Guardar proyecto y cerrar", "Cerrar sin guardar"])
+        dlg.set_cancel_button(0); dlg.set_default_button(1)
+        dlg.choose(self, None, self._confirm_done)
 
-    # ── exportar GIF ──────────────────────────────────────────────────────────
-    def _export_gif_dialog(self):
-        dlg = Gtk.FileDialog()
-        dlg.set_title("Guardar como GIF animado")
-        dlg.set_initial_name("animacion.gif")
-        dlg.save(self, None, self._gif_save_done)
+    def _confirm_done(self, dlg, res):
+        try: idx = dlg.choose_finish(res)
+        except Exception: return  # noqa: BLE001
+        if idx == 1: self._save_pose(); self.close()
+        elif idx == 2: self._save_project_dialog(on_done=self.close)
+        elif idx == 3: self.close()
 
-    def _gif_save_done(self, dlg, result):
-        try: gf = dlg.save_finish(result)
-        except GLib.Error: return
-        path = gf.get_path()
-        fps  = int(self.fps_spin.get_value())
-        delay_ms = max(20, 1000 // fps)
-        frames = [self.canvas.to_pil(i).convert("RGBA")
-                  for i in range(self.canvas.frame_count)]
-        if not frames: return
-        frames[0].save(
-            path, format="GIF", save_all=True, append_images=frames[1:],
-            loop=0, duration=delay_ms, disposal=2)
-        self.save_status.set_text(f"GIF guardado: {Path(path).name}")
+    # ── tutorial ─────────────────────────────────────────────────────────────
+    _TOOL_HELP = [(ic, tip.split(" — ")[0], k) for _t, ic, tip, k in TOOLS]
 
-    # ── exportar MP4 ──────────────────────────────────────────────────────────
-    def _export_mp4_dialog(self):
-        dlg = Gtk.FileDialog()
-        dlg.set_title("Exportar como MP4")
-        dlg.set_initial_name("animacion.mp4")
-        dlg.save(self, None, self._mp4_save_done)
+    @staticmethod
+    def _grid(items):
+        flow = Gtk.FlowBox(); flow.set_selection_mode(Gtk.SelectionMode.NONE); flow.set_max_children_per_line(2)
+        flow.set_column_spacing(8); flow.set_row_spacing(8); flow.set_homogeneous(True)
+        for icon, name, tag in items: flow.append(gw.item_row(gw.icon_badge(icon_image(icon, 18)), name, tag_text=tag))
+        return flow
 
-    def _mp4_save_done(self, dlg, result):
-        import subprocess, tempfile, shutil
-        try: gf = dlg.save_finish(result)
-        except GLib.Error: return
-        out_path = gf.get_path()
-        fps = int(self.fps_spin.get_value())
-        tmp = tempfile.mkdtemp(prefix="animalinux_mp4_")
-        try:
-            for i in range(self.canvas.frame_count):
-                self.canvas.to_pil(i).save(f"{tmp}/frame_{i:04d}.png")
-            ret = subprocess.run(
-                ["ffmpeg", "-y", "-framerate", str(fps),
-                 "-i", f"{tmp}/frame_%04d.png",
-                 "-c:v", "libx264", "-pix_fmt", "yuv420p",
-                 "-preset", "medium", out_path],
-                capture_output=True)
-            if ret.returncode == 0:
-                self.save_status.set_text(f"MP4 guardado: {Path(out_path).name}")
-            else:
-                self.save_status.set_text("Error: ffmpeg no encontrado o falló.")
-        finally:
-            shutil.rmtree(tmp, ignore_errors=True)
+    def _show_tutorial(self, force=False):
+        from .. import settings as _s
+        if not force and _s.get("tutorial_paint_shown", False): return
+        dlg = Gtk.Dialog(title="Editor de Animación — Guía rápida", transient_for=self, modal=True)
+        dlg.set_default_size(620, 720)
+        box = dlg.get_content_area(); box.set_spacing(0)
+        sc = Gtk.ScrolledWindow(); sc.set_vexpand(True)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        for m in ("start", "end"): getattr(content, f"set_margin_{m}")(20)
+        content.set_margin_top(16); content.set_margin_bottom(16)
+        content.append(gw.body("Editor de animación con la disposición de Toon Boom Harmony: caja de herramientas, vista con "
+                               "pestañas Dibujo/Cámara, paneles a la derecha y una línea de tiempo con hoja de exposición."))
+        content.append(gw.section_title("FLUJO RECOMENDADO"))
+        st = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        for i, s in enumerate([
+            "Crea la escena (tamaño y FPS) y dibuja en la celda del fotograma 1 con el pincel (B).",
+            "Avanza con «.» y dibuja el siguiente fotograma; activa el papel cebolla (Alt+O) como guía.",
+            "Mantén un dibujo varios fotogramas con F5 (extender exposición); F6 crea un dibujo nuevo en la celda.",
+            "Usa capas separadas (línea, color, fondo) y una capa vectorial si quieres editar los trazos.",
+            "Reproduce con Enter, ajusta Inicio/Fin/FPS y guarda la pose (Ctrl+S) o el proyecto (Ctrl+Shift+S).",
+        ], start=1): st.append(gw.step_row(i, s))
+        content.append(st)
+        content.append(gw.section_title("HERRAMIENTAS"))
+        content.append(self._grid(self._TOOL_HELP))
+        content.append(gw.section_title("CAPAS Y EXPOSICIÓN"))
+        content.append(gw.note("Cada capa tiene dibujos y una exposición: qué dibujo se ve en cada fotograma. Ojo = visible, candado = "
+                               "bloqueada, círculo = papel cebolla. Clic derecho en una celda: dibujo nuevo, duplicar, extender, limpiar."))
+        content.append(gw.section_title("CÁMARA"))
+        content.append(gw.note("En la pestaña Cámara mueve (arrastrar), gira (Alt+arrastrar) y escala (rueda) la cámara; cada cambio crea una "
+                               "clave y la cámara se interpola entre claves. Se aplica al exportar y al guardar la pose."))
+        content.append(gw.section_title("VISTA"))
+        content.append(gw.note("Rueda = zoom · Espacio+arrastrar = mover · Alt+O papel cebolla · Shift+L mesa de luz · vista espejo para "
+                               "revisar proporciones · clic derecho usa el color de fondo · Alt+clic = cuentagotas."))
+        content.append(gw.note("No incluye la vista de nodos ni el rigging de recortes de Harmony."))
+        sc.set_child(content); box.append(sc)
+        footer = Gtk.Box(spacing=10)
+        footer.set_margin_start(14); footer.set_margin_end(14); footer.set_margin_top(8); footer.set_margin_bottom(10)
+        ns = Gtk.CheckButton(label="No mostrar al iniciar el editor"); ns.set_hexpand(True); footer.append(ns)
+        ok = Gtk.Button(label="✓  Entendido"); ok.add_css_class("suggested-action")
+        ok.connect("clicked", lambda _: (_s.set_val("tutorial_paint_shown", ns.get_active()), dlg.destroy()))
+        footer.append(ok); box.append(footer); dlg.present()
 
-    # ── cámara por frame ──────────────────────────────────────────────────────
-    def _cam_reset(self):
-        self.canvas._sync_meta()
-        i = self.canvas._cur
-        self.canvas._frame_camera[i] = self.canvas._cam_default()
-        self.canvas._dirty(); self.canvas.queue_draw()
 
-    def _cam_dialog(self):
-        self.canvas._sync_meta()
-        i   = self.canvas._cur
-        cam = self.canvas._frame_camera[i]
-        dlg = Gtk.Dialog(title=f"Cámara — Frame {i+1}", transient_for=self, modal=True)
-        dlg.set_default_size(300, 260)
-        box = dlg.get_content_area()
-        box.set_spacing(6); box.set_margin_start(14); box.set_margin_end(14)
-        box.set_margin_top(12); box.set_margin_bottom(12)
-
-        spins = {}
-        for lbl, key, lo, hi, step, val in [
-            ("Trasl. X (px)", "tx", -2000, 2000, 1, cam["tx"]),
-            ("Trasl. Y (px)", "ty", -2000, 2000, 1, cam["ty"]),
-            ("Escala",        "scale", 0.1, 8.0, 0.05, cam["scale"]),
-            ("Rotación (°)",  "rot",  -180, 180, 1, cam["rot"]),
-        ]:
-            row = Gtk.Box(spacing=6)
-            row.append(Gtk.Label(label=lbl))
-            sp = Gtk.SpinButton(
-                adjustment=Gtk.Adjustment(value=val, lower=lo, upper=hi, step_increment=step),
-                digits=2 if key=="scale" else 0)
-            sp.set_hexpand(True)
-            sp.connect("value-changed", lambda s, k=key:
-                self.canvas._frame_camera[self.canvas._cur].__setitem__(k, s.get_value())
-                or self.canvas._dirty() or self.canvas.queue_draw())
-            spins[key] = sp; row.append(sp); box.append(row)
-
-        ok = Gtk.Button(label="Cerrar"); ok.add_css_class("suggested-action")
-        ok.connect("clicked", lambda _: dlg.destroy())
-        box.append(ok); dlg.present()
-
-    # ── audio ─────────────────────────────────────────────────────────────────
-    def _import_audio(self):
-        dlg = Gtk.FileDialog(); dlg.set_title("Seleccionar archivo de audio")
-        dlg.open(self, None, self._audio_chosen)
-
-    def _audio_chosen(self, dlg, result):
-        try: gf = dlg.open_finish(result)
-        except GLib.Error: return
-        self._audio_path = gf.get_path()
-        self._audio_btn.set_label(f"🎵 {Path(self._audio_path).name[:14]}")
-        self.save_status.set_text("Audio cargado. Se reproduce al presionar ▶.")
-
-    def _on_play_toggle(self, btn):
-        self._playing = btn.get_active()
-        if self._playing:
-            fps = int(self.fps_spin.get_value())
-            self._play_id = GLib.timeout_add(max(16, 1000//fps), self._tick)
-            if getattr(self, "_audio_path", None):
-                import subprocess
-                self._audio_proc = subprocess.Popen(
-                    ["mpv", "--no-video", "--loop=inf", self._audio_path],
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        else:
-            if self._play_id:
-                GLib.source_remove(self._play_id); self._play_id = None
-            proc = getattr(self, "_audio_proc", None)
-            if proc:
-                proc.terminate(); self._audio_proc = None
-
-    # ── etiquetas de frame (para timeline) ────────────────────────────────────
-    def _set_frame_label(self, idx: int, text: str):
-        self.canvas._sync_meta()
-        self.canvas._frame_labels[idx] = text
+def c_zoom(editor, f):
+    editor.canvas.zoom_at(f)

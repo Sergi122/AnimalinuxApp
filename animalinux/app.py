@@ -226,16 +226,9 @@ class AnimaApp(Gtk.Application):
         PaintEditor(self, anim_id=anim_id, guided=guided).present()
 
     def show_paint_editor_project(self, project_path: str):
-        """Abre el editor de pintura y carga un proyecto .alproj."""
+        """Abre el editor de animación y carga un proyecto .alproj."""
         from .editors.paint_editor import PaintEditor
-        ed = PaintEditor(self, anim_id=None)
-        ed.present()
-        GLib.idle_add(lambda: ed.canvas.load_project(project_path) and (
-            ed._rebuild_strip(), ed.layer_panel.rebuild(),
-            ed.canvas_size_lbl.set_text(f"{ed.canvas.cw}×{ed.canvas.ch}"),
-            ed.save_status.set_text(
-                f"Proyecto cargado: {__import__('pathlib').Path(project_path).name}")
-        ) and False)
+        PaintEditor(self, anim_id=None, project=project_path).present()
 
     # ---------- editor de sprites frame por frame ----------
     def show_frame_editor(self, anim_id, guided=False):

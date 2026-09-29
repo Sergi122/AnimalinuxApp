@@ -111,6 +111,17 @@ _PATHS = {
     "loop":    '<path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/>',
     "layers":  '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5" stroke-opacity="0.7"/>',
     "outline_fx": '<rect x="7" y="7" width="10" height="10" fill="%s" stroke="none"/><rect x="4" y="4" width="16" height="16" stroke-dasharray="2 2"/>' % _STROKE,
+    # ── editor de animación estilo Harmony ──
+    "arrow":   '<path d="M5 3l14 8-6 1.5L10 19z" fill="%s"/>' % _STROKE,
+    "contour_edit": '<path d="M4 18C7 6 15 6 20 16"/><rect x="2.5" y="16.5" width="3" height="3" fill="%s"/><rect x="18.5" y="14.5" width="3" height="3" fill="%s"/><circle cx="12" cy="7.5" r="1.8" fill="%s"/>' % (_STROKE, _STROKE, _STROKE),
+    "polyline": '<path d="M3 18l6-9 5 5 7-9"/><circle cx="3" cy="18" r="1.4" fill="%s"/><circle cx="9" cy="9" r="1.4" fill="%s"/><circle cx="14" cy="14" r="1.4" fill="%s"/><circle cx="21" cy="5" r="1.4" fill="%s"/>' % (_STROKE, _STROKE, _STROKE, _STROKE),
+    "light":   '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',
+    "mirror":  '<path d="M12 3v18" stroke-dasharray="2 2"/><path d="M8 7L3 12l5 5zM16 7l5 5-5 5z"/>',
+    "film":    '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 8h16M4 16h16M9 3v18M15 3v18" stroke-opacity="0.7"/>',
+    "paper":   '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/>',
+    "sound":   '<path d="M4 9v6h4l5 4V5L8 9z" fill="%s"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>' % _STROKE,
+    "newfile": '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M12 11v6M9 14h6"/>',
+    "onion_skin": '<circle cx="9" cy="12" r="6" stroke-opacity="0.45"/><circle cx="15" cy="12" r="6"/>',
     "swap":    '<path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>',
 }
 

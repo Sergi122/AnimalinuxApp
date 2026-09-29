@@ -1,7 +1,7 @@
 # AnimaLinux
 
 Mascotas animadas en tu escritorio, con editor de **píxeles** estilo Aseprite y
-editor de **pintura** estilo Clip Studio Paint. Importa un GIF/vídeo o dibuja
+editor de **animación** estilo Toon Boom Harmony. Importa un GIF/vídeo o dibuja
 tus propias poses, quita el fondo y deja solo la mascota flotando sobre el
 escritorio. Múltiples mascotas, física de rebote, saludos, emociones y más.
 
@@ -19,8 +19,8 @@ configurar nada.
 | Módulo | Qué hace |
 |---|---|
 | **Control** | Ventana principal — Normal (GIF) y Con vida (camina, salta, saluda) |
-| **Editor de píxeles** | Estilo Aseprite: lápiz, relleno, outline, línea, dither, simetría, varita, selección, 48 colores |
-| **Editor de pintura** | Estilo Clip Studio Paint: 12 pinceles, 10 blend modes, capas, zoom continuo, simetría, smudge, gradiente, vectorial, timeline, audio, exportar GIF/MP4 |
+| **Editor de píxeles** | Estilo Aseprite: capas, línea de tiempo, 15 herramientas, tintas, pixel-perfect, simetría, modo mosaico, selección con máscara |
+| **Editor de animación** | Estilo Toon Boom Harmony: capas raster y vectoriales, hoja de exposición, papel cebolla, mesa de luz, cámara animada, 12 pinceles, audio, GIF/MP4/PNG |
 | **Overlay** | Ventana layer-shell transparente por mascota, 6 poses, física real |
 | **Packs (.alpack)** | Importar/exportar personajes completos con todas sus poses |
 
@@ -190,62 +190,59 @@ Al guardar la pose las capas se combinan en una imagen por fotograma.
 
 ---
 
-## Editor de pintura — Guía rápida
+## Editor de animación — Guía rápida
 
 Abre desde **Control → Nueva animación → Dibujo libre** o con **🖌️ Editar**.
+Está inspirado en **Toon Boom Harmony**: caja de herramientas, vista con pestañas
+Dibujo/Cámara, paneles a la derecha y una línea de tiempo con hoja de exposición.
 
-### Interfaz (estilo Clip Studio Paint)
+### Interfaz
 
 ```
-┌─[Toolbar: zoom · FPS · ▶ · 👁 cebolla · ✋ estab · sim ↔↕✦ · 〜 suave · 🎥 · 🎵 · ❓]─┐
-├─[Opciones: Pincel▾ · Radio · Suavidad · Opacidad · Varita tol.]──────────────────────────┤
-│ [Herram.] │              LIENZO                    │ [Capas]                              │
-│  grid 2×8 │  Ctrl+Scroll = zoom (0.05×–32×)       │  + ⎘ ↓⊡ ⊡ 🗑                       │
-│  FG · BG  │  Espacio+drag = pan                   │  thumb 👁 🔒 α  Nombre               │
-│  ⇌ swap   │  B E F G L I S M W V = herramientas   │  blend mode · opacidad               │
-│  #hex     │  X = cambiar FG↔BG                    │                                      │
-│  H S V    │                                        │                                      │
-│ [recientes│                                        │                                      │
-├─[Timeline: ➕ ⎘ 🗑 | ⎘Copiar ⎘Pegar | 🎬GIF 🎬MP4 | ← [F1][F2][F3]... →]────────────┤
-└─[Status: X:— Y:— · RGBA · zoom% · tamaño · pose · 💾 Guardar pose]─────────────────────┘
+┌─[Archivo Editar Vista Reproducir Insertar Escena Dibujo Animación Ayuda]─────────────┐
+│ [barra de herramientas: archivo · edición · papel cebolla · mesa de luz · zoom]       │
+├ herram. ┬──────── Dibujo | Cámara ────────────┬─ Propiedades de herramienta | Capa ─┤
+│ ➤ ✎ ✏  │                                       │  (tamaño, dureza, suavizado,        │
+│ ◌ ⌫ …  │      vista con papel cebolla,         │   presión de tableta…)              │
+│         │      mesa de luz y guías              ├─ Color | Cámara ────────────────────┤
+├─────────┴───────────────────────────────────────┴─────────────────────────────────────┤
+│ ▶ Bucle Sonido · Fotograma · Inicio · Fin · FPS                                        │
+│ Capas × fotogramas (hoja de exposición) con cabezal y rango de reproducción            │
+└─[X/Y · mensajes · Nombre · Pose · Guardar pose]───────────────────────────────────────┘
 ```
 
-### Tipos de pincel
+### Funciones
 
-| Nombre | Efecto |
+| Área | Qué incluye |
 |---|---|
-| Redondo suave | Pincel estándar con borde suave |
-| Lápiz (duro) | Borde duro, sin anti-alias |
-| Aerógrafo | Dispersión gaussiana suave |
-| Textura | Ruido aleatorio con borde |
-| Tiza | Granulado irregular |
-| Acuarela | Borde mojado semi-transparente |
-| Marcador | Cobertura plana |
-| Crayón | Rayas diagonales características |
-| Esponja | Puntos dispersos superpuestos |
-| Píxel exacto | Círculo sin anti-aliasing |
-| Abanico | Rayas radiales en semicírculo |
-| Tinta (pluma) | Punta elíptica de tinta |
+| **Herramientas** | Seleccionar, editor de contorno, pincel (12 tipos), lápiz, borrador, dedo, pintar (bote con cierre de huecos), degradado, cuentagotas, línea, rectángulo, elipse, polilínea, lazo, mano, zoom y cámara |
+| **Capas** | De dibujo (píxeles) y vectoriales (trazos editables); visibilidad, bloqueo, opacidad, 12 modos de mezcla, bloqueo de transparencia, papel cebolla por capa |
+| **Exposición** | Cada capa tiene dibujos y una exposición (qué dibujo se ve en cada fotograma): extender, dibujo nuevo, duplicar, limpiar, insertar/borrar fotogramas |
+| **Papel cebolla y mesa de luz** | Anteriores en rojo y siguientes en azul (1–6), y mesa de luz que atenúa las otras capas |
+| **Cámara** | Claves de traslación, escala y rotación con interpolación; se aplica al exportar y al guardar la pose |
+| **Reproducción** | Bucle, inicio/fin del rango, FPS, audio (con `mpv`) |
+| **Dibujo asistido** | Suavizado, presión de tableta, simetría H/V, vista espejo, cuadrícula, zona segura |
+| **Archivos** | Proyectos `.alproj` (abre los antiguos), GIF, MP4 (con audio si hay `ffmpeg`), secuencia PNG, guardar pose, importar imagen o secuencia |
 
-### Blend modes de capa
-
-Normal · Multiplicar · Pantalla · Superponer · Añadir · Diferencia · Luz dura · Luz suave · Eludir color · Quemar color
+No incluye la vista de nodos ni el rigging de recortes de Harmony.
 
 ### Atajos de teclado
 
 | Tecla | Acción |
 |---|---|
-| `B/E/F/G/L` | Pincel / Borrador / Relleno / Gradiente / Línea |
-| `I/S/M/W/V` | Cuentagotas / Selección / Mover / Varita / Vectorial |
-| `X` | Cambiar FG ↔ BG |
-| `[ ]` | Tamaño del pincel |
-| `Ctrl+Z/Y` | Deshacer / Rehacer (30 niveles) |
-| `Ctrl+S` | Guardar pose |
-| `Ctrl+C/V` | Copiar / Pegar frame |
-| `Ctrl+N/D` | Nuevo / Duplicar frame |
-| `Ctrl+0` | Ajustar zoom |
-| `Espacio+drag` | Pan (desplazar vista) |
-| `Espacio` | Reproducir / Pausar |
+| `V` `A` | Seleccionar · editor de contorno |
+| `B` `N` `E` `U` | Pincel · lápiz · borrador · dedo |
+| `P` `G` `I` | Pintar · degradado · cuentagotas (o `Alt`+clic) |
+| `L` `R` `O` `Y` `Q` | Línea · rectángulo · elipse · polilínea · lazo |
+| `H` `Z` `C` | Mano · zoom · cámara |
+| `X` · `[` `]` | Intercambiar colores · tamaño del pincel |
+| `Rueda` · `Espacio`+arrastrar | Zoom · mover la vista |
+| `,` `.` · `Enter` | Fotograma anterior/siguiente · reproducir |
+| `F5` `F6` `F7` | Extender exposición · dibujo nuevo · duplicar dibujo |
+| `F8` · `F9` | Insertar fotograma · crear clave de cámara |
+| `Alt+O` · `Shift+L` | Papel cebolla · mesa de luz |
+| `Ctrl+Z` / `Ctrl+Y` | Deshacer / rehacer |
+| `Ctrl+S` · `Ctrl+Shift+S` | Guardar pose · guardar proyecto |
 
 ---
 
@@ -399,8 +396,8 @@ git push
 |---|---|
 | `app.py` | GtkApplication principal: daemon, mascotas, bandeja |
 | `control.py` | Ventana de configuración (pestañas Normal / Con vida) |
-| `pixeleditor.py` | Editor de píxeles estilo Aseprite |
-| `painteditor.py` | Editor de pintura estilo Clip Studio Paint |
+| `editors/pixel_editor.py` `pixel_canvas.py` `pixel_widgets.py` | Editor de píxeles estilo Aseprite |
+| `editors/paint_editor.py` `anim_canvas.py` `anim_widgets.py` `anim_engine.py` | Editor de animación estilo Toon Boom Harmony |
 | `overlay/normal_animation.py` | Ventana transparente layer-shell por mascota (Hyprland/Sway) |
 | `overlay/x11_animation.py` | Misma ventana, backend X11/EWMH (GNOME, Cinnamon, MATE, Xfce) |
 | `library.py` | Base de datos JSON de animaciones |
