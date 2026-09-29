@@ -86,3 +86,24 @@ Acciones específicas para sin vida:
 ## Ojo
 - Tests/experimentos: aislar con `XDG_DATA_HOME` y `XDG_CONFIG_HOME` propios; nunca escribir en la biblioteca real.
 - Nunca `rm -rf` de carpetas de la biblioteca sin confirmar con el usuario.
+
+---
+# Optimización del PROCESO de animación (motor/overlay, no los assets)
+Medido el 2026-09-29 con `tools/audit/bench_load.py` y leyendo `animalinux/overlay/normal_animation.py`.
+
+## Hallazgos
+1. **Poses deformadas (bug de calidad):** `_load_texture` reescala TODA pose de otro tamaño al tamaño de la pose `default` con `NEAREST`, sin conservar proporción. En Kaoruko 128 de 130 cuadros se estiran (perfil de 149×248 → 312×990): sale estirada y pixelada. Falta normalizar por contenido (bbox + ancla de pies), no estirar el lienzo.
+2. **RAM:** se decodifican TODAS las poses al arrancar, en normal **y** flip (dos texturas por cuadro). Kaoruko = 153 MB solo en texturas (por el estiramiento a 312×990); el total de la biblioteca sería ~204 MB si todo está activo. El proceso principal de la app está en ~400 MB en reposo.
+3. **Espejo duplicado:** el flip se guarda como PNG en disco (`flip_*.png`) y como textura; se puede espejar en el `snapshot` (transform) y guardar una sola textura.
+4. **Ventana a pantalla completa por mascota** + `add_tick_callback` permanente (`_keep_clock_alive`): cada mascota mantiene el reloj de fotogramas a la frecuencia del monitor aunque no cambie nada. Con varias mascotas se multiplican los despertares.
+5. **Carga síncrona en el hilo de la UI** (`_load_poses` en el constructor): con mascotas grandes bloquea al activarlas.
+6. **Timers independientes** (animación por `timeout_add`, comportamiento aparte, `_cool_down`, etc.): no hay un reloj único ni pausa cuando la mascota está oculta o hay una app a pantalla completa.
+
+## Mejoras propuestas (orden por impacto/riesgo)
+1. Normalizar poses por contenido (recorte + escala uniforme + ancla de pies) al importar/cargar; **eliminar el estiramiento NEAREST**. [calidad + RAM]
+2. Carga perezosa: solo `default`/`idle`/`walk` al inicio; el resto a demanda o en un hilo, y liberar poses sin uso. [RAM/arranque]
+3. Una textura por cuadro y flip por transformación en `do_snapshot`; dejar de escribir `flip_*.png`. [RAM/disco]
+4. Un único reloj por proceso (un `timeout`/tick que avanza todas las mascotas) y **pausar cuando no hay nada que animar** (mascota oculta, pantalla completa de otra app, `mode=gif` sin cambios de posición). [CPU]
+5. Ventana del tamaño del sprite (o input-region + damage acotado) en lugar de fullscreen por mascota, si el compositor lo permite. [GPU/CPU con varias mascotas]
+6. Precalcular y cachear (miniaturas/atlas) para la ventana de control en lugar de decodificar PNG completos; liberar al cerrarla. [RAM en reposo ~400 MB]
+7. Medidas antes/después: RSS, CPU% y despertares/seg con 1, 3 y 6 mascotas activas (`bench_load.py` + `pidstat`).
