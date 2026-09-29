@@ -24,6 +24,8 @@ import random
 
 from gi.repository import GLib  # noqa: E402
 
+from .clock import Clock  # noqa: E402
+
 
 # Poses obligatorias: el usuario puede desactivar poses "de más" (greet,
 # kiss, angry, sleep, grab...) desde la UI, pero no estas — sin "walk"/"jump"
@@ -312,14 +314,20 @@ class LiveAnimationMixin:
         self._last_interaction = GLib.get_monotonic_time()
         self._set_position(self._x, self._floor_y)
         self._pick_behavior()
-        if self._behavior_id is None:
-            self._behavior_id = GLib.timeout_add(
+        self._start_behavior_clock()
+
+    def _start_behavior_clock(self):
+        if self._behavior_id is None and not self._paused:
+            self._behavior_id = Clock.get().every(
                 BEHAVIOR_INTERVAL, self._behavior_tick)
 
-    def _exit_life(self):
+    def _stop_behavior_clock(self):
         if self._behavior_id:
-            GLib.source_remove(self._behavior_id)
+            Clock.get().cancel(self._behavior_id)
             self._behavior_id = None
+
+    def _exit_life(self):
+        self._stop_behavior_clock()
         if self._bored_grab:
             self._end_bored_grab()
         self._facing_left = False

@@ -696,8 +696,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
     def destroy_window(self):
         if self._anim_id:
             GLib.source_remove(self._anim_id)
-        if self._behavior_id:
-            GLib.source_remove(self._behavior_id)
+        self._stop_behavior_clock()   # el comportamiento usa el reloj compartido (overlay/clock.py)
         if self._tick_id is not None:
             self.remove_tick_callback(self._tick_id)
             self._tick_id = None

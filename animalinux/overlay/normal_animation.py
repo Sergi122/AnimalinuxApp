@@ -26,6 +26,8 @@ from gi.repository import Gtk, Gdk, GLib, GObject, Graphene  # noqa: E402
 from gi.repository import Gtk4LayerShell as LayerShell  # noqa: E402
 
 from .live_animation import LiveAnimationMixin, MANDATORY_POSES  # noqa: E402
+from .clock import Clock  # noqa: E402
+from .hyprcursor import cursor_pos  # noqa: E402
 from .. import settings
 
 _CSS_APPLIED = False
@@ -49,6 +51,13 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
         self._sx = 1.0
         self._sy = 1.0
         self._lean = 0.0   # grados
+        self._mirror = False   # espejo horizontal (mirar a la izquierda)
+
+    def set_mirror(self, on):
+        on = bool(on)
+        if on != self._mirror:
+            self._mirror = on
+            self.invalidate_contents()
 
     def set_texture(self, tex):
         self._tex = tex
@@ -91,7 +100,15 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
             if sx != 1.0 or sy != 1.0:
                 snapshot.scale(sx, sy)
             snapshot.translate(Graphene.Point().init(-width / 2.0, -height))
-        self._tex.snapshot(snapshot, width, height)
+        if self._mirror:
+            snapshot.save()
+            snapshot.translate(Graphene.Point().init(width / 2.0, 0))
+            snapshot.scale(-1.0, 1.0)
+            snapshot.translate(Graphene.Point().init(-width / 2.0, 0))
+            self._tex.snapshot(snapshot, width, height)
+            snapshot.restore()
+        else:
+            self._tex.snapshot(snapshot, width, height)
         if deform:
             snapshot.restore()
 
@@ -126,6 +143,20 @@ def _apply_transparency(display):
 
 
 class MascotWindow(LiveAnimationMixin, Gtk.Window):
+    # Hacia dónde mira. Se espeja al dibujar (no hay texturas "flip" duplicadas
+    # en memoria): el setter avisa al paintable.
+    @property
+    def _facing_left(self):
+        return self._face_left_v
+
+    @_facing_left.setter
+    def _facing_left(self, v):
+        v = bool(v)
+        self._face_left_v = v
+        pt = getattr(self, "_paintable", None)
+        if pt is not None:
+            pt.set_mirror(v)
+
     def __init__(self, app, anim, frames_dir, on_moved):
         super().__init__(application=app)
         self._app = app
@@ -137,7 +168,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         # poses: nombre -> {"normal":[tex], "flip":[tex]}
         self._poses = {}
         self._pose = "default"
-        self._facing_left = False
+        self._face_left_v = False
         self._index = 0
         self._anim_id = None
         self._behavior_id = None
@@ -177,18 +208,29 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         LayerShell.init_for_window(self)
         LayerShell.set_layer(self, LayerShell.Layer.OVERLAY)
         LayerShell.set_namespace(self, "animalinux-mascot")
-        # La ventana está SIEMPRE a pantalla completa (anclada a los 4 bordes →
-        # superficie real fullscreen). El sprite se mueve DENTRO por márgenes de
-        # la Picture, así la superficie nunca se redimensiona (sin parpadeos ni
-        # "líneas") y en grab basta ampliar la región de input para seguir el
-        # cursor por todo el escritorio. La región de input (lo clicable) se
-        # limita a la caja del sprite para no bloquear el resto del escritorio.
-        for edge in (LayerShell.Edge.LEFT, LayerShell.Edge.RIGHT,
-                     LayerShell.Edge.TOP, LayerShell.Edge.BOTTOM):
+        # La superficie es COMPACTA: solo el tamaño del sprite más un margen para
+        # el squash/inclinación, anclada arriba-izquierda y movida por márgenes
+        # de layer-shell. Una ventana fullscreen por mascota costaba ~40 MB de
+        # GPU y un repintado enorme cada vez. Solo pasa a pantalla completa
+        # mientras se arrastra o "agarra" el cursor (hace falta seguir al puntero
+        # por todo el escritorio) y vuelve a compacta al soltar.
+        self._full = False
+        # con Hyprland el cursor se lee por su socket → nunca hace falta pantalla completa
+        self._poll_ok = cursor_pos() is not None
+        self._cursor_task = None
+        self._surf_w = self._surf_h = 0
+        self._ox = self._oy = 0
+        self._pad = 0
+        self._win_pos = None
+        self._drag_grab = (0, 0)
+        for edge in (LayerShell.Edge.LEFT, LayerShell.Edge.TOP):
             LayerShell.set_anchor(self, edge, True)
             LayerShell.set_margin(self, edge, 0)
-        # zona exclusiva -1 → la superficie cubre TODO el monitor (ignora las
-        # áreas reservadas por barras), imprescindible para que sea fullscreen
+        for edge in (LayerShell.Edge.RIGHT, LayerShell.Edge.BOTTOM):
+            LayerShell.set_anchor(self, edge, False)
+            LayerShell.set_margin(self, edge, 0)
+        # zona exclusiva -1 → los márgenes se miden desde el borde real del
+        # monitor (ignora las áreas reservadas por barras)
         LayerShell.set_exclusive_zone(self, -1)
         LayerShell.set_keyboard_mode(self, LayerShell.KeyboardMode.NONE)
 
@@ -204,7 +246,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         # factor de escala (al hacer zoom). Esto permite empequeñecer el sprite,
         # cosa que size_request por sí solo NO logra en un GtkPicture.
         self._paintable = ScaledPaintable()
-        self._paintable.set_scale_factor(scale)
+        self._paintable.set_scale_factor(scale / self._bake)
         self.picture = Gtk.Picture()
         self.picture.set_can_shrink(True)
         self.picture.set_content_fit(Gtk.ContentFit.FILL)
@@ -236,7 +278,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         # posición inicial del sprite (márgenes de la picture)
         self._set_position(anim.get("x", 100), anim.get("y", 100))
         # refrescar la región de input al mapear/redibujar (evita bloquear clics)
-        self.connect("map", lambda *_: self._update_input_region())
+        self.connect("map", self._on_map)
 
         _apply_transparency(self.get_display() or Gdk.Display.get_default())
 
@@ -310,15 +352,89 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
 
     # ---------- posición ----------
     def _set_position(self, x, y):
-        # el sprite se mueve dentro de la ventana fullscreen vía márgenes del
-        # contenedor (la ventana en sí nunca se mueve ni se redimensiona)
+        # coordenadas del sprite en el monitor. En modo compacto se mueve la
+        # superficie entera con márgenes de layer-shell; en modo pantalla
+        # completa (arrastre/agarre) se mueve el contenedor dentro de la ventana.
         self._x = max(0, int(x))
         self._y = max(0, int(y))
-        self._overlay.set_margin_start(self._x)
-        self._overlay.set_margin_top(self._y)
+        self._place()
         self._update_input_region()
 
+    def _on_map(self, *_):
+        surf = self.get_surface()
+        if surf is not None:
+            surf.connect("layout", self._on_surface_layout)
+        self._update_input_region()
+
+    def _on_surface_layout(self, surf, w, h):
+        self._surf_w, self._surf_h = w, h
+        self._apply_input_region()
+
+    def _full_ready(self):
+        """True cuando la superficie ya mide el monitor entero (tras pasar a
+        modo pantalla completa): solo entonces las coordenadas del puntero
+        son coordenadas de monitor."""
+        return (self._full and self._surf_w >= self._screen_w - 4
+                and self._surf_h >= self._screen_h - 4)
+
+    def _place(self):
+        if self._full:
+            self._overlay.set_margin_start(self._x)
+            self._overlay.set_margin_top(self._y)
+            return
+        pad = int(0.45 * max(self._cat_w, self._cat_h)) + 6
+        ox = min(pad, self._x)
+        oy = min(pad, self._y)
+        self._ox, self._oy = ox, oy
+        if pad != self._pad:
+            self._pad = pad
+            self._overlay.set_margin_end(pad)
+            self._overlay.set_margin_bottom(pad)
+        self._overlay.set_margin_start(ox)
+        self._overlay.set_margin_top(oy)
+        # tamaño explícito: sin él el compositor puede darle a la superficie el
+        # tamaño de todo el monitor en la primera configuración
+        size = (ox + self._cat_w + pad, oy + self._cat_h + pad)
+        if size != getattr(self, "_win_size", None):
+            self._win_size = size
+            self.set_size_request(*size)
+            self.set_default_size(*size)
+        pos = (self._x - ox, self._y - oy)
+        if pos != self._win_pos:
+            self._win_pos = pos
+            LayerShell.set_margin(self, LayerShell.Edge.LEFT, pos[0])
+            LayerShell.set_margin(self, LayerShell.Edge.TOP, pos[1])
+
+    def _sync_surface(self):
+        """Compacta ↔ pantalla completa según haga falta (arrastrando o
+        agarrando el cursor hace falta la pantalla entera)."""
+        want_full = bool((self._dragging or self._grabbing) and not self._poll_ok)
+        if want_full == self._full:
+            return
+        self._full = want_full
+        E = LayerShell.Edge
+        if want_full:
+            for e in (E.RIGHT, E.BOTTOM):
+                LayerShell.set_anchor(self, e, True)
+            for e in (E.LEFT, E.TOP, E.RIGHT, E.BOTTOM):
+                LayerShell.set_margin(self, e, 0)
+            self._overlay.set_margin_end(0)
+            self._overlay.set_margin_bottom(0)
+            self.set_size_request(self._screen_w, self._screen_h)
+            self.set_default_size(self._screen_w, self._screen_h)
+        else:
+            for e in (E.RIGHT, E.BOTTOM):
+                LayerShell.set_anchor(self, e, False)
+            self._pad = 0
+            self._win_pos = None
+            self._win_size = None
+        self._place()
+
     def _update_input_region(self):
+        self._sync_surface()
+        self._apply_input_region()
+
+    def _apply_input_region(self):
         """Limita lo clicable a la caja del sprite (o a toda la pantalla en grab,
         para capturar el cursor en cualquier sitio). Sin esto, la ventana
         fullscreen bloquearía todo el escritorio."""
@@ -327,12 +443,15 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
             return
         try:
             import cairo
-            if self._grabbing:
+            if self._full and self._grabbing:
                 reg = cairo.Region(cairo.RectangleInt(
                     0, 0, self._screen_w, self._screen_h))
-            else:
+            elif self._full:
                 reg = cairo.Region(cairo.RectangleInt(
                     self._x, self._y, self._cat_w, self._cat_h))
+            else:
+                reg = cairo.Region(cairo.RectangleInt(
+                    self._ox, self._oy, self._cat_w, self._cat_h))
             surf.set_input_region(reg)
         except Exception:  # noqa: BLE001
             pass
@@ -343,6 +462,10 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
             return
         if self.mode == "life":
             self._wake()          # idea 4: arrastrarla la despierta
+        # dónde agarraste el sprite (el gesto llega en coords de la superficie
+        # compacta; el sprite arranca en (_ox,_oy) dentro de ella)
+        self._drag_grab = (sx - self._ox, sy - self._oy) if not self._full \
+            else (sx - self._x, sy - self._y)
         self._dragging = True
         self._drag_origin = (self._x, self._y)
         self._toss_vx = 0.0
@@ -350,24 +473,67 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         # cancela un temblor/saludo pendiente para que no actúe al soltar
         self._react_ttl = 0
         self._greet_ttl = 0
-        self._last_drag = (GLib.get_monotonic_time(), 0.0, 0.0)
+        self._last_drag = (GLib.get_monotonic_time(), float(self._x), float(self._y))
+        if self._poll_ok:
+            self._cursor_task = Clock.get().every(16, self._drag_poll)
+        self._sync_surface()      # (sin Hyprland) pantalla completa para seguir al puntero
+        self._apply_input_region()
 
     def _on_drag_update(self, gesture, ox, oy):
-        if self._state == "grab":
-            return
-        x0, y0 = self._drag_origin
-        self._set_position(x0 + ox, y0 + oy)
+        # la posición se calcula con el puntero absoluto en _on_grab_motion
+        # (los offsets del gesto se falsean al cambiar la superficie de tamaño)
+        pass
+
+    def _drag_poll(self):
+        if not self._dragging:
+            self._cursor_task = None
+            return False
+        p = cursor_pos()
+        if p is not None:
+            self._drag_follow(p[0] - self._mon_x, p[1] - self._mon_y)
+        return True
+
+    def _start_grab(self):
+        LiveAnimationMixin._start_grab(self)
+        if self._grabbing and self._poll_ok and self._cursor_task is None:
+            self._cursor_task = Clock.get().every(16, self._grab_poll)
+
+    def _grab_poll(self):
+        if not self._grabbing:
+            self._cursor_task = None
+            return False
+        p = cursor_pos()
+        if p is not None:
+            LiveAnimationMixin._on_grab_motion(
+                self, None, p[0] - self._mon_x, p[1] - self._mon_y)
+        return True
+
+    def _end_grab_restore(self):
+        if self._cursor_task is not None:
+            Clock.get().cancel(self._cursor_task)
+            self._cursor_task = None
+        LiveAnimationMixin._end_grab_restore(self)
+
+    def _drag_follow(self, gx, gy):
+        nx = gx - self._drag_grab[0]
+        ny = gy - self._drag_grab[1]
+        self._set_position(nx, ny)
         now = GLib.get_monotonic_time()
         if self._last_drag:
-            t0, ox0, oy0 = self._last_drag
+            t0, x0, y0 = self._last_drag
             dt = (now - t0) / 1_000_000.0
             if dt > 0.01:
-                self._drag_vx = (ox - ox0) / dt
-                self._drag_vy = (oy - oy0) / dt
-                self._last_drag = (now, ox, oy)
+                self._drag_vx = (self._x - x0) / dt
+                self._drag_vy = (self._y - y0) / dt
+                self._last_drag = (now, float(self._x), float(self._y))
 
     def _on_drag_end(self, gesture, ox, oy):
         self._dragging = False
+        if self._cursor_task is not None and not self._grabbing:
+            Clock.get().cancel(self._cursor_task)
+            self._cursor_task = None
+        self._sync_surface()
+        self._apply_input_region()
         if self.mode == "life" and self._state != "grab":
             vx = getattr(self, "_drag_vx", 0.0)   # px/seg (medido en drag-update)
             vy = getattr(self, "_drag_vy", 0.0)
@@ -396,6 +562,19 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self._drag_vx = 0.0
         self._drag_vy = 0.0
 
+    def _on_grab_motion(self, ctrl, mx, my):
+        if self._dragging:
+            if self._full_ready():
+                self._drag_follow(mx, my)
+            return
+        if not self._full:
+            # superficie compacta: el puntero llega en coords de la superficie
+            self._last_cursor_x = mx + self._x - self._ox
+            return
+        if not self._full_ready():
+            return
+        LiveAnimationMixin._on_grab_motion(self, ctrl, mx, my)
+
     def _on_cursor_enter(self, controller, x, y):
         if self.mode == "life" and self._state != "grab":
             self._wake()              # pasar el cursor por encima = atención
@@ -421,6 +600,13 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         # normalizan a este tamaño para que la mascota NO cambie de tamaño al
         # cambiar de animación (algunas poses se generan con otro lienzo).
         self._base_size = None
+        # resolución de las texturas: si la mascota se muestra a menos del 100 %
+        # no tiene sentido guardar los píxeles originales (una mascota de
+        # 312×990 a escala 0.2 ocupaba 1.2 MB por cuadro para dibujar 62×198).
+        # Se reducen una vez al cargar (LANCZOS, mejor que el filtro de la GPU)
+        # y el paintable compensa el factor. Si luego se agranda, se recargan.
+        sc = float(self.anim.get("scale", 1.0))
+        self._bake = min(1.0, max(0.05, sc))
         # auto-recorte: calcula la caja real del dibujo de la pose default y
         # ajusta anim width/height (lo usan input region, colisiones y bordes)
         self._orig_size = None
@@ -437,14 +623,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
 
     def _load_one_pose(self, name, folder):
         folder = Path(folder)
-        if not list(folder.glob("flip_*.png")):
-            try:
-                from ..core import image_processor as importer
-                importer.ensure_flipped(folder)
-            except Exception:  # noqa: BLE001
-                pass
         normals = sorted(folder.glob("frame_*.png"))
-        flips = sorted(folder.glob("flip_*.png"))
         if not normals:
             return
         # la primera pose cargada (default) fija el tamaño base de referencia
@@ -455,11 +634,10 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
             except Exception:  # noqa: BLE001
                 self._base_size = None
         normal = [t for t in (self._load_texture(p) for p in normals) if t]
-        flip = [t for t in (self._load_texture(p) for p in flips) if t]
-        if not flip:
-            flip = normal
         if normal:
-            self._poses[name] = {"normal": normal, "flip": flip}
+            # solo texturas "normales": mirar a la izquierda se dibuja espejando
+            # (ScaledPaintable.set_mirror), no con una segunda copia en memoria
+            self._poses[name] = {"normal": normal}
 
     def _compute_crop_box(self, base):
         """Calcula la caja real (unión de bboxes de TODAS las poses) para
@@ -521,25 +699,25 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self.anim["height"] = ch
 
     def _load_texture(self, path):
-        """Carga un PNG como textura, recortado al margen real (auto-recorte)
-        y redimensionado al tamaño base si difiere (así todas las poses ocupan
-        exactamente el mismo lienzo)."""
+        """Carga un PNG como textura, recortado al margen real (auto-recorte),
+        redimensionado al tamaño base si difiere (así todas las poses ocupan
+        exactamente el mismo lienzo) y reducido a la resolución de pantalla."""
         target = self._base_size
         try:
             from PIL import Image
             im = Image.open(str(path))
             changed = False
-            # recorte: a todo frame del lienzo dominante (raíz o subpose). Los
-            # flip_*.png usan la caja espejada para alinearse con su normal.
             box = self._crop_box
             if box and im.size == self._orig_size:
-                if Path(path).name.startswith("flip_"):
-                    ow = self._orig_size[0]
-                    box = (ow - box[2], box[1], ow - box[0], box[3])
                 im = im.crop(box)
                 changed = True
             if target is not None and im.size != tuple(target):
                 im = im.convert("RGBA").resize(tuple(target), Image.NEAREST)
+                changed = True
+            if self._bake < 0.999:
+                w = max(1, int(round(im.width * self._bake)))
+                h = max(1, int(round(im.height * self._bake)))
+                im = im.convert("RGBA").resize((w, h), Image.LANCZOS)
                 changed = True
             if not changed:
                 return Gdk.Texture.new_from_filename(str(path))
@@ -559,7 +737,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         data = self._poses.get(pose) or self._poses.get("default")
         if not data:
             return []
-        return data["flip"] if self._facing_left else data["normal"]
+        return data["normal"]
 
     def _has_pose(self, pose):
         if pose not in MANDATORY_POSES and pose in self.anim.get("disabled_poses", ()):
@@ -570,12 +748,6 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
     def start(self):
         self.present()
         self._update_screen_size()
-        # forzar la ventana al tamaño del monitor → superficie REALMENTE fullscreen
-        # (sin esto la superficie queda del tamaño del contenido y el sprite se
-        # teletransporta al recortarse los márgenes)
-        self.set_size_request(self._screen_w, self._screen_h)
-        self.set_default_size(self._screen_w, self._screen_h)
-        self.queue_resize()
         if self.mode == "life":
             self._enter_life()
         else:
@@ -583,20 +755,9 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
             self._set_position(self._x, self._y)
         self._schedule_anim()
         GLib.idle_add(self._update_input_region)
-        # Mantener vivo el frame clock en modo CONTINUO. Sin esto, GTK solo
-        # pide frames al compositor "bajo demanda" (tras un queue_draw); cuando
-        # otra ventana pasa a pantalla completa, esa petición perezosa deja de
-        # atenderse y la mascota se queda congelada aunque siga visible y la
-        # lógica (timers) siga avanzando. Un tick callback persistente fuerza a
-        # GTK a pedir un frame cada vsync, así la animación nunca se para.
-        if self._tick_id is None:
-            self._tick_id = self.add_tick_callback(self._keep_clock_alive)
-
-    def _keep_clock_alive(self, widget, clock):
-        # No hace falta lógica aquí: basta con existir para que el frame clock
-        # siga en modo continuo y repinte las invalidaciones pendientes
-        # (texturas nuevas y reposicionamientos) en el acto.
-        return GLib.SOURCE_CONTINUE
+        # Sin tick callback permanente: el repintado se pide solo cuando cambia
+        # la textura/posición (ver Clock). Un tick callback por mascota
+        # despertaba al proceso en cada vsync (~60 Hz × nº de mascotas).
 
     def _update_screen_size(self):
         try:
@@ -620,11 +781,12 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
     # ---------- animación de frames ----------
     def _schedule_anim(self):
         if self._anim_id:
-            GLib.source_remove(self._anim_id)
+            Clock.get().cancel(self._anim_id)
             self._anim_id = None
+        if self._paused:
+            return
         fps = max(1, int(self.anim.get("fps", 12)))
-        interval = int(1000 / fps)
-        self._anim_id = GLib.timeout_add(interval, self._anim_tick)
+        self._anim_id = Clock.get().every(1000.0 / fps, self._anim_tick)
 
     def _anim_tick(self):
         frames = self._frames_for(self._pose)
@@ -655,7 +817,9 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         # escala vía el paintable (encoge y agranda); el tamaño natural del
         # picture pasa a ser el escalado, así halign START lo respeta en ambos
         # sentidos. queue_resize fuerza el re-layout inmediato.
-        self._paintable.set_scale_factor(scale)
+        if scale > self._bake * 1.001:
+            self._schedule_rebake()
+        self._paintable.set_scale_factor(scale / self._bake)
         self.picture.queue_resize()
         self._overlay.queue_resize()
         self.queue_resize()
@@ -664,6 +828,26 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
             self._set_position(self._x, self._floor_y)
         else:
             self._set_position(self._x, self._y)   # actualiza también la región
+
+    def _schedule_rebake(self):
+        """Agrandaste la mascota por encima de la resolución de sus texturas:
+        se recargan a la nueva resolución (con un pequeño retardo para no
+        recargar en cada paso del deslizador)."""
+        if getattr(self, "_rebake_id", 0):
+            GLib.source_remove(self._rebake_id)
+        self._rebake_id = GLib.timeout_add(250, self._rebake)
+
+    def _rebake(self):
+        self._rebake_id = 0
+        self._poses = {}
+        self._load_poses()
+        scale = self.anim.get("scale", 1.0)
+        self._paintable.set_scale_factor(scale / self._bake)
+        frames = self._frames_for(self._pose)
+        if frames:
+            self._index %= len(frames)
+            self._paintable.set_texture(frames[self._index])
+        return False
 
     def set_mode(self, mode):
         self.mode = mode
@@ -675,7 +859,19 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
             self._exit_life()
 
     def set_paused(self, paused):
+        if paused == self._paused:
+            return
         self._paused = paused
+        # en pausa no queda ningún temporizador vivo (el proceso duerme del todo)
+        if paused:
+            if self._anim_id:
+                Clock.get().cancel(self._anim_id)
+                self._anim_id = None
+            self._stop_behavior_clock()
+        else:
+            self._schedule_anim()
+            if self.mode == "life":
+                self._start_behavior_clock()
 
     def center_x(self):
         scale = self.anim.get("scale", 1.0)
@@ -683,10 +879,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
 
     def destroy_window(self):
         if self._anim_id:
-            GLib.source_remove(self._anim_id)
-        if self._behavior_id:
-            GLib.source_remove(self._behavior_id)
-        if self._tick_id is not None:
-            self.remove_tick_callback(self._tick_id)
-            self._tick_id = None
+            Clock.get().cancel(self._anim_id)
+            self._anim_id = None
+        self._stop_behavior_clock()
         self.destroy()
