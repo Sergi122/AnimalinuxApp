@@ -3,8 +3,6 @@ Sistema de internacionalización — AnimaLinux
 Idiomas: es · en · pt · fr · de · ja · zh
 Auto-detecta el idioma del sistema; configurable desde la app.
 """
-import locale as _locale
-from pathlib import Path
 
 # ── idiomas disponibles ────────────────────────────────────────────────────────
 LANGUAGES = {

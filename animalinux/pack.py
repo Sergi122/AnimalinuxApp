@@ -24,7 +24,6 @@ Cualquiera puede crear un pack (un solo gif basta: se vuelve la pose 'default')
 y compartirlo. Eso es lo que hizo famoso a Shimeji.
 """
 import json
-import shutil
 import zipfile
 from pathlib import Path
 

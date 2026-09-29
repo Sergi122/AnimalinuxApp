@@ -2,7 +2,6 @@
 Gestión de proyectos AnimaLinux (.alproj).
 Los proyectos se guardan en ~/Documents/AnimaLinux/projects/
 """
-import os
 from datetime import datetime
 from pathlib import Path
 

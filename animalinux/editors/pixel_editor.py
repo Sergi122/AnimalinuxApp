@@ -984,14 +984,6 @@ class PixelEditor(Gtk.Window):
 
         return panel
 
-    def _draw_swatch_checker(self, cr, w, h):
-        sq = 4
-        for y in range(0,h,sq):
-            for x in range(0,w,sq):
-                v = 0.8 if (x//sq+y//sq)%2==0 else 0.6
-                cr.set_source_rgb(v,v,v)
-                cr.rectangle(x,y,sq,sq); cr.fill()
-
     def _build_right_panel(self):
         panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         panel.add_css_class("editor-panel"); panel.add_css_class("right")
