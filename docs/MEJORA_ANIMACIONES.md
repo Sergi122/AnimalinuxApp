@@ -40,8 +40,30 @@ Además hay **~31 MB huérfanos** en `animations/` (7 carpetas sin entrada en la
 - `base` pesa 330 KB por cuadro; `walk` 1.8 MB, `fall` 1.5 MB (36 cuadros). Total 7 MB para una sola mascota.
 - Se ve una **línea fina de suelo** bajo algunos cuadros (angry/fall/grab): confirmar que es artefacto del origen y eliminarla.
 - Bucles sin cerrar (costura 30–55 con movimiento 14–30).
-### GIF sin vida (kaoruko, lacrimosa, herta, noce)
-- Sin problemas de tamaño, pero el bucle salta al reiniciar. Opción: **cruce suave** o recortar al mejor punto de corte (buscar el par de cuadros con menor diferencia).
+### Animaciones sin vida (GIF): kaoruko, lacrimosa, herta, noce
+Las cuatro son chibis bailando (arte HD con contorno), importadas de GIF a 10–13 fps.
+
+| Nombre | Cuadros / fps / duración | Tamaño | Peso | Movimiento entre cuadros | Costura del bucle | Mejor corte posible | Deriva horizontal | Halo |
+|---|---|---|---|---|---|---|---|---|
+| kaoruko | 20 / 13 / 1.5 s | 443×454 | 3.0 MB | 28 | 42 | cuadros 1→16 (21) | 63 px | 2 % |
+| lacrimosa | 20 / 13 / 1.5 s | 183×183 | 0.6 MB | 31 | 58 | cuadros 2→16 (35) | 37 px | **8 %** |
+| herta | 12 / 10 / 1.2 s | 414×338 | 0.9 MB | 39 | 58 | cuadros 3→9 (44) | 61 px | 2 % |
+| noce | 20 / 13 / 1.5 s | 289×292 | 1.5 MB | **49** | **82** | cuadros 4→19 (39) | 45 px | 0 % |
+
+Lectura de las cifras (diferencia media de píxeles 0–255 entre cuadros consecutivos):
+- **Movimiento muy alto entre cuadros (28–49):** con solo 10–13 fps y 12–20 cuadros, cada paso es un salto grande → la animación se ve **entrecortada**. Es el problema principal de estas cuatro, más que el bucle.
+- **Costura 1.4–1.7x el movimiento** (noce 1.7x): el último cuadro no enlaza con el primero. Buscar otro punto de corte ayuda poco (la mejor pareja sigue siendo tan lejana como un paso normal) porque son coreografías completas: el arreglo real es **generar cuadros intermedios** entre el último y el primero.
+- **herta** (12 cuadros, 10 fps): la cabeza gira de frente a espalda/perfil en pocos cuadros; es la más brusca y la de menor duración.
+- **lacrimosa** es la única con halo notable (8 % de píxeles semitransparentes en el borde): probable recorte con IA o fondo mal quitado; revisar el borde sobre fondo claro y oscuro.
+- **Encuadre:** el personaje se desplaza 37–63 px de lado a lado (coreografía), pero el lienzo no tiene margen fijo; comprobar que nada se recorta en los extremos y fijar el pie de referencia para que no «flote» en el escritorio.
+- **Peso:** kaoruko 3 MB para 1.5 s; se puede bajar mucho con cuantización o WebP sin pérdida (arte plano).
+
+Acciones específicas para sin vida:
+1. **Interpolación de cuadros** (tweening por flujo óptico o morphing simple) para duplicar los cuadros (→ 24 fps efectivos) sin rehacer el arte; empezar por herta y noce.
+2. **Cierre de bucle**: insertar 2–4 cuadros intermedios entre el último y el primero, o modo «ida y vuelta» automático para las que no sean cíclicas.
+3. **Limpiar halo** de lacrimosa (des-matte del borde/erosión de 1 px del alfa).
+4. **Reducir peso** de kaoruko (cuantizar/WebP) y guardar duración por cuadro en vez de repetir PNG.
+5. Mostrar en la ficha de la mascota un indicador «Suavidad» (movimiento/fps) y «Cierre de bucle» con los mismos números de esta tabla.
 
 ## Plan de trabajo propuesto (por prioridad)
 1. **Normalizar poses** (mayor impacto visual): misma altura de referencia y mismo ancla de pies (centro-abajo) para todas las poses de una mascota; recorte al contenido con margen común. Herramienta en el importador y botón «Normalizar» por mascota.
@@ -55,6 +77,7 @@ Además hay **~31 MB huérfanos** en `animations/` (7 carpetas sin entrada en la
 
 ## Criterios de aceptación
 - Ninguna pose con costura > 2x el movimiento medio, salvo `jump`/`fall`.
+- GIF sin vida: movimiento entre cuadros < 15 tras interpolar (≈24 fps efectivos) y costura ≤ 1x el movimiento.
 - Cambiar de pose no altera la escala ni la posición de los pies (deriva < 2 px).
 - Sin cuadros idénticos consecutivos guardados como archivos.
 - Kaoruko ≤ 3 MB en disco sin pérdida visible; RAM del overlay medida antes/después.
