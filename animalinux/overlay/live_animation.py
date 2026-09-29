@@ -50,6 +50,8 @@ BORED_DISABLE_S = 5 * 60    # 5 min más ignorada → se desactiva del panel
 class LiveAnimationMixin:
     """Comportamiento 'con vida'. Se mezcla en MascotWindow."""
 
+    _body_t = 0   # contador de ticks para el movimiento procedural del cuerpo
+
     # ───────────────────────── utilidades ──────────────────────────────────
     def _set_pose(self, name):
         """Idea 9: cambiar de pose reseteando el frame (sin saltos a mitad).
@@ -87,10 +89,43 @@ class LiveAnimationMixin:
         self._sq_sy += (1.0 - self._sq_sy) * 0.35
         self._lean += (self._lean_target - self._lean) * 0.4
         self._lean_target *= 0.7
-        self._paintable.set_squash(round(self._sq_sx, 3), round(self._sq_sy, 3))
-        self._paintable.set_lean(round(self._lean, 2))
+        bsx, bsy, blean, bob = self._body_motion()
+        self._paintable.set_squash(round(self._sq_sx * bsx, 3),
+                                   round(self._sq_sy * bsy, 3))
+        self._paintable.set_lean(round(self._lean + blean, 2))
+        self._paintable.set_bob(round(bob, 3))
 
-    # ── plataformas = bordes de ventanas (idea 5) ───────────────────────────
+    # ── movimiento procedural de TODO el cuerpo ────────────────────────────
+    def _body_motion(self):
+        """(sx, sy, lean°, bob) que se SUMAN al squash/lean puntual. Da vida a
+        cada estado moviendo el sprite entero (caminar con rebote y
+        balanceo, respirar en reposo, botar al saludar, estirarse al saltar)
+        sin necesitar cuadros extra. Si la pose actual trae sus propios
+        cuadros (dibujados por el usuario) no se toca: ya se anima sola."""
+        self._body_t += 1
+        t = self._body_t
+        if self._pose != "default" and self._has_pose(self._pose):
+            return 1.0, 1.0, 0.0, 0.0
+        st = self._state
+        if st in ("walk", "to_climb"):
+            p = self._walk_phase * math.pi        # un paso por unidad de fase
+            air = abs(math.sin(p))                # 0 = pie apoyado, 1 = en el aire
+            sy = 0.955 + 0.06 * air               # se aplasta al apoyar
+            return 1.0 + (1.0 - sy) * 0.8, sy, 5.0 * math.sin(p), 0.05 * air
+        if st in ("jump", "toss", "falling"):
+            vy = self._jump_vy if st == "jump" else self._toss_vy
+            k = min(0.14, abs(vy) * 0.007)        # se estira con la velocidad
+            return 1.0 - 0.7 * k, 1.0 + k, 0.0, 0.0
+        if self._greet_ttl > 0:
+            h = math.sin(t * 0.5)                 # bota y se balancea saludando
+            return 1.0, 1.0 - 0.03 * abs(h), 9.0 * h, 0.04 * abs(h)
+        if self._react_ttl > 0:
+            return 1.0 + 0.05 * math.sin(t * 1.7), 1.0, 3.0 * math.sin(t * 2.1), 0.0
+        if st in ("idle", "rest"):
+            b = math.sin(t * 0.13)                # respiración
+            return 1.0 - 0.010 * b, 1.0 + 0.018 * b, 1.2 * math.sin(t * 0.05), 0.0
+        return 1.0, 1.0, 0.0, 0.0
+
     def _platforms(self):
         try:
             return self._app.manager.platforms
@@ -336,6 +371,7 @@ class LiveAnimationMixin:
         self._lean = self._lean_target = 0.0
         self._paintable.set_squash(1.0, 1.0)
         self._paintable.set_lean(0.0)
+        self._paintable.set_bob(0.0)
 
     def _pick_behavior(self):
         # retirarse tras saludar a otra mascota (idea 7: no quedarse pegadas)

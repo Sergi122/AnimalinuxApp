@@ -189,21 +189,6 @@ class MascotManager:
             win.destroy_window()
         self.mascots.clear()
 
-    # ---------- generación de poses ----------
-    def generate_puppet_poses(self, anim_id, rig):
-        from .. import puppet
-        from . import image_processor
-        fd = self.library.frames_dir(anim_id)
-        base = fd / "frame_0000.png"
-        if not base.exists():
-            return []
-        made = puppet.generate_poses_from_rig(str(base), rig, fd)
-        for pose in made:
-            image_processor.ensure_flipped(fd / pose)
-        self.library.update(anim_id, poses=["default"] + made, rig=rig)
-        self.reload(anim_id)
-        return made
-
     def register_pose(self, anim_id, pose, fps=None):
         anim = self.library.animations.get(anim_id, {})
         poses = anim.get("poses", ["default"])

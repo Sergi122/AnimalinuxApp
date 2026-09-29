@@ -208,14 +208,6 @@ class AnimaApp(Gtk.Application):
         from . import folderimport
         return folderimport.import_folder(self.library, path)
 
-    # ---------- partes / rig (mover brazos y piernas) ----------
-    def show_rig_editor(self, anim_id):
-        from .rigeditor import RigEditor
-        RigEditor(self, anim_id).present()
-
-    def generate_puppet_poses(self, anim_id, rig):
-        return self.manager.generate_puppet_poses(anim_id, rig)
-
     # ---------- editores de dibujo ----------
     def show_pixel_editor(self, anim_id=None, guided=False):
         from .editors.pixel_editor import PixelEditor

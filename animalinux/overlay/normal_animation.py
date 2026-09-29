@@ -51,6 +51,7 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
         self._sx = 1.0
         self._sy = 1.0
         self._lean = 0.0   # grados
+        self._bob = 0.0    # desplazamiento vertical, fracción de la altura (+ = arriba)
         self._mirror = False   # espejo horizontal (mirar a la izquierda)
 
     def set_mirror(self, on):
@@ -75,6 +76,11 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
             self._sx, self._sy = sx, sy
             self.invalidate_contents()
 
+    def set_bob(self, frac):
+        if frac != self._bob:
+            self._bob = frac
+            self.invalidate_contents()
+
     def set_lean(self, deg):
         if deg != self._lean:
             self._lean = deg
@@ -89,12 +95,12 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
     def do_snapshot(self, snapshot, width, height):
         if self._tex is None:
             return
-        sx, sy, lean = self._sx, self._sy, self._lean
-        deform = (sx != 1.0 or sy != 1.0 or lean != 0.0)
+        sx, sy, lean, bob = self._sx, self._sy, self._lean, self._bob
+        deform = (sx != 1.0 or sy != 1.0 or lean != 0.0 or bob != 0.0)
         if deform:
             snapshot.save()
             # anclar la transformación en los pies (centro-abajo)
-            snapshot.translate(Graphene.Point().init(width / 2.0, height))
+            snapshot.translate(Graphene.Point().init(width / 2.0, height - bob * height))
             if lean:
                 snapshot.rotate(lean)
             if sx != 1.0 or sy != 1.0:
