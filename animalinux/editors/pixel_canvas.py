@@ -140,6 +140,8 @@ class PixelCanvas(Gtk.DrawingArea):
         # vista
         self._ox, self._oy = 0.0, 0.0
         self._auto_fit = True
+        self._sticky_fit = False
+        self._fit_size = (0, 0)
         self._mouse = (0.0, 0.0)
         self._cursor_px = (-1, -1)
         self._space = False
@@ -284,7 +286,7 @@ class PixelCanvas(Gtk.DrawingArea):
         ix, iy = (ax - self._ox) / old, (ay - self._oy) / old
         self._zi = zi
         self._ox, self._oy = ax - ix * self.zoom, ay - iy * self.zoom
-        self._auto_fit = False
+        self._auto_fit = False; self._sticky_fit = False
         self.queue_draw()
         if self.on_zoom_changed: self.on_zoom_changed()
 
@@ -305,7 +307,7 @@ class PixelCanvas(Gtk.DrawingArea):
         self._zi = best
         self._ox = (w - self.cw * self.zoom) / 2
         self._oy = (h - self.ch * self.zoom) / 2
-        self._auto_fit = False
+        self._auto_fit = False; self._sticky_fit = True; self._fit_size = (w, h)
         self.queue_draw()
         if self.on_zoom_changed: self.on_zoom_changed()
 
@@ -326,7 +328,7 @@ class PixelCanvas(Gtk.DrawingArea):
         if not self._panning: return
         self._ox = self._pan_origin[0] + dx
         self._oy = self._pan_origin[1] + dy
-        self._auto_fit = False
+        self._auto_fit = False; self._sticky_fit = False
         self.queue_draw()
 
     def _pan_end(self):
@@ -718,9 +720,13 @@ class PixelCanvas(Gtk.DrawingArea):
         if self._locked(): return
         img, mm, x1, y1 = self._clip
         h, w = mm.shape
+        if x1 >= self.cw or y1 >= self.ch:                  # el lienzo se achicó: fuera de rango
+            self._status("Lo copiado ya no cabe en el lienzo"); return
         self.snap_undo()
         arr = self._arr().copy()
         y2, x2 = min(self.ch, y1 + h), min(self.cw, x1 + w)
+        if y2 <= y1 or x2 <= x1 or y1 < 0 or x1 < 0:       # el lienzo cambió de tamaño y no queda sitio
+            self._status("Lo copiado ya no cabe en el lienzo"); return
         sub = img[:y2 - y1, :x2 - x1]; sm = mm[:y2 - y1, :x2 - x1]
         reg = arr[y1:y2, x1:x2]
         opaque = sm & (sub[..., 3] > 0)
@@ -1009,30 +1015,59 @@ class PixelCanvas(Gtk.DrawingArea):
         match = (np.abs(arr.astype(np.int16) - target).max(axis=2) <= tol)
         if not contiguous:
             return match
-        vis = np.zeros((self.ch, self.cw), dtype=bool)
+        # relleno por líneas (scanline): recorre tramos completos en vez de píxel a píxel
+        W, H = self.cw, self.ch
+        vis = np.zeros((H, W), dtype=bool)
         stack = [(x, y)]
-        nb = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-        if conn8: nb += [(1, 1), (1, -1), (-1, 1), (-1, -1)]
+        d8 = 1 if conn8 else 0
         while stack:
             px, py = stack.pop()
             if vis[py, px] or not match[py, px]: continue
-            vis[py, px] = True
-            for dx, dy in nb:
-                qx, qy = px + dx, py + dy
-                if 0 <= qx < self.cw and 0 <= qy < self.ch and not vis[qy, qx] and match[qy, qx]:
-                    stack.append((qx, qy))
+            x0 = px
+            while x0 > 0 and match[py, x0 - 1] and not vis[py, x0 - 1]: x0 -= 1
+            x1 = px
+            while x1 < W - 1 and match[py, x1 + 1] and not vis[py, x1 + 1]: x1 += 1
+            vis[py, x0:x1 + 1] = True
+            xa, xb = max(0, x0 - d8), min(W - 1, x1 + d8)
+            for ny in (py - 1, py + 1):
+                if 0 <= ny < H:
+                    row = match[ny, xa:xb + 1] & ~vis[ny, xa:xb + 1]
+                    if row.any():
+                        idx = np.flatnonzero(row)
+                        for k in idx[np.r_[True, np.diff(idx) > 1]]:
+                            stack.append((xa + int(k), ny))
         return vis
 
     def _bucket(self, x, y):
         region = self._region(x, y, self.tol, self.contiguous, self.conn8)
         if region is None: return
         if self.sel is not None: region = region & self.sel
+        arr = self._arr().copy()
+        ink, op = self.ink, self.opacity
+        if ink == "lock_alpha": region = region & (arr[..., 3] > 0)
         ys, xs = np.nonzero(region)
-        pts = [(int(a), int(b)) for a, b in zip(xs, ys)]
-        c = self._sc
-        saved = self.tiled; self.tiled = "none"
-        self._paint_points(pts, c)
-        self.tiled = saved
+        if ys.size == 0: return
+        src = np.empty((ys.size, 4), dtype=np.float32)
+        src[:] = self._sc
+        if ink == "dither":
+            odd = ((xs + ys) % 2) == 1
+            src[odd] = self._sc2
+        dst = arr[ys, xs].astype(np.float32)
+        sa = src[:, 3] * (op / 255.0) / 255.0
+        if ink == "simple" and op >= 255:
+            out = src
+        elif ink == "lock_alpha":
+            out = dst.copy()
+            out[:, :3] = src[:, :3] * sa[:, None] + dst[:, :3] * (1 - sa[:, None])
+        else:
+            da = dst[:, 3] / 255.0
+            oa = sa + da * (1 - sa)
+            safe = np.maximum(oa, 1e-6)[:, None]
+            out = np.empty_like(dst)
+            out[:, :3] = (src[:, :3] * sa[:, None] + dst[:, :3] * (da * (1 - sa))[:, None]) / safe
+            out[:, 3] = oa * 255
+        arr[ys, xs] = np.clip(out + 0.5, 0, 255).astype(np.uint8)
+        self._set_arr(arr)
 
     def _wand(self, x, y, base):
         region = self._region(x, y, self.tol, self.contiguous, self.conn8)
@@ -1216,10 +1251,10 @@ class PixelCanvas(Gtk.DrawingArea):
         touchpad = ctrl.get_unit() == Gdk.ScrollUnit.SURFACE
         if touchpad and not (mods & Gdk.ModifierType.CONTROL_MASK):
             self._ox -= dx; self._oy -= dy
-            self._auto_fit = False; self.queue_draw(); return True
+            self._auto_fit = False; self._sticky_fit = False; self.queue_draw(); return True
         if mods & Gdk.ModifierType.SHIFT_MASK:           # Shift+rueda: mover en horizontal
             self._ox -= dy * 30 if dy else dx * 30
-            self._auto_fit = False; self.queue_draw(); return True
+            self._auto_fit = False; self._sticky_fit = False; self.queue_draw(); return True
         mx, my = self._mouse
         if dy > 0:   self.zoom_out(mx, my)
         elif dy < 0: self.zoom_in(mx, my)
@@ -1264,7 +1299,7 @@ class PixelCanvas(Gtk.DrawingArea):
             cr.paint_with_alpha(alpha_mul * l.opacity / 255)
 
     def _draw(self, area, cr, width, height):
-        if self._auto_fit and width > 8 and height > 8:
+        if width > 8 and height > 8 and (self._auto_fit or (self._sticky_fit and (width, height) != self._fit_size)):
             self.zoom_fit()
         z = self.zoom
         iw, ih = self.cw * z, self.ch * z

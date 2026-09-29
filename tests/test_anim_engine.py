@@ -183,3 +183,14 @@ def test_v1_projects_still_open(tmp_path):
         zf.writestr("project.json", json.dumps(meta)); zf.writestr("f0/l0.png", buf.getvalue())
     sc = ae.Scene.load(str(p))
     assert sc.w == 16 and sc.layers[0].at(0).arr[3, 3, 3] == 255
+
+
+def test_undo_restores_scene_size(sc):
+    d = sc.drawing_for_edit(0, 0)
+    sc.snap()
+    sc.w, sc.h = 100, 80                       # como hace «Tamaño de la escena»
+    sc.layers[0].drawings[0] = ae.Drawing(100, 80, "raster")
+    sc.undo()
+    assert (sc.w, sc.h) == (64, 48) and sc.layers[0].drawings[0] is d
+    sc.redo()
+    assert (sc.w, sc.h) == (100, 80)

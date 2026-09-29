@@ -247,11 +247,12 @@ class Scene:
     # ── deshacer ─────────────────────────────────────────────────────────────
     def _struct(self):
         return ("struct", self.frame_count, self.start, self.stop,
-                copy.deepcopy(self.cam_keys),
+                copy.deepcopy(self.cam_keys), (self.w, self.h),
                 [(l.meta(), list(l.drawings), list(l.exposure)) for l in self.layers])
 
     def _apply_struct(self, st):
-        _, fc, s, e, cam, layers = st
+        _, fc, s, e, cam, (w, h), layers = st
+        self.w, self.h = w, h
         self.frame_count, self.start, self.stop = fc, s, e
         self.cam_keys = copy.deepcopy(cam)
         self.layers = []

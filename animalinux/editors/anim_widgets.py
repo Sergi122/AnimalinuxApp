@@ -70,6 +70,7 @@ class Timeline(Gtk.DrawingArea):
 
     # interacción -------------------------------------------------------------
     def _begin(self, g, x, y):
+        self.canvas.grab_focus()       # que los atajos sigan funcionando tras hacer clic aquí
         self._start = (x, y)
         s = self.canvas.scene
         if x >= self.LW and y < self.HH:
@@ -96,10 +97,7 @@ class Timeline(Gtk.DrawingArea):
             self.queue_draw()
 
     def _scrub(self, x):
-        f = self._frame_at(x)
-        s = self.canvas.scene
-        if f >= s.frame_count: f = s.frame_count - 1
-        self.canvas.go_to(f)
+        self.canvas.go_to(min(self._frame_at(x), self.canvas.scene.frame_count + 59))
 
     def _clicked(self, g, n, x, y):
         if x >= self.LW or y < self.HH: return

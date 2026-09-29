@@ -30,6 +30,8 @@ from . import anim_engine as ae
 from .anim_canvas import AnimCanvas
 from .anim_widgets import Timeline, ToolProps, LayerProps, ColorDock, CameraDock
 from .icons import icon_image
+from .menubar import build_menubar
+from .teardown import release_signals
 from ..ui import guide_widgets as gw
 
 ICO = "#e6e6e6"
@@ -68,8 +70,16 @@ CSS = """
 window.hm, window.hm box { background-color: #3c3c3c; }
 window.hm, window.hm label { color: #dcdcdc; }
 window.hm .hm-menu { background-color: #2c2c2c; border-bottom: 1px solid #1a1a1a; padding: 0 2px; }
-window.hm .hm-menu > item { padding: 3px 9px; color: #dcdcdc; }
-window.hm .hm-menu > item:hover { background-color: #494949; }
+window.hm .hm-menubtn, window.hm .hm-menubtn > button { padding: 0; border: none; border-radius: 0; background: transparent; box-shadow: none; }
+window.hm .hm-menubtn > button { padding: 3px 10px; min-height: 20px; }
+window.hm .hm-menubtn > button label { color: #dcdcdc; }
+window.hm .hm-menubtn > button:hover, window.hm .hm-menubtn > button:checked { background-color: #494949; border: none; }
+popover.hm-pop, popover.hm-pop > arrow { background: transparent; box-shadow: none; border: none; }
+popover.hm-pop > contents { background-color: #383838; color: #e6e6e6; border: 1px solid #1a1a1a; border-radius: 3px; padding: 3px; }
+popover.hm-pop modelbutton { color: #e6e6e6; padding: 4px 12px; min-height: 22px; border-radius: 2px; }
+popover.hm-pop modelbutton:hover { background-color: #3d6f9c; color: #ffffff; }
+popover.hm-pop modelbutton label, popover.hm-pop modelbutton accelerator { color: inherit; }
+popover.hm-pop separator { background-color: #232323; min-height: 1px; margin: 3px 0; }
 window.hm .hm-bar { background-color: #333333; border-bottom: 1px solid #1a1a1a; padding: 3px 6px; }
 window.hm .hm-tools { background-color: #2f2f2f; border-right: 1px solid #1a1a1a; padding: 4px 3px; }
 window.hm .hm-view { background-color: #808080; }
@@ -310,7 +320,7 @@ class PaintEditor(Gtk.Window):
                      ("Insertar", insertar), ("Escena", escena), ("Dibujo", dibujo), ("Animación", animacion),
                      ("Ayuda", ayuda)):
             top.append_submenu(n, m)
-        bar = Gtk.PopoverMenuBar.new_from_model(top); bar.add_css_class("hm-menu"); return bar
+        return build_menubar(top, "hm-menubtn", "hm-pop")
 
     # ══ interfaz ══════════════════════════════════════════════════════════════
     @staticmethod
@@ -459,7 +469,8 @@ class PaintEditor(Gtk.Window):
         def spin(label, lo, hi, cb):
             bar.append(Gtk.Label(label=label))
             sp = Gtk.SpinButton.new_with_range(lo, hi, 1); sp.set_width_chars(4)
-            sp.connect("value-changed", lambda w: cb(int(w.get_value()))); bar.append(sp); return sp
+            sp.connect("value-changed", lambda w: cb(int(w.get_value())))
+            sp.connect("activate", lambda w: self.canvas.grab_focus()); bar.append(sp); return sp
         self.sp_frame = spin("Fotograma", 1, 2000, lambda v: (not self._syncing) and c.go_to(v - 1))
         self.sp_start = spin("Inicio", 1, 2000, lambda v: (not self._syncing) and self._set_range(start=v - 1))
         self.sp_stop = spin("Fin", 1, 2000, lambda v: (not self._syncing) and self._set_range(stop=v - 1))
@@ -492,7 +503,8 @@ class PaintEditor(Gtk.Window):
         else:
             self.name_entry = None
         bar.append(Gtk.Label(label="Pose"))
-        self.pose_entry = Gtk.Entry(); self.pose_entry.set_text("default"); self.pose_entry.set_width_chars(8); bar.append(self.pose_entry)
+        self.pose_entry = Gtk.Entry(); self.pose_entry.set_text("default"); self.pose_entry.set_width_chars(8)
+        self.pose_entry.connect("activate", lambda w: self.canvas.grab_focus()); bar.append(self.pose_entry)
         save = Gtk.Button(); save.add_css_class("suggested-action")
         sb = Gtk.Box(spacing=4); sb.append(icon_image("save", 14, "#ffffff")); sb.append(Gtk.Label(label="Guardar pose"))
         save.set_child(sb); save.connect("clicked", lambda _: self._save_pose()); bar.append(save)
@@ -614,10 +626,20 @@ class PaintEditor(Gtk.Window):
             self._stop_audio()
 
     def _stop_audio(self):
-        if self._audio:
-            try: self._audio.terminate()
-            except OSError: pass
-            self._audio = None
+        proc, self._audio = self._audio, None
+        if not proc: return
+        try: proc.terminate()
+        except OSError: return
+        tries = [0]
+
+        def reap():                      # recoge el proceso terminado (evita zombis)
+            tries[0] += 1
+            if proc.poll() is not None: return False
+            if tries[0] > 15:
+                try: proc.kill()
+                except OSError: pass
+            return tries[0] < 40
+        GLib.timeout_add(150, reap)
 
     def _schedule(self):
         self._play_id = GLib.timeout_add(max(16, 1000 // max(1, self.canvas.scene.fps)), self._tick)
@@ -667,7 +689,7 @@ class PaintEditor(Gtk.Window):
         m2.append_item(I("Insertar fotograma", "an.frame_insert")); m2.append_item(I("Borrar fotograma", "an.frame_delete"))
         m2.append_item(I("Fijar inicio aquí", "an.set_start")); m2.append_item(I("Fijar fin aquí", "an.set_stop"))
         m.append_section(None, m2)
-        pop = Gtk.PopoverMenu.new_from_model(m); pop.set_parent(widget)
+        pop = Gtk.PopoverMenu.new_from_model(m); pop.add_css_class("hm-pop"); pop.set_has_arrow(False); pop.set_parent(widget)
         r = Gdk.Rectangle(); r.x, r.y, r.width, r.height = int(x), int(y), 1, 1
         pop.set_pointing_to(r); pop.popup()
 
@@ -787,9 +809,10 @@ class PaintEditor(Gtk.Window):
                     cw_, ch_ = min(s.w - sx0, w - dx0), min(s.h - sy0, h - dy0)
                     if cw_ > 0 and ch_ > 0: out[dy0:dy0 + ch_, dx0:dx0 + cw_] = d.arr[sy0:sy0 + ch_, sx0:sx0 + cw_]
                     l.drawings[i] = ae.Drawing(w, h, "raster", out)
-                else:
-                    for st in d.strokes: st["pts"] = [(p[0] + ox, p[1] + oy, *p[2:]) for p in st["pts"]]
-                    d.w, d.h = w, h; d.touch()
+                else:                          # copia nueva: así deshacer recupera los trazos originales
+                    nd = ae.Drawing(w, h, "vector")
+                    nd.strokes = [{**st, "pts": [(p[0] + ox, p[1] + oy, *p[2:]) for p in st["pts"]]} for st in d.strokes]
+                    l.drawings[i] = nd
         s.w, s.h = w, h
         c.sel = None; c._sel_segs = None; c._fit_pending = True
         c._after_struct(False)
@@ -924,6 +947,7 @@ class PaintEditor(Gtk.Window):
         try: gf = dlg.save_finish(res)
         except GLib.Error: return
         path = gf.get_path()
+        if not path.lower().endswith(".gif"): path += ".gif"
         frames = [self.canvas.to_pil(i) for i in self._range()]
         if not frames: return
         frames[0].save(path, format="GIF", save_all=True, append_images=frames[1:], loop=0,
@@ -938,6 +962,7 @@ class PaintEditor(Gtk.Window):
         try: gf = dlg.save_finish(res)
         except GLib.Error: return
         out = gf.get_path(); s = self.canvas.scene
+        if not out.lower().endswith(".mp4"): out += ".mp4"
         tmp = tempfile.mkdtemp(prefix="animalinux_mp4_")
         try:
             for k, i in enumerate(self._range()):
@@ -1013,6 +1038,20 @@ class PaintEditor(Gtk.Window):
         if self._play_id: GLib.source_remove(self._play_id); self._play_id = None
         self._stop_audio()
         if self._status_id: GLib.source_remove(self._status_id); self._status_id = None
+        release_signals(self, [self._grp])
+        GLib.idle_add(self._teardown)
+        return False
+
+    def _teardown(self):
+        """Rompe los ciclos ventana↔widgets↔callbacks (invisibles para el recolector de
+        Python) para que al cerrar se libere la escena y los dibujos."""
+        c = self.canvas
+        c._stop_ants()
+        for n in ("on_pick", "on_frame", "on_layers", "on_cursor", "on_zoom", "on_status", "on_tool", "on_edit"):
+            setattr(c, n, None)
+        c.scene = ae.Scene(8, 8); c._clip = None; c.sel = None
+        if self.get_child() is not None: self.set_child(None)
+        self.__dict__.clear()
         return False
 
     def _confirm_close(self):

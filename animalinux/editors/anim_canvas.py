@@ -100,6 +100,8 @@ class AnimCanvas(Gtk.DrawingArea):
         self.safe_area = False
         self._z, self._ox, self._oy = 1.0, 0.0, 0.0
         self._fit_pending = True
+        self._sticky_fit = False       # tras ajustar, se reajusta al cambiar el tamaño de la ventana
+        self._fit_size = (0, 0)
         self._mouse = (0.0, 0.0)
         self._cursor_c = None
         self._space = False
@@ -228,7 +230,7 @@ class AnimCanvas(Gtk.DrawingArea):
         self._z = z
         x = (self.scene.w - cx) if self.mirror_view else cx
         self._ox, self._oy = sx - x * z, sy - cy * z
-        self._fit_pending = False
+        self._fit_pending = False; self._sticky_fit = False
         self.queue_draw()
         if self.on_zoom: self.on_zoom()
 
@@ -243,7 +245,7 @@ class AnimCanvas(Gtk.DrawingArea):
         self._z = min((w - 40) / s.w, (h - 40) / s.h)
         self._z = max(ZOOM_MIN, min(ZOOM_MAX, self._z))
         self._ox, self._oy = (w - s.w * self._z) / 2, (h - s.h * self._z) / 2
-        self._fit_pending = False
+        self._fit_pending = False; self._sticky_fit = True; self._fit_size = (w, h)
         self.queue_draw()
         if self.on_zoom: self.on_zoom()
 
@@ -253,7 +255,7 @@ class AnimCanvas(Gtk.DrawingArea):
     def _pan_update(self, dx, dy):
         if self._panning:
             self._ox, self._oy = self._pan_origin[0] + dx, self._pan_origin[1] + dy
-            self._fit_pending = False; self.queue_draw()
+            self._fit_pending = False; self._sticky_fit = False; self.queue_draw()
 
     def _pan_end(self):
         self._panning = False; self._cursor()
@@ -262,7 +264,7 @@ class AnimCanvas(Gtk.DrawingArea):
         mods = ctrl.get_current_event_state()
         touchpad = ctrl.get_unit() == Gdk.ScrollUnit.SURFACE
         if touchpad and not (mods & Gdk.ModifierType.CONTROL_MASK):
-            self._ox -= dx; self._oy -= dy; self._fit_pending = False; self.queue_draw(); return True
+            self._ox -= dx; self._oy -= dy; self._fit_pending = False; self._sticky_fit = False; self.queue_draw(); return True
         if self.tool == "camera" and self.mode == "camera":
             self._cam_edit(scale_mul=1.05 if dy < 0 else 1 / 1.05); return True
         f = 1 / 1.15 if dy > 0 else 1.15
@@ -271,7 +273,9 @@ class AnimCanvas(Gtk.DrawingArea):
 
     # ══ navegación / capas / fotogramas ═══════════════════════════════════════
     def go_to(self, f):
-        f = max(0, min(f, self.scene.frame_count - 1))
+        f = max(0, min(f, 1999))
+        if f >= self.scene.frame_count:            # avanzar más allá del final amplía la escena
+            self.scene.ensure_frames(f + 1)
         if f != self.cur:
             self._commit_move()
         self.cur = f
@@ -290,11 +294,15 @@ class AnimCanvas(Gtk.DrawingArea):
         self.vsel.clear(); self._vpoint = None
         self._changed(layers)
 
-    def undo(self):
-        if self.scene.undo(): self._after_struct()
+    def _step_history(self, fn):
+        size = (self.scene.w, self.scene.h)
+        if fn():
+            if (self.scene.w, self.scene.h) != size:
+                self.sel = None; self._sel_segs = None; self._fit_pending = True
+            self._after_struct()
 
-    def redo(self):
-        if self.scene.redo(): self._after_struct()
+    def undo(self): self._step_history(self.scene.undo)
+    def redo(self): self._step_history(self.scene.redo)
 
     def load_scene(self, scene):
         self.scene = scene; self.cur = 0; self.li = 0
@@ -869,10 +877,14 @@ class AnimCanvas(Gtk.DrawingArea):
     def paste_selection(self):
         if not self._clip or self.layer.kind != "raster" or self._blocked(): return
         img, mm, x0, y0 = self._clip
+        if x0 >= self.scene.w or y0 >= self.scene.h:
+            self._status("Lo copiado ya no cabe en la escena"); return
         d = self._cur_drawing(create=True); created = self._created
         self.scene.begin_edit(d)
         h, w = mm.shape
         y1, x1 = min(d.h, y0 + h), min(d.w, x0 + w)
+        if y1 <= y0 or x1 <= x0:
+            self._status("Lo copiado ya no cabe en la escena"); return
         sub, sm = img[:y1 - y0, :x1 - x0], mm[:y1 - y0, :x1 - x0]
         reg = d.arr[y0:y1, x0:x1]; put = sm & (sub[..., 3] > 0); reg[put] = sub[put]
         d.refresh(0, 0, d.w, d.h)
@@ -1100,9 +1112,14 @@ class AnimCanvas(Gtk.DrawingArea):
             self._ants = (self._ants + 1) % 8; self.queue_draw()
         return True
 
+    def _view_filter(self):
+        # GOOD al reducir cuesta ~30 ms por capa en 1080p; BILINEAR ~1,5 ms
+        if self._z >= 3: return cairo.Filter.NEAREST
+        return cairo.Filter.GOOD if self._z >= 1 else cairo.Filter.BILINEAR
+
     def _layer_paint(self, cr, l, d, alpha=1.0, op=None):
         cr.set_source_surface(d.surface(), 0, 0)
-        cr.get_source().set_filter(cairo.Filter.NEAREST if self._z >= 3 else cairo.Filter.GOOD)
+        cr.get_source().set_filter(self._view_filter())
         cr.set_operator(op if op is not None else ae._op(l.blend))
         cr.paint_with_alpha(alpha * l.opacity / 255)
         cr.set_operator(cairo.Operator.OVER)
@@ -1123,7 +1140,8 @@ class AnimCanvas(Gtk.DrawingArea):
             d = l.at(f)
             if d is None or d is l.at(self.cur): continue
             cr.set_source_rgba(rgb[0], rgb[1], rgb[2], a * l.opacity / 255)
-            cr.mask_surface(d.surface(), 0, 0)
+            pat = cairo.SurfacePattern(d.surface()); pat.set_filter(self._view_filter())
+            cr.mask(pat)
 
     def _paint_scene(self, cr, f, camera=False):
         s = self.scene
@@ -1142,7 +1160,7 @@ class AnimCanvas(Gtk.DrawingArea):
         if moved: cr.restore()
 
     def _draw(self, area, cr, width, height):
-        if self._fit_pending and width > 20 and height > 20:
+        if width > 20 and height > 20 and (self._fit_pending or (self._sticky_fit and (width, height) != self._fit_size)):
             self.zoom_fit()
         s = self.scene; z = self._z
         cr.set_source_rgb(*VIEW_BG); cr.paint()

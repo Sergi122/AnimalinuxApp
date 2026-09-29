@@ -230,6 +230,7 @@ class Timeline(Gtk.DrawingArea):
 
     def _pressed(self, g, n, x, y):
         c = self.canvas
+        c.grab_focus()                 # que los atajos sigan funcionando tras hacer clic aquí
         if y < self.HH:
             f = self._col_frame(x)
             if f >= 0: c.go_to(f)

@@ -26,6 +26,8 @@ from gi.repository import Gtk, Gdk, GLib, Gio
 import cairo
 
 from .icons import icon_image
+from .menubar import build_menubar
+from .teardown import release_signals
 from .pixel_canvas import PixelCanvas, MAX_FRAMES
 from .pixel_widgets import ColorPicker, FgBg, PaletteGrid, Timeline
 from ..ui import guide_widgets as gw
@@ -97,8 +99,16 @@ CSS = """
 window.ase, window.ase box { background-color: #7d929e; }
 window.ase, window.ase label { color: #1e1e1e; }
 window.ase .ase-menubar { background-color: #c6c6c6; border-bottom: 1px solid #3a4a52; padding: 0 2px; }
-window.ase .ase-menubar > item { padding: 3px 9px; color: #1e1e1e; }
-window.ase .ase-menubar > item:hover { background-color: #e8e8e8; }
+window.ase .ase-menubtn, window.ase .ase-menubtn > button { padding: 0; border: none; border-radius: 0; background: transparent; box-shadow: none; }
+window.ase .ase-menubtn > button { padding: 3px 10px; min-height: 20px; }
+window.ase .ase-menubtn > button label { color: #1e1e1e; }
+window.ase .ase-menubtn > button:hover, window.ase .ase-menubtn > button:checked { background-color: #e8e8e8; border: none; }
+popover.ase-pop, popover.ase-pop > arrow { background: transparent; box-shadow: none; border: none; }
+popover.ase-pop > contents { background-color: #c6c6c6; color: #1e1e1e; border: 1px solid #3a4a52; border-radius: 2px; padding: 3px; }
+popover.ase-pop modelbutton { color: #1e1e1e; padding: 4px 12px; min-height: 22px; border-radius: 0; }
+popover.ase-pop modelbutton:hover { background-color: #7d929e; color: #ffffff; }
+popover.ase-pop modelbutton label, popover.ase-pop modelbutton accelerator { color: inherit; }
+popover.ase-pop separator { background-color: #9aa5aa; min-height: 1px; margin: 3px 0; }
 window.ase .ase-ctx { background-color: #7d929e; border-bottom: 1px solid #3a4a52; padding: 3px 6px; min-height: 30px; }
 window.ase .ase-left { background-color: #655561; padding: 6px; }
 window.ase .ase-left label { color: #e8e2ea; }
@@ -351,9 +361,7 @@ class PixelEditor(Gtk.Window):
         for name, m in (("Archivo", archivo), ("Editar", editar), ("Sprite", sprite),
                         ("Capa", capa), ("Fotograma", frame), ("Vista", vista), ("Ayuda", ayuda)):
             top.append_submenu(name, m)
-        bar = Gtk.PopoverMenuBar.new_from_model(top)
-        bar.add_css_class("ase-menubar")
-        return bar
+        return build_menubar(top, "ase-menubtn", "ase-pop")
 
     # ══ interfaz ══════════════════════════════════════════════════════════════
     @staticmethod
@@ -642,6 +650,7 @@ class PixelEditor(Gtk.Window):
         bar.append(Gtk.Separator())
         bar.append(Gtk.Label(label="FPS"))
         self.fps_spin = Gtk.SpinButton.new_with_range(1, 60, 1); self.fps_spin.set_value(12)
+        self.fps_spin.connect("activate", lambda w: self.canvas.grab_focus())
         bar.append(self.fps_spin)
         bar.append(Gtk.Separator())
         btn("add", "Nueva capa (Shift+N)", c.add_layer)
@@ -690,6 +699,7 @@ class PixelEditor(Gtk.Window):
             self.name_entry = None
         bar.append(Gtk.Label(label="Pose"))
         self.pose_entry = Gtk.Entry(); self.pose_entry.set_text("default"); self.pose_entry.set_width_chars(8)
+        self.pose_entry.connect("activate", lambda w: self.canvas.grab_focus())
         bar.append(self.pose_entry)
         save = Gtk.Button(); save.add_css_class("suggested-action")
         sb = Gtk.Box(spacing=4); sb.append(icon_image("save", 14, "#ffffff")); sb.append(Gtk.Label(label="Guardar pose"))
@@ -700,6 +710,7 @@ class PixelEditor(Gtk.Window):
         bar.append(Gtk.Label(label="Fotograma"))
         self.frame_spin = Gtk.SpinButton.new_with_range(1, MAX_FRAMES, 1)
         self.frame_spin.connect("value-changed", self._on_frame_spin)
+        self.frame_spin.connect("activate", lambda w: self.canvas.grab_focus())
         bar.append(self.frame_spin)
         new = Gtk.Button(label="+"); new.set_tooltip_text("Nuevo fotograma (Alt+N)")
         new.connect("clicked", lambda _: self.canvas.duplicate_frame()); bar.append(new)
@@ -1032,8 +1043,24 @@ class PixelEditor(Gtk.Window):
     # ── cerrar ───────────────────────────────────────────────────────────────
     def _on_close_request(self, *_):
         if self._play_id: GLib.source_remove(self._play_id); self._play_id = None
+        if self._prev_id: GLib.source_remove(self._prev_id); self._prev_id = None
         self._playing = False
         if self._status_id: GLib.source_remove(self._status_id); self._status_id = None
+        release_signals(self, [self._grp])
+        GLib.idle_add(self._teardown)
+        return False
+
+    def _teardown(self):
+        """Rompe los ciclos ventana↔widgets↔callbacks que el recolector de Python no
+        ve (pasan por GTK) para que al cerrar se libere la memoria del editor."""
+        c = self.canvas
+        c._stop_ants()
+        for n in ("on_pick", "on_frame_changed", "on_layers_changed", "on_cursor_moved",
+                  "on_zoom_changed", "on_status", "on_tool_request"):
+            setattr(c, n, None)
+        c.layers = []; c._surf_cache.clear(); c._undo.clear(); c._redo.clear(); c._clip = None
+        if self.get_child() is not None: self.set_child(None)
+        self.__dict__.clear()
         return False
 
     def _confirm_close(self):
@@ -1154,6 +1181,7 @@ class PixelEditor(Gtk.Window):
         try: gf = dlg.save_finish(result)
         except GLib.Error: return
         path = gf.get_path()
+        if not path.lower().endswith(".gif"): path += ".gif"
         delay_ms = max(20, 1000 // int(self.fps_spin.get_value()))
         frames = [self.canvas.to_pil(i).convert("RGBA") for i in range(self.canvas.frame_count)]
         if not frames: return
