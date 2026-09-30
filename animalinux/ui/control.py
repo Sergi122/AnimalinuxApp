@@ -19,6 +19,21 @@ from ..overlay.live_animation import MANDATORY_POSES
 from ..i18n import t, tr, N_
 from . import guide_widgets as gw
 
+
+def open_url(url: str) -> None:
+    """Abre un enlace en el navegador SIN heredar el LD_PRELOAD de
+    gtk4-layer-shell: Firefox es GTK3 y aborta al mezclarlo con GTK4."""
+    import subprocess
+    env = os.environ.copy()
+    env.pop("LD_PRELOAD", None)
+    env.pop("ANIMALINUX_PRELOADED", None)
+    try:
+        subprocess.Popen(["xdg-open", url], env=env, start_new_session=True,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError:
+        import webbrowser
+        webbrowser.open(url)
+
 # orden de presentación en la guía de poses + emoji ilustrativo de cada una
 POSE_GUIDE_ORDER = (
     ("default", "🧍"), ("idle", "💤"), ("walk", "🚶"), ("greet", "👋"),
@@ -186,9 +201,8 @@ class ControlWindow(Gtk.ApplicationWindow):
             b.connect("clicked", lambda _: cb())
             return b
 
-        import webbrowser
         hb.append(ghost("film", tr("Novedades e historial de cambios"),
-                        lambda: webbrowser.open("https://animalinux.web.app/#cambios")))
+                        lambda: open_url("https://animalinux.web.app/#cambios")))
         hb.append(ghost("help", t("help_tip"), lambda: self._show_tour(force=True)))
         hb.append(ghost("settings", t("settings_title"), self._show_settings_dialog))
         cl = ghost("close", tr("Cerrar esta ventana (las mascotas siguen activas)"), self.close)
@@ -228,11 +242,10 @@ class ControlWindow(Gtk.ApplicationWindow):
         self.method_combo.set_selected(0)
         self.sheet_cols = Gtk.SpinButton(
             adjustment=Gtk.Adjustment(value=0, lower=0, upper=64, step_increment=1))
-        import webbrowser
         comb = Gtk.Button(label="🌐  " + tr("Animaciones de la comunidad"))
         comb.add_css_class("pill")
         comb.set_tooltip_text(tr("Descarga packs de la comunidad y sube los tuyos"))
-        comb.connect("clicked", lambda _: webbrowser.open("https://animalinux-community.web.app/"))
+        comb.connect("clicked", lambda _: open_url("https://animalinux-community.web.app/"))
         bar.append(comb)
         imp = Gtk.MenuButton(label=t("ctl_import") + " ▾")
         imp.add_css_class("pill")
@@ -296,9 +309,8 @@ class ControlWindow(Gtk.ApplicationWindow):
         cta.connect("clicked", lambda _: self._ask_create())
         tour = Gtk.Button(label=t("empty_tour")); tour.add_css_class("pill")
         tour.connect("clicked", lambda _: self._show_tour(force=True))
-        import webbrowser
         com = Gtk.Button(label=t("empty_comm")); com.add_css_class("pill")
-        com.connect("clicked", lambda _: webbrowser.open("https://animalinux-community.web.app/"))
+        com.connect("clicked", lambda _: open_url("https://animalinux-community.web.app/"))
         for b in (cta, tour, com):
             self._empty_btns.append(b)
         box.append(self._empty_btns)
