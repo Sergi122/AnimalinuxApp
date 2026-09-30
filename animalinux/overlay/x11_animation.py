@@ -22,14 +22,14 @@ el sprite movido por márgenes internos aplica sin cambios: Gdk.Surface.set_inpu
 (click-through) ya es una API portable entre backends X11/Wayland de GDK4.
 """
 import os
-from pathlib import Path
 
 import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, GLib, GObject, Graphene  # noqa: E402
 
-from .live_animation import LiveAnimationMixin, MANDATORY_POSES  # noqa: E402
+from .live_animation import LiveAnimationMixin  # noqa: E402
+from .poses import PoseLoaderMixin  # noqa: E402
 from . import _x11_hints
 from .clock import Clock  # noqa: E402
 from .. import settings
@@ -56,6 +56,7 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
         self._sy = 1.0
         self._lean = 0.0   # grados
         self._bob = 0.0    # desplazamiento vertical, fracción de la altura (+ = arriba)
+        self._mirror = False   # espejo horizontal (mirar a la izquierda)
 
     def set_texture(self, tex):
         self._tex = tex
@@ -71,6 +72,12 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
     def set_squash(self, sx, sy):
         if (sx, sy) != (self._sx, self._sy):
             self._sx, self._sy = sx, sy
+            self.invalidate_contents()
+
+    def set_mirror(self, on):
+        on = bool(on)
+        if on != self._mirror:
+            self._mirror = on
             self.invalidate_contents()
 
     def set_bob(self, frac):
@@ -102,7 +109,15 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
             if sx != 1.0 or sy != 1.0:
                 snapshot.scale(sx, sy)
             snapshot.translate(Graphene.Point().init(-width / 2.0, -height))
-        self._tex.snapshot(snapshot, width, height)
+        if self._mirror:
+            snapshot.save()
+            snapshot.translate(Graphene.Point().init(width / 2.0, 0))
+            snapshot.scale(-1.0, 1.0)
+            snapshot.translate(Graphene.Point().init(-width / 2.0, 0))
+            self._tex.snapshot(snapshot, width, height)
+            snapshot.restore()
+        else:
+            self._tex.snapshot(snapshot, width, height)
         if deform:
             snapshot.restore()
 
@@ -135,7 +150,22 @@ def _apply_transparency(display):
     _CSS_APPLIED = True
 
 
-class MascotWindow(LiveAnimationMixin, Gtk.Window):
+class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
+    BAKE = False   # en X11 las texturas se dejan a resolución original
+
+    # Hacia dónde mira: se espeja al dibujar (sin texturas «flip» duplicadas en memoria).
+    @property
+    def _facing_left(self):
+        return self._face_left_v
+
+    @_facing_left.setter
+    def _facing_left(self, v):
+        v = bool(v)
+        self._face_left_v = v
+        pt = getattr(self, "_paintable", None)
+        if pt is not None:
+            pt.set_mirror(v)
+
     def __init__(self, app, anim, frames_dir, on_moved):
         super().__init__(application=app)
         self._app = app
@@ -532,139 +562,6 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self._on_grab_motion(None, gx - self._mon_x, gy - self._mon_y)
 
     # ---------- poses / texturas ----------
-    def _load_poses(self):
-        base = Path(self._frames_dir)
-        # tamaño base = el de la pose 'default'. Todas las demás poses se
-        # normalizan a este tamaño para que la mascota NO cambie de tamaño al
-        # cambiar de animación (algunas poses se generan con otro lienzo).
-        self._base_size = None
-        # auto-recorte: calcula la caja real del dibujo de la pose default y
-        # ajusta anim width/height (lo usan input region, colisiones y bordes)
-        self._orig_size = None
-        self._crop_box = None
-        self._compute_crop_box(base)
-        # 'default' = capa plana
-        self._load_one_pose("default", base)
-        # poses extra = subcarpetas
-        for sub in sorted(p for p in base.iterdir() if p.is_dir()):
-            self._load_one_pose(sub.name, sub)
-        if "default" not in self._poses and self._poses:
-            # si no hubo capa plana, usar la primera pose como default
-            self._poses["default"] = next(iter(self._poses.values()))
-
-    def _load_one_pose(self, name, folder):
-        folder = Path(folder)
-        if not list(folder.glob("flip_*.png")):
-            try:
-                from ..core import image_processor as importer
-                importer.ensure_flipped(folder)
-            except Exception:  # noqa: BLE001
-                pass
-        normals = sorted(folder.glob("frame_*.png"))
-        flips = sorted(folder.glob("flip_*.png"))
-        if not normals:
-            return
-        # la primera pose cargada (default) fija el tamaño base de referencia
-        if self._base_size is None:
-            try:
-                from PIL import Image
-                self._base_size = Image.open(str(normals[0])).size
-            except Exception:  # noqa: BLE001
-                self._base_size = None
-        normal = [t for t in (self._load_texture(p) for p in normals) if t]
-        flip = [t for t in (self._load_texture(p) for p in flips) if t]
-        if not flip:
-            flip = normal
-        if normal:
-            self._poses[name] = {"normal": normal, "flip": flip}
-
-    def _compute_crop_box(self, base):
-        """Calcula la caja real (unión de bboxes de TODAS las poses) para
-        recortar el margen transparente."""
-        try:
-            from PIL import Image
-        except Exception:  # noqa: BLE001
-            return
-        base = Path(base)
-        normals = sorted(base.glob("frame_*.png"))
-        for sub in sorted(p for p in base.iterdir() if p.is_dir()):
-            normals += sorted(sub.glob("frame_*.png"))
-        if not normals:
-            return
-        box = None
-        orig = None
-        for p in normals:
-            try:
-                im = Image.open(str(p))
-            except Exception:  # noqa: BLE001
-                continue
-            if orig is None:
-                orig = im.size
-            if im.size != orig:
-                continue
-            b = im.convert("RGBA").getbbox()
-            if b:
-                box = b if box is None else (
-                    min(box[0], b[0]), min(box[1], b[1]),
-                    max(box[2], b[2]), max(box[3], b[3]))
-        if not orig or not box:
-            return
-        ow, oh = orig
-        pad = 2
-        x0 = max(0, box[0] - pad)
-        y0 = max(0, box[1] - pad)
-        x1 = min(ow, box[2] + pad)
-        y1 = min(oh, box[3] + pad)
-        cw, ch = x1 - x0, y1 - y0
-        if cw >= ow * 0.96 and ch >= oh * 0.96:
-            return
-        self._orig_size = orig
-        self._crop_box = (x0, y0, x1, y1)
-        self._base_size = (cw, ch)
-        self.anim["width"] = cw
-        self.anim["height"] = ch
-
-    def _load_texture(self, path):
-        target = self._base_size
-        try:
-            from PIL import Image
-            im = Image.open(str(path))
-            changed = False
-            box = self._crop_box
-            if box and im.size == self._orig_size:
-                if Path(path).name.startswith("flip_"):
-                    ow = self._orig_size[0]
-                    box = (ow - box[2], box[1], ow - box[0], box[3])
-                im = im.crop(box)
-                changed = True
-            if target is not None and im.size != tuple(target):
-                im = im.convert("RGBA").resize(tuple(target), Image.NEAREST)
-                changed = True
-            if not changed:
-                return Gdk.Texture.new_from_filename(str(path))
-            im = im.convert("RGBA")
-            data = im.tobytes()
-            gbytes = GLib.Bytes.new(data)
-            return Gdk.MemoryTexture.new(
-                im.width, im.height,
-                Gdk.MemoryFormat.R8G8B8A8, gbytes, im.width * 4)
-        except Exception:  # noqa: BLE001
-            try:
-                return Gdk.Texture.new_from_filename(str(path))
-            except Exception:  # noqa: BLE001
-                return None
-
-    def _frames_for(self, pose):
-        data = self._poses.get(pose) or self._poses.get("default")
-        if not data:
-            return []
-        return data["flip"] if self._facing_left else data["normal"]
-
-    def _has_pose(self, pose):
-        if pose not in MANDATORY_POSES and pose in self.anim.get("disabled_poses", ()):
-            return False
-        return pose in self._poses
-
     def _win_h(self):
         """Alto REAL pedido para la ventana: 1px más que el monitor.
         Algunos compositores (xfwm4, Muffin) "desredirigen" automáticamente
@@ -711,7 +608,11 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         # (Probado desactivarlo para descartar que saturara al compositor: no
         # arregla las desapariciones y además introduce congelados propios de
         # la app — se mantiene activo.)
-        if self._tick_id is None and not os.environ.get("ANIMALINUX_NO_TICK"):
+        # Reloj continuo de GTK: costaba 5-13 % de CPU por mascota en una sesión X11 sin GPU
+        # (medido en MATE/GNOME/Cinnamon) y las animaciones siguen fluidas sin él porque el
+        # reloj compartido pide el repintado cuando cambia la textura. Se puede volver al
+        # comportamiento anterior con ANIMALINUX_KEEP_TICK=1.
+        if self._tick_id is None and os.environ.get("ANIMALINUX_KEEP_TICK"):
             self._tick_id = self.add_tick_callback(self._keep_clock_alive)
 
     def _keep_clock_alive(self, widget, clock):
@@ -737,11 +638,12 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
     # ---------- animación de frames ----------
     def _schedule_anim(self):
         if self._anim_id:
-            GLib.source_remove(self._anim_id)
+            Clock.get().cancel(self._anim_id)
             self._anim_id = None
+        if self._paused:
+            return
         fps = max(1, int(self.anim.get("fps", 12)))
-        interval = int(1000 / fps)
-        self._anim_id = GLib.timeout_add(interval, self._anim_tick)
+        self._anim_id = Clock.get().every(1000.0 / fps, self._anim_tick)
 
     def _anim_tick(self):
         frames = self._frames_for(self._pose)
@@ -788,7 +690,19 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
             self._exit_life()
 
     def set_paused(self, paused):
+        if paused == self._paused:
+            return
         self._paused = paused
+        # en pausa no queda ningún temporizador vivo (el proceso duerme del todo)
+        if paused:
+            if self._anim_id:
+                Clock.get().cancel(self._anim_id)
+                self._anim_id = None
+            self._stop_behavior_clock()
+        else:
+            self._schedule_anim()
+            if self.mode == "life":
+                self._start_behavior_clock()
 
     def center_x(self):
         scale = self.anim.get("scale", 1.0)
@@ -796,7 +710,8 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
 
     def destroy_window(self):
         if self._anim_id:
-            GLib.source_remove(self._anim_id)
+            Clock.get().cancel(self._anim_id)
+            self._anim_id = None
         self._stop_behavior_clock()   # el comportamiento usa el reloj compartido (overlay/clock.py)
         if self._tick_id is not None:
             self.remove_tick_callback(self._tick_id)

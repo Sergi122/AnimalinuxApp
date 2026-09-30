@@ -16,7 +16,6 @@ Nota Wayland: se puede detectar el cursor SOBRE la mascota (entra/sale de su
 superficie), pero no seguir el cursor por toda la pantalla (Wayland no deja leer
 la posición global del puntero).
 """
-from pathlib import Path
 
 import gi
 
@@ -25,7 +24,8 @@ gi.require_version("Gtk4LayerShell", "1.0")
 from gi.repository import Gtk, Gdk, GLib, GObject, Graphene  # noqa: E402
 from gi.repository import Gtk4LayerShell as LayerShell  # noqa: E402
 
-from .live_animation import LiveAnimationMixin, MANDATORY_POSES  # noqa: E402
+from .live_animation import LiveAnimationMixin  # noqa: E402
+from .poses import PoseLoaderMixin  # noqa: E402
 from .clock import Clock  # noqa: E402
 from .hyprcursor import cursor_pos  # noqa: E402
 from .. import settings
@@ -148,7 +148,7 @@ def _apply_transparency(display):
     _CSS_APPLIED = True
 
 
-class MascotWindow(LiveAnimationMixin, Gtk.Window):
+class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
     # Hacia dónde mira. Se espeja al dibujar (no hay texturas "flip" duplicadas
     # en memoria): el setter avisa al paintable.
     @property
@@ -600,156 +600,6 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
             self._react_to_touch()
 
     # ---------- poses / texturas ----------
-    def _load_poses(self):
-        base = Path(self._frames_dir)
-        # tamaño base = el de la pose 'default'. Todas las demás poses se
-        # normalizan a este tamaño para que la mascota NO cambie de tamaño al
-        # cambiar de animación (algunas poses se generan con otro lienzo).
-        self._base_size = None
-        # resolución de las texturas: si la mascota se muestra a menos del 100 %
-        # no tiene sentido guardar los píxeles originales (una mascota de
-        # 312×990 a escala 0.2 ocupaba 1.2 MB por cuadro para dibujar 62×198).
-        # Se reducen una vez al cargar (LANCZOS, mejor que el filtro de la GPU)
-        # y el paintable compensa el factor. Si luego se agranda, se recargan.
-        sc = float(self.anim.get("scale", 1.0))
-        self._bake = min(1.0, max(0.05, sc))
-        # auto-recorte: calcula la caja real del dibujo de la pose default y
-        # ajusta anim width/height (lo usan input region, colisiones y bordes)
-        self._orig_size = None
-        self._crop_box = None
-        self._compute_crop_box(base)
-        # 'default' = capa plana
-        self._load_one_pose("default", base)
-        # poses extra = subcarpetas
-        for sub in sorted(p for p in base.iterdir() if p.is_dir()):
-            self._load_one_pose(sub.name, sub)
-        if "default" not in self._poses and self._poses:
-            # si no hubo capa plana, usar la primera pose como default
-            self._poses["default"] = next(iter(self._poses.values()))
-
-    def _load_one_pose(self, name, folder):
-        folder = Path(folder)
-        normals = sorted(folder.glob("frame_*.png"))
-        if not normals:
-            return
-        # la primera pose cargada (default) fija el tamaño base de referencia
-        if self._base_size is None:
-            try:
-                from PIL import Image
-                self._base_size = Image.open(str(normals[0])).size
-            except Exception:  # noqa: BLE001
-                self._base_size = None
-        normal = [t for t in (self._load_texture(p) for p in normals) if t]
-        if normal:
-            # solo texturas "normales": mirar a la izquierda se dibuja espejando
-            # (ScaledPaintable.set_mirror), no con una segunda copia en memoria
-            self._poses[name] = {"normal": normal}
-
-    def _compute_crop_box(self, base):
-        """Calcula la caja real (unión de bboxes de TODAS las poses) para
-        recortar el margen transparente. Muchas mascotas se importan con un
-        lienzo enorme de margen vacío (medido: hasta 60-67% del área): eso
-        hacía la caja de input gigante y los bordes de caminado raros.
-        Recortando al contenido real mejora input region, colisiones y bordes
-        — sin tocar los PNG en disco (solo afecta a las texturas en memoria y
-        a anim width/height). Se usa UNA sola caja, unión de todas las poses,
-        para que todas queden alineadas y del mismo tamaño (las poses se
-        normalizan a este lienzo)."""
-        try:
-            from PIL import Image
-        except Exception:  # noqa: BLE001
-            return
-        base = Path(base)
-        # frames de la pose default (en la raíz) + todas las subcarpetas
-        normals = sorted(base.glob("frame_*.png"))
-        for sub in sorted(p for p in base.iterdir() if p.is_dir()):
-            normals += sorted(sub.glob("frame_*.png"))
-        if not normals:
-            return
-        box = None
-        orig = None
-        for p in normals:
-            try:
-                im = Image.open(str(p))
-            except Exception:  # noqa: BLE001
-                continue
-            if orig is None:
-                orig = im.size
-            # solo cuentan los frames del lienzo dominante (mismo tamaño que
-            # el primero); las poses generadas con otro lienzo se omiten aquí.
-            if im.size != orig:
-                continue
-            b = im.convert("RGBA").getbbox()
-            if b:
-                box = b if box is None else (
-                    min(box[0], b[0]), min(box[1], b[1]),
-                    max(box[2], b[2]), max(box[3], b[3]))
-        if not orig or not box:
-            return
-        ow, oh = orig
-        pad = 2   # margen de seguridad para no comer el borde del dibujo
-        x0 = max(0, box[0] - pad)
-        y0 = max(0, box[1] - pad)
-        x1 = min(ow, box[2] + pad)
-        y1 = min(oh, box[3] + pad)
-        cw, ch = x1 - x0, y1 - y0
-        # solo recortar si el margen es apreciable (>4% en algún eje); si el
-        # sprite ya está ajustado, no merece la pena el coste de re-rasterizar.
-        if cw >= ow * 0.96 and ch >= oh * 0.96:
-            return
-        self._orig_size = orig
-        self._crop_box = (x0, y0, x1, y1)
-        self._base_size = (cw, ch)
-        # propaga el tamaño real al resto de la lógica (input/colisión/bordes)
-        self.anim["width"] = cw
-        self.anim["height"] = ch
-
-    def _load_texture(self, path):
-        """Carga un PNG como textura, recortado al margen real (auto-recorte),
-        redimensionado al tamaño base si difiere (así todas las poses ocupan
-        exactamente el mismo lienzo) y reducido a la resolución de pantalla."""
-        target = self._base_size
-        try:
-            from PIL import Image
-            im = Image.open(str(path))
-            changed = False
-            box = self._crop_box
-            if box and im.size == self._orig_size:
-                im = im.crop(box)
-                changed = True
-            if target is not None and im.size != tuple(target):
-                im = im.convert("RGBA").resize(tuple(target), Image.NEAREST)
-                changed = True
-            if self._bake < 0.999:
-                w = max(1, int(round(im.width * self._bake)))
-                h = max(1, int(round(im.height * self._bake)))
-                im = im.convert("RGBA").resize((w, h), Image.LANCZOS)
-                changed = True
-            if not changed:
-                return Gdk.Texture.new_from_filename(str(path))
-            im = im.convert("RGBA")
-            data = im.tobytes()
-            gbytes = GLib.Bytes.new(data)
-            return Gdk.MemoryTexture.new(
-                im.width, im.height,
-                Gdk.MemoryFormat.R8G8B8A8, gbytes, im.width * 4)
-        except Exception:  # noqa: BLE001
-            try:
-                return Gdk.Texture.new_from_filename(str(path))
-            except Exception:  # noqa: BLE001
-                return None
-
-    def _frames_for(self, pose):
-        data = self._poses.get(pose) or self._poses.get("default")
-        if not data:
-            return []
-        return data["normal"]
-
-    def _has_pose(self, pose):
-        if pose not in MANDATORY_POSES and pose in self.anim.get("disabled_poses", ()):
-            return False
-        return pose in self._poses
-
     # ---------- arranque ----------
     def start(self):
         self.present()
