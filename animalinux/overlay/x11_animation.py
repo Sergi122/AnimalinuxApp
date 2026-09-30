@@ -21,6 +21,7 @@ Nota: igual que en Wayland, el truco de la ventana fullscreen-transparente con
 el sprite movido por márgenes internos aplica sin cambios: Gdk.Surface.set_input_region
 (click-through) ya es una API portable entre backends X11/Wayland de GDK4.
 """
+import os
 from pathlib import Path
 
 import gi
@@ -710,7 +711,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         # (Probado desactivarlo para descartar que saturara al compositor: no
         # arregla las desapariciones y además introduce congelados propios de
         # la app — se mantiene activo.)
-        if self._tick_id is None:
+        if self._tick_id is None and not os.environ.get("ANIMALINUX_NO_TICK"):
             self._tick_id = self.add_tick_callback(self._keep_clock_alive)
 
     def _keep_clock_alive(self, widget, clock):
