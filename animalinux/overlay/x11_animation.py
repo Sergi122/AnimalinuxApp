@@ -164,6 +164,7 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
         self._pad = 0
         self._xdpy = None
         self._xwin = None
+        self._xpos = None
         self._cursor_task = None
         self._drag_ptr0 = None
 
@@ -353,8 +354,12 @@ class MascotWindow(LiveAnimationMixin, Gtk.Window):
                 if r is None:
                     return
                 self._xdpy, self._xwin = r
-            self._xwin.configure(x=int(self._mon_x + self._x - self._pad),
-                                 y=int(self._mon_y + self._y - self._pad))
+            pos = (int(self._mon_x + self._x - self._pad),
+                   int(self._mon_y + self._y - self._pad))
+            if pos == self._xpos:
+                return   # sin cambio: evita un viaje al servidor X por tick
+            self._xpos = pos
+            self._xwin.configure(x=pos[0], y=pos[1])
             self._xdpy.flush()
         except Exception:  # noqa: BLE001
             pass
