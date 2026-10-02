@@ -2,7 +2,7 @@
 Actualizaciones de AnimaLinux.
 
 - check_latest(): consulta los tags de GitHub y devuelve la versión más nueva.
-- should_check(): a lo sumo una consulta cada 24 h y solo si el usuario no la
+- should_check(): a lo sumo una consulta por hora y solo si el usuario no la
   desactivó (settings: auto_update_check).
 - apply_update(): descarga el tag y lo instala igual que se instaló la app:
     * paquete de pacman  -> makepkg + `pkexec pacman -U` (queda registrado)
@@ -28,7 +28,7 @@ from .. import settings
 REPO = "Sergi122/AnimalinuxApp"
 _TAGS_URL = f"https://api.github.com/repos/{REPO}/tags?per_page=30"
 _TARBALL_URL = f"https://github.com/{REPO}/archive/refs/tags/v{{v}}.tar.gz"
-CHECK_INTERVAL = 24 * 3600
+CHECK_INTERVAL = 3600   # la app corre días enteros: se vuelve a consultar cada hora
 
 
 def _parse(v: str) -> tuple:
