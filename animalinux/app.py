@@ -105,25 +105,21 @@ class AnimaApp(Gtk.Application):
         self._prox_id = GLib.timeout_add(800, self.manager.check_proximity)
         # vigilar bordes de ventanas para que la mascota se suba/camine por ellos
         self.manager.start_platform_watch()
-        # avisar de versiones nuevas: al arrancar y luego cada hora mientras la
-        # app siga abierta (updater.should_check limita a 1 consulta por hora)
-        GLib.timeout_add_seconds(30, lambda: self._check_updates() and False)
-        GLib.timeout_add_seconds(3600, self._check_updates)
+        # buscar versiones nuevas cada vez que se abre la app
+        GLib.timeout_add_seconds(3, lambda: self._check_updates() and False)
 
     def _check_updates(self):
         import threading
         from .core import updater
         if not updater.should_check():
-            return True
+            return False
 
         def work():
             new = updater.check_and_store()
-            # notificar una sola vez por versión
-            if new and new != getattr(self, "_notified_update", None):
-                self._notified_update = new
+            if new:
                 GLib.idle_add(self._notify_update, new)
         threading.Thread(target=work, daemon=True).start()
-        return True   # mantiene vivo el timer horario
+        return False
 
     def _notify_update(self, version):
         from .i18n import t
@@ -242,6 +238,7 @@ class AnimaApp(Gtk.Application):
             self.control = ControlWindow(self)
             self.control.connect("close-request", self._on_control_closed)
         self.control.present()
+        self._check_updates()   # también al abrir la ventana
 
     def _on_control_closed(self, _win):
         # cerrar la ventana NO cierra la app: sigue en segundo plano
