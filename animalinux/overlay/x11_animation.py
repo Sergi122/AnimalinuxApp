@@ -30,7 +30,7 @@ from gi.repository import Gtk, Gdk, GLib, GObject, Graphene  # noqa: E402
 
 from .live_animation import LiveAnimationMixin  # noqa: E402
 from .poses import PoseLoaderMixin  # noqa: E402
-from . import _x11_hints
+from . import _x11_hints, _x11_panel
 from .clock import Clock  # noqa: E402
 from .. import settings
 
@@ -634,6 +634,25 @@ class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
                 self._mon_x, self._mon_y = geo.x, geo.y
         except Exception:  # noqa: BLE001
             pass
+        self._refresh_floor_offset()
+
+    def _refresh_floor_offset(self):
+        """Mide en vivo el panel anclado ABAJO (struts EWMH, ver _x11_panel)
+        para que la mascota se pose encima de la barra y no detrás. Con el
+        panel arriba/al lado el hueco es 0; si no se puede medir se conserva
+        el valor de install.sh."""
+        gap = _x11_panel.bottom_gap(
+            getattr(self, "_mon_x", 0), getattr(self, "_mon_y", 0),
+            self._screen_w, self._screen_h)
+        if gap is None or not 0 <= gap <= 120:
+            return
+        if gap != self._floor_offset_y:
+            self._floor_offset_y = gap
+            if self.mode == "life" and self._floor_y:
+                scale = self.anim.get("scale", 1.0)
+                h = int(self.anim.get("height", 100) * scale)
+                self._floor_y = max(0, self._screen_h - gap - h)
+                self._ground_y = self._floor_y
 
     # ---------- animación de frames ----------
     def _schedule_anim(self):
