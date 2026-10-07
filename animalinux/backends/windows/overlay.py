@@ -9,10 +9,15 @@ física, berrinches) con las piezas del sistema cambiadas por Win32:
   - región de la ventana recortada a la caja del sprite (clic-through fuera);
   - puntero global con GetCursorPos; suelo = área de trabajo (sobre la barra).
 """
+import os
+import sys
+
 from gi.repository import GLib
 
 from ...overlay import x11_animation as _base
 from . import win32
+
+_DEBUG = bool(os.environ.get("ANIMALINUX_DEBUG"))
 
 
 class MascotWindow(_base.MascotWindow):
@@ -25,6 +30,19 @@ class MascotWindow(_base.MascotWindow):
     def __init__(self, app, anim, frames_dir, on_moved):
         super().__init__(app, anim, frames_dir, on_moved)
         self.connect("map", lambda *_: GLib.idle_add(self._init_native))
+
+    # ---- posición: nunca fuera de la pantalla ----
+    def _set_position(self, x, y):
+        """Las posiciones guardadas pueden venir de otra resolución o monitor
+        (p.ej. x=1466 en una pantalla de 1024): la mascota quedaría invisible
+        y sin forma de recuperarla. Se recorta a la pantalla visible."""
+        x = min(int(x), max(0, self._screen_w - self._cat_w))
+        y = min(int(y), max(0, self._screen_h - self._floor_offset_y - self._cat_h))
+        if _DEBUG:
+            print(f"[win32] {self.anim.get('name')}: pos=({x},{y}) "
+                  f"screen=({self._screen_w}x{self._screen_h}) "
+                  f"cat=({self._cat_w}x{self._cat_h})", file=sys.stderr, flush=True)
+        super()._set_position(x, y)
 
     # ---- ventana nativa ----
     def _init_native(self):
