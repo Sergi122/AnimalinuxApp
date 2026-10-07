@@ -88,10 +88,26 @@
   });
 
   // pestañas de instalación
-  $$('.tab').forEach(b => b.addEventListener('click', () => {
-    $$('.tab').forEach(x => x.classList.toggle('on', x === b));
-    $$('.panel').forEach(p => p.classList.toggle('on', p.id === 'tab-' + b.dataset.tab));
-  }));
+  const selectTab = name => {
+    $$('.tab').forEach(x => x.classList.toggle('on', x.dataset.tab === name));
+    $$('.panel').forEach(p => p.classList.toggle('on', p.id === 'tab-' + name));
+    const lbl = $('#term-label'); if (lbl) lbl.textContent = name === 'windows' ? 'instalador' : 'bash';
+  };
+  $$('.tab').forEach(b => b.addEventListener('click', () => selectTab(b.dataset.tab)));
+
+  // detecta el sistema del visitante: Windows → descarga directa; Linux → instrucciones
+  const plat = ((navigator.userAgentData && navigator.userAgentData.platform) || navigator.userAgent || '');
+  const isWin = /Windows|Win32|Win64/i.test(plat);
+  const isLinux = /Linux|X11/i.test(plat) && !/Android/i.test(plat);
+  const dl = $('#dl-main'), hint = $('#os-hint');
+  if (isWin) {
+    selectTab('windows');
+    if (dl) { dl.textContent = '⬇ Descargar para Windows'; dl.href = dl.dataset.win; }
+    if (hint) hint.textContent = 'Detectamos Windows: te recomendamos el instalador.';
+  } else if (isLinux) {
+    if (dl) dl.textContent = 'Instalar en Linux ↓';
+    if (hint) hint.textContent = 'Detectamos Linux: elige tu distribución.';
+  }
   $$('.copy').forEach(b => b.addEventListener('click', () => {
     const txt = b.parentElement.innerText.replace(/^Copiar\s*/, '').trim();
     navigator.clipboard.writeText(txt).then(() => {

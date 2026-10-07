@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#09080d">
-<title>AnimaLinux — mascotas animadas para tu escritorio Linux</title>
+<title>AnimaLinux — mascotas animadas para tu escritorio Linux y Windows</title>
 <meta name="description" content="Mascotas animadas para Hyprland, GNOME, KDE, Xfce, Cinnamon y MATE. Editor de píxeles y pintura, packs compartibles, modo Vida.">
-<meta property="og:title" content="AnimaLinux — mascotas animadas para tu escritorio Linux">
+<meta property="og:title" content="AnimaLinux — mascotas animadas para tu escritorio Linux y Windows">
 <meta property="og:description" content="Editor de píxeles y pintura, packs .alpack y un modo Vida con física real.">
 <meta property="og:image" content="assets/logo.png">
 <link rel="icon" href="assets/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
@@ -31,18 +31,18 @@
 
 <main>
 <section class="hero">
-  <div class="wrap g">
+  <div class="wrap g" data-hero>
     <div>
       <a class="pill" href="#cambios"><b>v0.5.5</b> Detecta las actualizaciones cada vez que abres la app →</a>
-      <h1 data-words>Mascotas <span class="grad">con vida</span> para tu escritorio Linux</h1>
+      <h1 data-words>Mascotas <span class="grad">con vida</span> para tu escritorio Linux y Windows</h1>
       <p class="sub">Dibuja con el editor de píxeles o de pintura, comparte packs <code>.alpack</code> y deja que tu mascota camine, salte, salude y te agarre el ratón. Con física real.</p>
       <div class="acts">
-        <a class="btn primary" href="#instalar">Instalar ahora ↓</a>
+        <a class="btn primary" id="dl-main" href="#instalar" data-win="https://github.com/Sergi122/AnimalinuxApp/releases/download/win-v0.5.5/AnimaLinux-Setup-0.5.5.exe">Instalar ahora ↓</a>
         <a class="btn" href="https://animalinux-community.web.app">🔍 Buscar animaciones</a>
         <a class="btn" href="https://github.com/Sergi122/AnimalinuxApp">GitHub</a>
       </div>
     </div>
-    <div class="desk" aria-label="Demostración: mascota caminando por el escritorio">
+    <div class="desk" data-parallax="0.06" aria-label="Demostración: mascota caminando por el escritorio">
       <div class="bar"><span></span><span></span><span></span></div>
       <div class="win"><em>$</em> animalinux --show<br><u>✓</u> overlay listo · 8 poses<br><u>✓</u> física activada<br><em>›</em> la mascota te está mirando…</div>
       <div class="win win2"><em>idle</em> · <em>walk</em> · <em>greet</em><br><em>kiss</em> · <em>jump</em> · <em>angry</em></div>
@@ -54,9 +54,13 @@
 </section>
 
 <div class="marq" aria-hidden="true"><div>
-  <span>Hyprland</span><span>Sway</span><span>GNOME</span><span>KDE Plasma</span><span>Xfce</span><span>Cinnamon</span><span>MATE</span><span>Arch</span><span>Ubuntu</span><span>Fedora</span><span>Linux Mint</span>
-  <span>Hyprland</span><span>Sway</span><span>GNOME</span><span>KDE Plasma</span><span>Xfce</span><span>Cinnamon</span><span>MATE</span><span>Arch</span><span>Ubuntu</span><span>Fedora</span><span>Linux Mint</span>
+  <span>Windows 10</span><span>Windows 11</span><span>Hyprland</span><span>Sway</span><span>GNOME</span><span>KDE Plasma</span><span>Xfce</span><span>Cinnamon</span><span>MATE</span><span>Arch</span><span>Ubuntu</span><span>Fedora</span><span>Linux Mint</span>
+  <span>Windows 10</span><span>Windows 11</span><span>Hyprland</span><span>Sway</span><span>GNOME</span><span>KDE Plasma</span><span>Xfce</span><span>Cinnamon</span><span>MATE</span><span>Arch</span><span>Ubuntu</span><span>Fedora</span><span>Linux Mint</span>
 </div></div>
+
+<section class="statement"><div class="wrap">
+  <p class="scrub-text">Dibuja un personaje. Dale poses. <em>Míralo caminar, saltar y agarrarte el ratón</em> sobre tus propias ventanas.</p>
+</div></section>
 
 <section id="features"><div class="wrap">
   <p class="eyebrow rv">Qué incluye</p>
@@ -102,14 +106,26 @@
 <section id="instalar"><div class="wrap">
   <p class="eyebrow rv">Instalación</p>
   <h2 class="rv">Listo en <span class="grad">un minuto</span>.</h2>
-  <p class="lede rv">Elige tu distribución.</p>
+  <p class="lede rv" id="inst-lede">Elige tu sistema. <span id="os-hint"></span></p>
   <div class="tabs rv">
+    <button class="tab" data-tab="windows">Windows 10 / 11</button>
     <button class="tab on" data-tab="arch">Arch / Manjaro</button>
     <button class="tab" data-tab="debian">Debian / Ubuntu / Mint</button>
     <button class="tab" data-tab="fedora">Fedora / openSUSE</button>
   </div>
   <div class="term rv">
-    <div class="th"><i></i><i></i><i></i><span>bash</span></div>
+    <div class="th"><i></i><i></i><i></i><span id="term-label">bash</span></div>
+    <div class="panel" id="tab-windows"><div class="winbox">
+      <h3>Instalador para Windows <small>(beta)</small></h3>
+      <p>Un solo <code>.exe</code> con todo incluido (no necesitas instalar Python ni GTK). Se instala en tu usuario, sin permisos de administrador.</p>
+      <a class="btn primary" href="https://github.com/Sergi122/AnimalinuxApp/releases/download/win-v0.5.5/AnimaLinux-Setup-0.5.5.exe" id="dl-win">⬇ Descargar AnimaLinux para Windows <small>(v0.5.5 beta · ~70 MB)</small></a>
+      <ol>
+        <li>Descarga y ejecuta <code>AnimaLinux-Setup-0.5.5.exe</code>.</li>
+        <li>Si Windows muestra «SmartScreen», pulsa <b>Más información → Ejecutar de todos modos</b> (el instalador aún no está firmado).</li>
+        <li>Se abre la ventana de configuración; la mascota queda en el escritorio y el icono en la bandeja.</li>
+      </ol>
+      <p class="note">Importar vídeo necesita <code>ffmpeg</code> (<code>winget install ffmpeg</code>). El recorte de fondo con IA (rembg) solo está disponible en Linux. Funciona en Windows 10 y 11 de 64 bits.</p>
+    </div></div>
     <div class="panel on" id="tab-arch"><pre><button class="copy">Copiar</button><span class="c"># Opción recomendada, AUR</span>
 <span class="p">$</span> paru -S animalinux
 <span class="c"># o compilando tú mismo</span>
@@ -142,6 +158,15 @@
   <h2 class="rv">Cambios <span class="grad">recientes</span>.</h2>
   <p class="lede rv">Versión actual: <strong>0.5.5</strong></p>
   <div class="tl">
+    <div class="changelog-item rv">
+      <h3>Windows 10 / 11 <small>(nuevo)</small></h3>
+      <span class="date">7 de octubre de 2026</span>
+      <ul>
+        <li><strong>AnimaLinux ya funciona en Windows:</strong> instalador <code>.exe</code> con todo incluido. Mascotas transparentes siempre encima, modo Vida, GIF, bandeja del sistema, arranque automático y los tres editores.</li>
+        <li>Backend nativo de Win32, ligero: una ventana del tamaño del mascota por animación, sin procesos extra.</li>
+        <li>Si guardaste una posición fuera de la pantalla (otra resolución), la mascota ahora aparece en el borde en lugar de quedar invisible.</li>
+      </ul>
+    </div>
     <div class="changelog-item rv">
       <h3>v0.5.5</h3>
       <span class="date">1 de octubre de 2026</span>
@@ -315,5 +340,6 @@
 
 <div id="buddy" aria-hidden="true"><img src="assets/ejemplo_vida_default.png" alt=""></div>
 <script src="assets/site.js"></script>
+<script src="assets/scroll.js"></script>
 </body>
 </html>
