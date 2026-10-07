@@ -36,7 +36,9 @@ def _run(*args):
         except Exception as e:  # noqa: BLE001
             last = e
     try:
-        with open("/tmp/animalinux_tray.log", "a") as f:
+        from ... import paths
+        paths.ensure_dirs()
+        with open(paths.RUNTIME_DIR / "tray.log", "a") as f:
             f.write(f"_run{args} falló: {last}\n")
     except Exception:  # noqa: BLE001
         pass

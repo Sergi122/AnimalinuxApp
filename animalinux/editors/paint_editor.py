@@ -618,10 +618,10 @@ class PaintEditor(Gtk.Window):
         if on:
             if not (s.start <= c.cur <= s.stop): c.go_to(s.start)
             self._schedule()
-            if s.audio and shutil.which("mpv"):
+            if ae.safe_audio(s.audio) and shutil.which("mpv"):
                 try:
                     self._audio = subprocess.Popen(
-                        ["mpv", "--no-video", f"--start={c.cur / max(1, s.fps):.3f}", s.audio],
+                        ["mpv", "--no-video", "--no-config", f"--start={c.cur / max(1, s.fps):.3f}", "--", s.audio],
                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                         **backend.SUBPROCESS_KW)
                 except OSError: self._audio = None
@@ -657,9 +657,9 @@ class PaintEditor(Gtk.Window):
             if self._loop:
                 nxt = s.start
                 self._stop_audio()
-                if s.audio and shutil.which("mpv"):
+                if ae.safe_audio(s.audio) and shutil.which("mpv"):
                     try:
-                        self._audio = subprocess.Popen(["mpv", "--no-video", f"--start={nxt / max(1, s.fps):.3f}", s.audio],
+                        self._audio = subprocess.Popen(["mpv", "--no-video", "--no-config", f"--start={nxt / max(1, s.fps):.3f}", "--", s.audio],
                                                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                                        **backend.SUBPROCESS_KW)
                     except OSError: pass
@@ -975,7 +975,7 @@ class PaintEditor(Gtk.Window):
                 bg = __import__("PIL.Image", fromlist=["Image"]).new("RGB", im.size, (255, 255, 255))
                 bg.paste(im, mask=im.split()[3]); bg.save(f"{tmp}/frame_{k:04d}.png")
             cmd = ["ffmpeg", "-y", "-framerate", str(s.fps), "-i", f"{tmp}/frame_%04d.png"]
-            if s.audio: cmd += ["-i", s.audio, "-shortest"]
+            if ae.safe_audio(s.audio): cmd += ["-protocol_whitelist", "file", "-i", s.audio, "-shortest"]
             cmd += ["-c:v", "libx264", "-pix_fmt", "yuv420p", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", out]
             r = subprocess.run(cmd, capture_output=True, **backend.SUBPROCESS_KW)
             self._flash(tr("MP4 guardado: {name}", name=Path(out).name) if r.returncode == 0 else tr("Error: ffmpeg no encontrado o falló."))

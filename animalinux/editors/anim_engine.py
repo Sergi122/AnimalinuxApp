@@ -18,6 +18,7 @@ import copy
 import io
 import json
 import math
+import os
 import zipfile
 
 import numpy as np
@@ -234,6 +235,19 @@ CAM_DEFAULT = {"tx": 0.0, "ty": 0.0, "scale": 1.0, "rot": 0.0}
 
 
 # ── escena ───────────────────────────────────────────────────────────────────
+def safe_audio(path):
+    """Ruta de audio utilizable o None. Un .alproj ajeno controla este campo y
+    acaba en la línea de comandos de mpv/ffmpeg: solo se admite una ruta
+    ABSOLUTA a un archivo existente (así no puede ser una opción como
+    '--script=…', ni una URL o un protocolo como 'concat:' o 'http:')."""
+    if not isinstance(path, str) or not path or "\x00" in path:
+        return None
+    try:
+        return path if os.path.isabs(path) and os.path.isfile(path) else None
+    except (OSError, ValueError):
+        return None
+
+
 class Scene:
     def __init__(self, w=512, h=512, fps=12):
         self.w, self.h, self.fps = w, h, fps
@@ -566,7 +580,7 @@ class Scene:
         sc.frame_count = meta["frames"]
         sc.start, sc.stop = meta.get("start", 0), meta.get("stop", meta["frames"] - 1)
         sc.cam_keys = {int(k): v for k, v in meta.get("cam_keys", {}).items()}
-        sc.audio = meta.get("audio")
+        sc.audio = safe_audio(meta.get("audio"))
         for lm in meta["layers"]:
             l = Layer(lm["name"], lm["kind"], 0)
             l.apply_meta({k: lm[k] for k in ("visible", "locked", "alpha_locked", "opacity", "blend", "onion") if k in lm})

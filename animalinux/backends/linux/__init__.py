@@ -19,7 +19,12 @@ def _xdg(env, default):
 def dirs():
     data = _xdg("XDG_DATA_HOME", ".local/share") / "animalinux"
     config = _xdg("XDG_CONFIG_HOME", ".config") / "animalinux"
-    runtime = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "animalinux"
+    rt = os.environ.get("XDG_RUNTIME_DIR")
+    if rt:
+        runtime = Path(rt) / "animalinux"
+    else:   # sin XDG_RUNTIME_DIR: nada de una ruta fija y compartida en /tmp
+        import tempfile
+        runtime = Path(tempfile.gettempdir()) / f"animalinux-{os.getuid()}"
     return data, config, runtime
 
 

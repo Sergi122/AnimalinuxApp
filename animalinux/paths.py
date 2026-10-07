@@ -14,5 +14,11 @@ SOCKET_FILE = RUNTIME_DIR / "ipc.sock"      # IPC single-instance / tray
 
 
 def ensure_dirs():
-    for d in (DATA_DIR, CONFIG_DIR, RUNTIME_DIR, ANIMATIONS_DIR):
+    for d in (DATA_DIR, CONFIG_DIR, ANIMATIONS_DIR):
         d.mkdir(parents=True, exist_ok=True)
+    # el directorio de ejecución (IPC, logs) solo debe ser accesible por el usuario
+    RUNTIME_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
+    try:
+        RUNTIME_DIR.chmod(0o700)
+    except OSError:
+        pass

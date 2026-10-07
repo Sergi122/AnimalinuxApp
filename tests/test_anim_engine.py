@@ -210,3 +210,21 @@ def test_hostile_project_is_rejected(tmp_path, meta):
         z.writestr("project.json", json.dumps(meta))
     with pytest.raises(ValueError):
         ae.Scene.load(str(p))
+
+
+def test_safe_audio_accepts_only_absolute_existing_files(tmp_path):
+    f = tmp_path / "a.wav"
+    f.write_bytes(b"RIFF")
+    assert ae.safe_audio(str(f)) == str(f)
+    for bad in ["--script=/tmp/evil.lua", "-i", "http://evil/x.mp3", "concat:a|b", "pipe:0",
+                "relativo.wav", str(tmp_path / "no_existe.wav"), "", None, 42, "a\x00b"]:
+        assert ae.safe_audio(bad) is None, bad
+
+
+def test_project_with_malicious_audio_is_neutralized(tmp_path):
+    """Un .alproj ajeno no puede inyectar opciones en mpv/ffmpeg vía «audio»."""
+    sc = ae.Scene(32, 32)
+    p = tmp_path / "x.alproj"
+    sc.audio = "--script=/tmp/evil.lua"
+    sc.save(str(p))
+    assert ae.Scene.load(str(p)).audio is None

@@ -15,7 +15,9 @@ def _socket_path():
     sig = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")
     if not sig:
         return None
-    runtime = os.environ.get("XDG_RUNTIME_DIR", "/tmp")
+    runtime = os.environ.get("XDG_RUNTIME_DIR")
+    if not runtime:
+        return None   # nada de buscar sockets en /tmp (cualquiera podría crear uno)
     p = Path(runtime) / "hypr" / sig / ".socket2.sock"
     return p if p.exists() else None
 
