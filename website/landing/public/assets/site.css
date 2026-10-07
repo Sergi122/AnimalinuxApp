@@ -286,3 +286,6 @@ body::after{content:"";position:fixed;inset:0;z-index:70;pointer-events:none;opa
   .dl.rec,.edcard .shot,section h2 .grad,.mkgrid .card{animation:none!important}
   .btn.primary{translate:none!important}::view-transition-group(*){animation:none!important}
 }
+
+.dli-img{width:52px;height:52px;border-radius:14px;flex:none;box-shadow:0 8px 24px -10px rgba(166,128,255,.6)}
+.h3-logo{width:30px;height:30px;border-radius:8px;vertical-align:-8px;margin-right:6px}

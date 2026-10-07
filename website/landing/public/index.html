@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#09080d">
-<title>AnimaLinux — mascotas animadas para tu escritorio Linux y Windows</title>
+<title>AnimaLinux y AnimaWin — mascotas animadas para tu escritorio</title>
 <meta name="description" content="Mascotas animadas para tu escritorio en Linux (Hyprland, GNOME, KDE, Xfce, Cinnamon, MATE) y Windows 10/11. Editores de píxeles y animación, packs compartibles, modo Vida con física.">
-<meta property="og:title" content="AnimaLinux — mascotas animadas para tu escritorio Linux y Windows">
+<meta property="og:title" content="AnimaLinux y AnimaWin — mascotas animadas para tu escritorio">
 <meta property="og:description" content="Para Linux y Windows: editores de píxeles y animación, packs .alpack y un modo Vida con física real.">
 <meta property="og:image" content="assets/logo.png">
 <link rel="icon" href="assets/logo.png">
@@ -34,11 +34,11 @@
 <section class="hero">
   <div class="wrap g" data-hero>
     <div>
-      <a class="pill" href="#instalar"><b>Nuevo</b> Ya disponible para Windows 10 y 11 →</a>
+      <a class="pill" href="#instalar"><b>v0.6.0</b> Nuevo: AnimaWin para Windows 10 y 11 →</a>
       <h1 data-words>Mascotas <span class="grad">con vida</span> para tu escritorio Linux y Windows</h1>
       <p class="sub">Dibuja con el editor de píxeles o de pintura, comparte packs <code>.alpack</code> y deja que tu mascota camine, salte, salude y te agarre el ratón. Con física real.</p>
       <div class="acts">
-        <a class="btn primary" id="dl-main" href="#instalar" data-win="https://github.com/Sergi122/AnimalinuxApp/releases/download/win-v0.5.5/AnimaLinux-Setup-0.5.5.exe">Instalar ahora ↓</a>
+        <a class="btn primary" id="dl-main" href="#instalar" data-win="https://github.com/Sergi122/AnimalinuxApp/releases/download/win-v0.6.0/AnimaWin-Setup-0.6.0.exe">Instalar ahora ↓</a>
         <a class="btn" href="https://animalinux-community.web.app">🔍 Buscar animaciones</a>
         <a class="btn" href="https://github.com/Sergi122/AnimalinuxApp">GitHub</a>
       </div>
@@ -162,14 +162,14 @@
   <h2 class="rv">Listo en <span class="grad">un minuto</span>.</h2>
   <p class="lede rv" id="inst-lede">Elige tu sistema. <span id="os-hint"></span></p>
   <div class="dlrow rv">
-    <a class="dl card" id="dl-card-win" href="https://github.com/Sergi122/AnimalinuxApp/releases/download/win-v0.5.5/AnimaLinux-Setup-0.5.5.exe">
-      <span class="dli">🪟</span><div><b>Windows 10 / 11</b><small>Instalador .exe · 70 MB · beta</small></div><span class="go">⬇ Descargar</span>
+    <a class="dl card" id="dl-card-win" href="https://github.com/Sergi122/AnimalinuxApp/releases/download/win-v0.6.0/AnimaWin-Setup-0.6.0.exe">
+      <img class="dli-img" src="assets/animawin.png" alt="Logo de AnimaWin"><div><b>AnimaWin · Windows 10 / 11</b><small>Instalador .exe · 70 MB · se actualiza solo · beta</small></div><span class="go">⬇ Descargar</span>
     </a>
     <a class="dl card" id="dl-card-linux" href="#instalar" data-tab-go="arch">
-      <span class="dli">🐧</span><div><b>Linux</b><small>AUR, pip o instalador por distro</small></div><span class="go">Ver instrucciones ↓</span>
+      <img class="dli-img" src="assets/logo.png" alt="Logo de AnimaLinux"><div><b>AnimaLinux · Linux</b><small>AUR, pip o instalador por distro</small></div><span class="go">Ver instrucciones ↓</span>
     </a>
   </div>
-  <p class="note rv">SHA-256 del instalador de Windows: <code>06faa98139d62e245ecc545b72e1d06fdd153d42d355ae2bbfc06b4b13030a1b</code></p>
+  <p class="note rv">SHA-256 del instalador de Windows: <code>c85230f65c6aaa459a85e264b79733731fce7fde1476207a406d855f0ca1eaf4</code></p>
   <div class="tabs rv">
     <button class="tab" data-tab="windows">Windows 10 / 11</button>
     <button class="tab on" data-tab="arch">Arch / Manjaro</button>
@@ -179,13 +179,14 @@
   <div class="term rv">
     <div class="th"><i></i><i></i><i></i><span id="term-label">bash</span></div>
     <div class="panel" id="tab-windows"><div class="winbox">
-      <h3>Instalador para Windows <small>(beta)</small></h3>
-      <p>Un solo <code>.exe</code> con todo incluido (no necesitas instalar Python ni GTK). Se instala en tu usuario, sin permisos de administrador.</p>
-      <a class="btn primary" href="https://github.com/Sergi122/AnimalinuxApp/releases/download/win-v0.5.5/AnimaLinux-Setup-0.5.5.exe" id="dl-win">⬇ Descargar AnimaLinux para Windows <small>(v0.5.5 beta · ~70 MB)</small></a>
+      <h3><img class="h3-logo" src="assets/animawin.png" alt=""> AnimaWin para Windows <small>(beta)</small></h3>
+      <p>AnimaWin es AnimaLinux para Windows: los mismos editores y el mismo modo Vida. Un solo <code>.exe</code> con todo incluido (no necesitas instalar Python ni GTK), que se instala en tu usuario sin permisos de administrador.</p>
+      <a class="btn primary" href="https://github.com/Sergi122/AnimalinuxApp/releases/download/win-v0.6.0/AnimaWin-Setup-0.6.0.exe" id="dl-win">⬇ Descargar AnimaWin para Windows <small>(v0.6.0 beta · ~70 MB)</small></a>
       <ol>
-        <li>Descarga y ejecuta <code>AnimaLinux-Setup-0.5.5.exe</code>.</li>
+        <li>Descarga y ejecuta <code>AnimaWin-Setup-0.6.0.exe</code>.</li>
         <li>Si Windows muestra «SmartScreen», pulsa <b>Más información → Ejecutar de todos modos</b> (el instalador aún no está firmado).</li>
         <li>Se abre la ventana de configuración; la mascota queda en el escritorio y el icono en la bandeja.</li>
+        <li><b>Se actualiza sola:</b> al abrir busca versiones nuevas; con un clic en «Actualizar ahora» (o «Buscar actualizaciones» en la bandeja) descarga el instalador, comprueba su huella SHA-256 y se reinstala y reinicia sin que hagas nada más.</li>
       </ol>
       <p class="note">Importar vídeo necesita <code>ffmpeg</code> (<code>winget install ffmpeg</code>). El recorte de fondo con IA (rembg) solo está disponible en Linux. Funciona en Windows 10 y 11 de 64 bits.</p>
     </div></div>
@@ -219,15 +220,18 @@
 <section id="cambios"><div class="wrap">
   <p class="eyebrow rv">Historial</p>
   <h2 class="rv">Cambios <span class="grad">recientes</span>.</h2>
-  <p class="lede rv">Versión actual: <strong>0.5.5</strong></p>
+  <p class="lede rv">Versión actual: <strong>0.6.0</strong></p>
   <div class="tl">
     <div class="changelog-item rv">
-      <h3>Windows 10 / 11 <small>(nuevo)</small></h3>
+      <h3>v0.6.0 <small>AnimaWin para Windows</small></h3>
       <span class="date">7 de octubre de 2026</span>
       <ul>
-        <li><strong>AnimaLinux ya funciona en Windows:</strong> instalador <code>.exe</code> con todo incluido. Mascotas transparentes siempre encima, modo Vida, GIF, bandeja del sistema, arranque automático y los tres editores.</li>
-        <li>Backend nativo de Win32, ligero: una ventana del tamaño del mascota por animación, sin procesos extra.</li>
-        <li>Si guardaste una posición fuera de la pantalla (otra resolución), la mascota ahora aparece en el borde en lugar de quedar invisible.</li>
+        <li><strong>AnimaWin, la versión para Windows 10 y 11:</strong> instalador <code>.exe</code> con todo incluido, logo propio, mascotas transparentes siempre encima, modo Vida, GIF, bandeja del sistema, arranque automático y los tres editores. En Windows el programa se llama AnimaWin; en Linux sigue siendo AnimaLinux.</li>
+        <li><strong>Actualizaciones automáticas en Windows:</strong> descarga el instalador desde GitHub, verifica su SHA-256 y se reinstala y reinicia sola. Nueva opción «Buscar actualizaciones» en la bandeja.</li>
+        <li><strong>Guías de los editores completas y actualizadas:</strong> ahora cubren deshacer/rehacer, simetría, mosaico, paleta, transformaciones del sprite, pinceles, capas, rango de reproducción, proyectos, audio y exportación, en los 7 idiomas.</li>
+        <li><strong>Idiomas:</strong> el editor de fotogramas ya está traducido y, al cambiar el idioma en Ajustes, la ventana y la bandeja se reconstruyen al instante (antes había que reabrir).</li>
+        <li><strong>Seguridad:</strong> los packs <code>.alpack</code> y los proyectos <code>.alproj</code> ajenos se validan (nombres de pose, rutas, tamaños y dimensiones); el audio de un proyecto ya no puede inyectar opciones en <code>mpv</code>/<code>ffmpeg</code>; la bandeja solo acepta órdenes conocidas; el directorio de ejecución es privado; la web añade cabeceras de seguridad.</li>
+        <li><strong>Para Linux:</strong> mismo comportamiento que antes, con el código reorganizado en dos backends (Linux y Windows) y nuevas pruebas automáticas (104).</li>
       </ul>
     </div>
     <div class="changelog-item rv">
