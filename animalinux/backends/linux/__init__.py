@@ -7,6 +7,8 @@ import threading
 from pathlib import Path
 
 NAME = "linux"
+SUBPROCESS_KW = {}                       # sin flags especiales
+PIP_EXTRA = ("--break-system-packages",)  # pip --user en distros con PEP 668
 
 
 # ── rutas (XDG) ─────────────────────────────────────────────────────────────
@@ -216,11 +218,16 @@ def fullscreen_watch(pause, cfg):
     return None
 
 
+def forward_to_running(args):
+    """La instancia única la resuelve GApplication por D-Bus."""
+    return False
+
+
 # ── bandeja (proceso GTK3 aparte: no se puede mezclar con GTK4) ─────────────
 _tray_proc = None
 
 
-def start_tray():
+def start_tray(app=None):
     global _tray_proc
     try:
         from gi.repository import Gio, GLib
@@ -247,3 +254,48 @@ def stop_tray():
 
 
 from . import autostart  # noqa: E402,F401
+
+
+# ── utilidades del sistema ──────────────────────────────────────────────────
+def _clean_env():
+    """Entorno sin el LD_PRELOAD de gtk4-layer-shell: los programas GTK3
+    (Firefox, el tray) abortan al mezclarlo con GTK4."""
+    env = os.environ.copy()
+    env.pop("LD_PRELOAD", None)
+    env.pop("ANIMALINUX_PRELOADED", None)
+    return env
+
+
+def open_url(url):
+    try:
+        subprocess.Popen(["xdg-open", url], env=_clean_env(), start_new_session=True,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError:
+        import webbrowser
+        webbrowser.open(url)
+
+
+def open_folder(path):
+    for cmd in ("xdg-open", "dolphin", "nautilus", "thunar", "pcmanfm"):
+        try:
+            subprocess.Popen([cmd, str(path)], env=_clean_env())
+            return
+        except FileNotFoundError:
+            continue
+
+
+def system_language():
+    """Código de idioma de 2 letras del sistema ('es', 'en'...) o ''."""
+    import locale
+    return (locale.getlocale()[0] or "")[:2].lower()
+
+
+def ffmpeg_hint():
+    return None   # el comando depende del gestor de paquetes (ver image_processor)
+
+
+def restart_app():
+    subprocess.Popen(
+        ["sh", "-c", "animalinux --quit; sleep 2; exec animalinux --show"],
+        env=_clean_env(), start_new_session=True,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

@@ -48,10 +48,5 @@ def default_save_path(name: str = "proyecto") -> str:
 def open_folder():
     """Abre la carpeta de proyectos en el explorador de archivos."""
     ensure_dir()
-    import subprocess
-    for cmd in ("xdg-open", "dolphin", "nautilus", "thunar", "pcmanfm"):
-        try:
-            subprocess.Popen([cmd, str(PROJECTS_DIR)])
-            return
-        except FileNotFoundError:
-            continue
+    from .backends import current as backend
+    backend.open_folder(PROJECTS_DIR)

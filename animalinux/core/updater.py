@@ -24,6 +24,7 @@ from ..i18n import tr
 
 from .. import __version__
 from .. import settings
+from ..backends import current as backend
 
 REPO = "Sergi122/AnimalinuxApp"
 _TAGS_URL = f"https://api.github.com/repos/{REPO}/tags?per_page=30"
@@ -137,7 +138,7 @@ def apply_update(version: str, log=lambda _m: None) -> None:
         else:
             log(tr("Instalando con pip…"))
             _run([sys.executable, "-m", "pip", "install", "--user",
-                  "--break-system-packages", "."], src, log)
+                  *backend.PIP_EXTRA, "."], src, log)
         settings.set_val("update_available", "")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -145,10 +146,4 @@ def apply_update(version: str, log=lambda _m: None) -> None:
 
 def restart() -> None:
     """Cierra la instancia actual y arranca la nueva, desacoplada."""
-    env = os.environ.copy()
-    env.pop("LD_PRELOAD", None)
-    env.pop("ANIMALINUX_PRELOADED", None)
-    subprocess.Popen(
-        ["sh", "-c", "animalinux --quit; sleep 2; exec animalinux --show"],
-        env=env, start_new_session=True,
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    backend.restart_app()

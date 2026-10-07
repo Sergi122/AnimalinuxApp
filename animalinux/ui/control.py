@@ -21,18 +21,11 @@ from . import guide_widgets as gw
 
 
 def open_url(url: str) -> None:
-    """Abre un enlace en el navegador SIN heredar el LD_PRELOAD de
-    gtk4-layer-shell: Firefox es GTK3 y aborta al mezclarlo con GTK4."""
-    import subprocess
-    env = os.environ.copy()
-    env.pop("LD_PRELOAD", None)
-    env.pop("ANIMALINUX_PRELOADED", None)
-    try:
-        subprocess.Popen(["xdg-open", url], env=env, start_new_session=True,
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except OSError:
-        import webbrowser
-        webbrowser.open(url)
+    """Abre un enlace en el navegador (cada backend sabe cómo hacerlo sin
+    romper al navegador, p.ej. sin heredar LD_PRELOAD en Linux)."""
+    from ..backends import current as backend
+    backend.open_url(url)
+
 
 # orden de presentación en la guía de poses + emoji ilustrativo de cada una
 POSE_GUIDE_ORDER = (

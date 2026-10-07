@@ -152,6 +152,7 @@ def _apply_transparency(display):
 
 class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
     BAKE = False   # en X11 las texturas se dejan a resolución original
+    FORCE_COMPACT = False   # los backends derivados (Windows) siempre usan ventana del tamaño del sprite
 
     # Hacia dónde mira: se espeja al dibujar (sin texturas «flip» duplicadas en memoria).
     @property
@@ -191,7 +192,7 @@ class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
         # por Xlib, en vez de una ventana transparente del tamaño del monitor.
         # Con 8 mascotas evita 8 superficies ARGB a pantalla completa que el
         # compositor tiene que mezclar en cada fotograma.
-        self._compact = bool(app.library.config.get("compact_x11", False))
+        self._compact = self.FORCE_COMPACT or bool(app.library.config.get("compact_x11", False))
         self._pad = 0
         self._xdpy = None
         self._xwin = None

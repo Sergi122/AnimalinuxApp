@@ -18,6 +18,8 @@ Teclas: V seleccionar · A contorno · B pincel · N lápiz · E borrador · U d
         F5 extender exposición · F6 dibujo nuevo · F7 duplicar dibujo · Supr limpiar celda
 """
 import subprocess
+
+from ..backends import current as backend
 import tempfile
 import shutil
 from pathlib import Path
@@ -620,7 +622,8 @@ class PaintEditor(Gtk.Window):
                 try:
                     self._audio = subprocess.Popen(
                         ["mpv", "--no-video", f"--start={c.cur / max(1, s.fps):.3f}", s.audio],
-                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                        **backend.SUBPROCESS_KW)
                 except OSError: self._audio = None
         else:
             if self._play_id: GLib.source_remove(self._play_id); self._play_id = None
@@ -657,7 +660,8 @@ class PaintEditor(Gtk.Window):
                 if s.audio and shutil.which("mpv"):
                     try:
                         self._audio = subprocess.Popen(["mpv", "--no-video", f"--start={nxt / max(1, s.fps):.3f}", s.audio],
-                                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                                       **backend.SUBPROCESS_KW)
                     except OSError: pass
             else:
                 self.play_btn.set_active(False); return False
@@ -973,7 +977,7 @@ class PaintEditor(Gtk.Window):
             cmd = ["ffmpeg", "-y", "-framerate", str(s.fps), "-i", f"{tmp}/frame_%04d.png"]
             if s.audio: cmd += ["-i", s.audio, "-shortest"]
             cmd += ["-c:v", "libx264", "-pix_fmt", "yuv420p", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", out]
-            r = subprocess.run(cmd, capture_output=True)
+            r = subprocess.run(cmd, capture_output=True, **backend.SUBPROCESS_KW)
             self._flash(tr("MP4 guardado: {name}", name=Path(out).name) if r.returncode == 0 else tr("Error: ffmpeg no encontrado o falló."))
         except FileNotFoundError:
             self._flash(tr("Error: ffmpeg no está instalado."))

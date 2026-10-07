@@ -16,6 +16,8 @@ gigas y cuelgan el equipo) y topes de tamaño/cantidad de frames.
 """
 import shutil
 import subprocess
+
+from ..backends import current as backend
 import tempfile
 from pathlib import Path
 from ..i18n import tr
@@ -81,6 +83,9 @@ def _install_ffmpeg_hint():
     """El proyecto soporta tanto Arch/Hyprland como Mint/Ubuntu/Xfce; el
     comando de instalación no es el mismo, así que se detecta el gestor de
     paquetes disponible en vez de asumir pacman."""
+    hint = backend.ffmpeg_hint()
+    if hint:
+        return hint
     for cmd, pkg_cmd in (
         ("pacman", "sudo pacman -S ffmpeg"),
         ("apt", "sudo apt install ffmpeg"),
@@ -105,7 +110,7 @@ def _video_duration_seconds(path):
         out = subprocess.run(
             ["ffprobe", "-v", "error", "-show_entries", "format=duration",
              "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
-            check=True, capture_output=True, text=True,
+            check=True, capture_output=True, text=True, **backend.SUBPROCESS_KW,
         ).stdout.strip()
         return float(out)
     except (subprocess.CalledProcessError, ValueError):
@@ -130,7 +135,7 @@ def _load_video(path):
             ["ffmpeg", "-y", "-i", str(path),
              "-vf", "fps=15", "-frames:v", str(MAX_FRAMES),
              str(tmp / "f_%04d.png")],
-            check=True, capture_output=True,
+            check=True, capture_output=True, **backend.SUBPROCESS_KW,
         )
         frames = [_clamp_size(Image.open(p).convert("RGBA"))
                   for p in sorted(tmp.glob("f_*.png"))[:MAX_FRAMES]]
@@ -315,7 +320,7 @@ def export_animation(frames_dir, out_path, fps=12):
              "-i", f"{tmp}/frame_%04d.png",
              "-c:v", "libx264", "-pix_fmt", "yuv420p",
              "-preset", "medium", str(out_path)],
-            capture_output=True)
+            capture_output=True, **backend.SUBPROCESS_KW)
         if ret.returncode != 0:
             raise RuntimeError(tr("ffmpeg no encontrado o falló al exportar el MP4."))
         return out_path

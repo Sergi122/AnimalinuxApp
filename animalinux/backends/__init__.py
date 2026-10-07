@@ -21,7 +21,15 @@ backend debe cumplir:
     fullscreen_watch(pause, cfg)  -> handle con .stop() | None; llama a
                                   pause(bool) al entrar/salir de pantalla
                                   completa (cfg = pause_on_fullscreen)
-    start_tray() / stop_tray()    icono de bandeja (proceso o ventana propia)
+    start_tray(app) / stop_tray() icono de bandeja (proceso o ventana propia)
+    forward_to_running(args)      True si ya había una instancia y se le reenvió
+                                  la orden (la instancia única la resuelve D-Bus
+                                  en Linux; en Windows, una ventana oculta)
+    open_url(url) / open_folder(path)
+    system_language()             'es', 'en'... del sistema
+    restart_app()                 cierra y vuelve a abrir (tras actualizar)
+    SUBPROCESS_KW / PIP_EXTRA     kwargs para subprocess y flags de pip
+    ffmpeg_hint()                 cómo instalar ffmpeg (None = autodetectar)
     autostart                     módulo con is_enabled() / set_enabled(bool)
 
 Este módulo debe seguir siendo barato de importar: nada de GTK aquí.

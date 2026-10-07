@@ -193,9 +193,8 @@ _lang: str = "es"
 def _detect_system_lang() -> str:
     """Detecta el idioma del sistema y lo mapea a uno soportado."""
     try:
-        import locale as _loc
-        loc = _loc.getlocale()[0] or ""
-        code = loc[:2].lower()
+        from .backends import current as backend
+        code = backend.system_language()
         return code if code in LANGUAGES else "es"
     except Exception:
         return "es"

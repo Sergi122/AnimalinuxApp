@@ -40,10 +40,15 @@ class AnimaApp(Gtk.Application):
 
     # ------------------------------------------------------------------
     def do_command_line(self, command_line):
-        args = command_line.get_arguments()[1:]
+        self.handle_args(command_line.get_arguments()[1:])
+        return 0
+
+    def handle_args(self, args):
+        """Ejecuta una orden (--show/--quit/--daemon). Llega por D-Bus en
+        Linux (do_command_line) o por el reenvío de instancia única en Windows."""
         if "--quit" in args:
             self.quit_all()
-            return 0
+            return
         if not self._started:
             self._start_daemon()
         if "--show" in args:
@@ -52,9 +57,6 @@ class AnimaApp(Gtk.Application):
             # Steam-like: solo bandeja; abre control solo si es la primera vez
             if not self.library.animations:
                 self.show_control()
-        if "--daemon" in args:
-            pass  # solo servicio, sin ventana
-        return 0
 
     # ------------------------------------------------------------------
     def _start_daemon(self):
@@ -80,7 +82,7 @@ class AnimaApp(Gtk.Application):
             self._on_fullscreen,
             self.library.config.get("pause_on_fullscreen", None))
         # bandeja
-        backend.start_tray()
+        backend.start_tray(self)
         # saludo entre mascotas que se cruzan (modo Vida)
         self._prox_id = GLib.timeout_add(800, self.manager.check_proximity)
         # vigilar bordes de ventanas para que la mascota se suba/camine por ellos
@@ -209,5 +211,7 @@ class AnimaApp(Gtk.Application):
 def main():
     import sys
     backend.prepare_process()
+    if backend.forward_to_running(sys.argv[1:]):
+        return 0   # ya hay una instancia: se le pasó la orden
     app = AnimaApp()
     return app.run(sys.argv)

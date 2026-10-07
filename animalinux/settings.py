@@ -1,10 +1,10 @@
 """
-Configuración persistente del usuario — ~/.config/animalinux/settings.json
+Configuración persistente del usuario — settings.json en el directorio de configuración
 """
 import json
-from pathlib import Path
+from . import paths
 
-_PATH = Path.home() / ".config" / "animalinux" / "settings.json"
+_PATH = paths.CONFIG_DIR / "settings.json"
 
 _DEFAULTS = {
     "tutorial_paint_shown":  False,
