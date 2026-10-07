@@ -17,11 +17,13 @@ from . import win32
 
 class MascotWindow(_base.MascotWindow):
     FORCE_COMPACT = True
+    # la clase base llama a _set_position/_move_x11 dentro de su __init__:
+    # estos valores deben existir ANTES de que corra
+    _hwnd = None
+    _k = win32.system_scale()      # lógico (GDK) -> físico (Win32)
 
     def __init__(self, app, anim, frames_dir, on_moved):
         super().__init__(app, anim, frames_dir, on_moved)
-        self._hwnd = None
-        self._k = win32.system_scale()      # lógico (GDK) -> físico (Win32)
         self.connect("map", lambda *_: GLib.idle_add(self._init_native))
 
     # ---- ventana nativa ----
