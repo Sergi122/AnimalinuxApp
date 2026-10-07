@@ -11,6 +11,8 @@ paquete; cada sistema operativo implementa la suya en su propio subpaquete:
 backend debe cumplir:
 
     NAME                          "linux" | "windows"
+    APP_NAME                      nombre visible: "AnimaLinux" | "AnimaWin"
+    LOGO                          archivo de logo en ui/assets
     dirs()                        -> (data_dir, config_dir, runtime_dir)
     prepare_process()             se llama ANTES de importar GTK (re-exec, env)
     overlay()                     -> (MascotWindow, kind)  kind: "wayland"|"x11"|"win32"

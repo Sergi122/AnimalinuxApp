@@ -8,12 +8,12 @@ WM_COPYDATA (ver forward()).
 import ctypes
 from ctypes import wintypes as wt
 
-from . import win32
+from . import APP_NAME, LOGO, win32
 from ...i18n import tr
 
 user32, shell32, kernel32 = win32.user32, win32.shell32, win32.kernel32
 
-CLASS_NAME = "AnimaLinuxTrayWnd"
+CLASS_NAME = APP_NAME + "TrayWnd"
 WM_USER = 0x0400
 WM_TRAY = WM_USER + 1
 WM_COPYDATA = 0x004A
@@ -23,9 +23,9 @@ NIM_ADD, NIM_DELETE = 0, 2
 NIF_MESSAGE, NIF_ICON, NIF_TIP = 1, 2, 4
 MF_STRING, MF_SEPARATOR = 0, 0x800
 TPM_RIGHTBUTTON, TPM_RETURNCMD, TPM_BOTTOMALIGN = 0x0002, 0x0100, 0x0020
-ID_SHOW, ID_QUIT = 1, 2
+ID_SHOW, ID_QUIT, ID_UPDATE = 1, 2, 3
 # órdenes que otra instancia puede enviar por WM_COPYDATA (nada más se ejecuta)
-_ALLOWED_ARGS = {"--show", "--quit", "--daemon"}
+_ALLOWED_ARGS = {"--show", "--quit", "--daemon", "--update"}
 MAX_COPYDATA = 256
 
 WNDPROC = ctypes.WINFUNCTYPE(win32.LRESULT, wt.HWND, wt.UINT, wt.WPARAM, wt.LPARAM)
@@ -91,7 +91,7 @@ def _icon_handle():
         from PIL import Image
         from pathlib import Path
         from ... import paths
-        src = Path(__file__).resolve().parents[2] / "ui" / "assets" / "logo.png"
+        src = Path(__file__).resolve().parents[2] / "ui" / "assets" / LOGO
         paths.RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
         ico = paths.RUNTIME_DIR / "tray.ico"
         if not ico.exists():
@@ -114,7 +114,7 @@ class Tray:
         wc.hInstance = kernel32.GetModuleHandleW(None)
         wc.lpszClassName = CLASS_NAME
         user32.RegisterClassW(ctypes.byref(wc))
-        self._hwnd = user32.CreateWindowExW(0, CLASS_NAME, "AnimaLinux", 0, 0, 0, 0, 0,
+        self._hwnd = user32.CreateWindowExW(0, CLASS_NAME, APP_NAME, 0, 0, 0, 0, 0,
                                             None, None, wc.hInstance, None)
         self._nid = NOTIFYICONDATAW()
         self._nid.cbSize = ctypes.sizeof(NOTIFYICONDATAW)
@@ -123,7 +123,7 @@ class Tray:
         self._nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP
         self._nid.uCallbackMessage = WM_TRAY
         self._nid.hIcon = _icon_handle()
-        self._nid.szTip = "AnimaLinux"
+        self._nid.szTip = APP_NAME
         shell32.Shell_NotifyIconW(NIM_ADD, ctypes.byref(self._nid))
 
     # ---- mensajes ----
@@ -157,6 +157,7 @@ class Tray:
         pt = win32.cursor_pos() or (0, 0)
         m = user32.CreatePopupMenu()
         user32.AppendMenuW(m, MF_STRING, ID_SHOW, tr("⚙  Configurar"))
+        user32.AppendMenuW(m, MF_STRING, ID_UPDATE, tr("⬆  Buscar actualizaciones"))
         user32.AppendMenuW(m, MF_SEPARATOR, 0, None)
         user32.AppendMenuW(m, MF_STRING, ID_QUIT, tr("⏻  Salir de AnimaLinux"))
         user32.SetForegroundWindow(hwnd)   # sin esto el menú no se cierra al hacer clic fuera
@@ -165,6 +166,8 @@ class Tray:
         user32.DestroyMenu(m)
         if cmd == ID_SHOW:
             self._dispatch(["--show"])
+        elif cmd == ID_UPDATE:
+            self._dispatch(["--update"])
         elif cmd == ID_QUIT:
             self._dispatch(["--quit"])
 

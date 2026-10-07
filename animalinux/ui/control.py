@@ -15,6 +15,7 @@ from .. import __version__
 from ..core import image_processor as importer
 from ..core import gpu
 from ..overlay import BACKEND
+from ..backends import current as _backend_mod
 from ..overlay.live_animation import MANDATORY_POSES
 from ..i18n import t, tr, N_
 from . import guide_widgets as gw
@@ -156,7 +157,7 @@ class ControlWindow(Gtk.ApplicationWindow):
         from ..editors.icons import icon_image
         hb = Gtk.Box(spacing=12)
         hb.add_css_class("ctl-header")
-        logo_path = Path(__file__).with_name("assets") / "logo.png"
+        logo_path = Path(__file__).with_name("assets") / _backend_mod.LOGO
         if logo_path.exists():
             pic = Gtk.Image.new_from_file(str(logo_path))
             pic.set_pixel_size(40)
@@ -282,7 +283,7 @@ class ControlWindow(Gtk.ApplicationWindow):
     def _build_empty(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         box.set_halign(Gtk.Align.CENTER); box.set_valign(Gtk.Align.CENTER)
-        logo_path = Path(__file__).with_name("assets") / "logo.png"
+        logo_path = Path(__file__).with_name("assets") / _backend_mod.LOGO
         if logo_path.exists():
             pic = Gtk.Image.new_from_file(str(logo_path))
             pic.set_pixel_size(112)

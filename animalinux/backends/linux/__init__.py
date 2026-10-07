@@ -7,6 +7,8 @@ import threading
 from pathlib import Path
 
 NAME = "linux"
+APP_NAME = "AnimaLinux"   # nombre visible del producto en este sistema
+LOGO = "logo.png"         # archivo de ui/assets
 SUBPROCESS_KW = {}                       # sin flags especiales
 PIP_EXTRA = ("--break-system-packages",)  # pip --user en distros con PEP 668
 

@@ -187,6 +187,9 @@ _T: dict[str, dict[str, str]] = {
 }
 
 # ── estado del idioma activo ───────────────────────────────────────────────────
+from .backends import current as _backend  # noqa: E402
+_APP_NAME = _backend.APP_NAME
+
 _lang: str = "es"
 
 
@@ -226,12 +229,18 @@ def get_language() -> str:
     return _lang
 
 
+def _brand(text: str) -> str:
+    """El producto se llama distinto según el sistema (AnimaLinux / AnimaWin):
+    todos los textos están escritos con «AnimaLinux» y se adaptan al mostrarse."""
+    return text.replace("AnimaLinux", _APP_NAME) if _APP_NAME != "AnimaLinux" else text
+
+
 def t(key: str, **kwargs) -> str:
     """Devuelve la cadena traducida al idioma activo."""
     entry = _T.get(key)
     if entry is None:
         return key
-    text = entry.get(_lang) or entry.get("es") or key
+    text = _brand(entry.get(_lang) or entry.get("es") or key)
     return text.format(**kwargs) if kwargs else text
 
 # ── textos «sueltos» (español como clave) ──────────────────────────────────────
@@ -265,4 +274,5 @@ def tr(s: str, **kw) -> str:
                 text = entry[_TR_LANGS.index(_lang)] or s
             except (ValueError, IndexError):
                 text = s
+    text = _brand(text)
     return text.format(**kw) if kw else text

@@ -1,4 +1,4 @@
-# Paso 2 (PowerShell, no MSYS2): empaqueta build\win-dist en AnimaLinux-Setup-<version>.exe
+# Paso 2 (PowerShell, no MSYS2): empaqueta build\win-dist en AnimaWin-Setup-<version>.exe
 # con Inno Setup 6 (se instala solo para el usuario si no está).
 param([string]$Version = "0.0.0")
 $ErrorActionPreference = 'Stop'
@@ -13,4 +13,4 @@ if (-not $iscc) {
     $iscc = "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
 }
 & $iscc "/DVersion=$Version" 'packaging\windows\installer.iss'
-Get-ChildItem build -Filter 'AnimaLinux-Setup-*.exe' | ForEach-Object { "{0}  {1} MB" -f $_.Name, [int]($_.Length / 1MB) }
+Get-ChildItem build -Filter 'AnimaWin-Setup-*.exe' | ForEach-Object { "{0}  {1} MB" -f $_.Name, [int]($_.Length / 1MB) }

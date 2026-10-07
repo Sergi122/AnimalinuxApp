@@ -1,21 +1,21 @@
-; Instalador por usuario (sin permisos de administrador) — Inno Setup 6.
+; Instalador de AnimaWin (AnimaLinux para Windows). Por usuario, sin permisos de administrador — Inno Setup 6.
 #ifndef Version
   #define Version "0.0.0"
 #endif
 
 [Setup]
-AppId={{6F1C3B5E-7A42-4C8E-9D55-A1B2C3D4E5F6}
-AppName=AnimaLinux
+AppId={{B7D2E4A1-3C58-4F69-8A17-5E9C0D4B2F63}
+AppName=AnimaWin
 AppVersion={#Version}
 AppPublisher=Sergi122
 AppPublisherURL=https://animalinux.web.app
-DefaultDirName={localappdata}\Programs\AnimaLinux
-DefaultGroupName=AnimaLinux
+DefaultDirName={localappdata}\Programs\AnimaWin
+DefaultGroupName=AnimaWin
 PrivilegesRequired=lowest
 OutputDir=..\..\build
-OutputBaseFilename=AnimaLinux-Setup-{#Version}
-SetupIconFile=animalinux.ico
-UninstallDisplayIcon={app}\AnimaLinux.exe
+OutputBaseFilename=AnimaWin-Setup-{#Version}
+SetupIconFile=animawin.ico
+UninstallDisplayIcon={app}\AnimaWin.exe
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 Compression=lzma2/fast
@@ -30,17 +30,19 @@ Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "..\..\build\win-dist\AnimaLinux\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
+Source: "..\..\build\win-dist\AnimaWin\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
 [Icons]
-Name: "{group}\AnimaLinux"; Filename: "{app}\AnimaLinux.exe"; Parameters: "--show"
+Name: "{group}\AnimaWin"; Filename: "{app}\AnimaWin.exe"; Parameters: "--show"
 
 [Registry]
 ; el arranque automático lo activa la propia app; aquí solo se limpia al desinstalar
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "AnimaLinux"; Flags: dontcreatekey uninsdeletevalue
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "AnimaWin"; Flags: dontcreatekey uninsdeletevalue
 
 [Run]
-Filename: "{app}\AnimaLinux.exe"; Parameters: "--show"; Description: "Abrir AnimaLinux"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\AnimaWin.exe"; Parameters: "--show"; Description: "Abrir AnimaWin"; Flags: nowait postinstall skipifsilent
+
+Filename: "{app}\AnimaWin.exe"; Parameters: "--daemon"; Flags: nowait runasoriginaluser; Check: WizardSilent
 
 [UninstallRun]
-Filename: "{app}\AnimaLinux.exe"; Parameters: "--quit"; Flags: runhidden; RunOnceId: "QuitAnimaLinux"
+Filename: "{app}\AnimaWin.exe"; Parameters: "--quit"; Flags: runhidden; RunOnceId: "QuitAnimaWin"

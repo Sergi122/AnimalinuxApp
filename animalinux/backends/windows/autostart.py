@@ -4,7 +4,7 @@ import sys
 import winreg
 
 _KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
-_NAME = "AnimaLinux"
+from . import APP_NAME as _NAME
 
 
 def _command() -> str:

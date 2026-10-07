@@ -6,7 +6,9 @@ from datetime import datetime
 from pathlib import Path
 
 # Carpeta raíz de proyectos
-PROJECTS_DIR = Path.home() / "Documents" / "AnimaLinux" / "projects"
+from .backends import current as _backend
+
+PROJECTS_DIR = Path.home() / "Documents" / _backend.APP_NAME / "projects"
 
 
 def ensure_dir() -> Path:

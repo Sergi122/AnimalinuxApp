@@ -1,4 +1,4 @@
-# PyInstaller: construye build/win-dist/AnimaLinux (ver build.sh).
+# PyInstaller: construye build/win-dist/AnimaWin (ver build.sh).
 import os
 import sys
 
@@ -25,6 +25,6 @@ a = Analysis(
         'Graphene': '1.0', 'GLib': '2.0', 'Gio': '2.0', 'GObject': '2.0'}}},
 )
 pyz = PYZ(a.pure)
-exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name='AnimaLinux',
-          console=False, icon=os.path.join(SPECPATH, 'animalinux.ico'))
-coll = COLLECT(exe, a.binaries, a.datas, name='AnimaLinux')
+exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name='AnimaWin',
+          console=False, icon=os.path.join(SPECPATH, 'animawin.ico'))
+coll = COLLECT(exe, a.binaries, a.datas, name='AnimaWin')

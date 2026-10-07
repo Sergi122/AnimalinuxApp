@@ -9,6 +9,8 @@ import os
 from pathlib import Path
 
 NAME = "windows"
+LOGO = "animawin.png"       # archivo de ui/assets
+APP_NAME = "AnimaWin"   # en Windows el producto se llama AnimaWin (en Linux, AnimaLinux)
 # Sin ventana de consola negra al lanzar ffmpeg/mpv desde la app gráfica
 SUBPROCESS_KW = {"creationflags": 0x08000000}   # CREATE_NO_WINDOW
 PIP_EXTRA = ()
@@ -17,8 +19,7 @@ PIP_EXTRA = ()
 def dirs():
     local = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
     roaming = Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming"))
-    return (local / "AnimaLinux" / "data", roaming / "AnimaLinux",
-            local / "AnimaLinux" / "run")
+    return (local / APP_NAME / "data", roaming / APP_NAME, local / APP_NAME / "run")
 
 
 def prepare_process():
@@ -125,15 +126,9 @@ def ffmpeg_hint():
 
 
 def restart_app():
-    import subprocess
-    import sys
-    exe = sys.executable
-    if exe.lower().endswith("python.exe"):
-        exe = exe[:-len("python.exe")] + "pythonw.exe"
-    cmd = [exe] if getattr(sys, "frozen", False) else [exe, "-m", "animalinux"]
-    # cmd /c: espera 2 s a que la instancia vieja salga y arranca la nueva
-    subprocess.Popen(
-        ["cmd", "/c", "ping -n 3 127.0.0.1 >nul & " + subprocess.list2cmdline(cmd + ["--show"])],
-        creationflags=0x00000008 | 0x08000000,   # DETACHED_PROCESS | CREATE_NO_WINDOW
-        close_fds=True)
-    subprocess.Popen(cmd + ["--quit"], creationflags=0x08000000)
+    """Tras una actualización el instalador silencioso cierra y vuelve a abrir
+    la app por su cuenta: aquí solo hay que salir para no estorbarle."""
+    from gi.repository import Gio, GLib
+    app = Gio.Application.get_default()
+    if app is not None:
+        GLib.idle_add(lambda: app.quit_all() and False)

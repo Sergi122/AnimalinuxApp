@@ -51,6 +51,8 @@ class AnimaApp(Gtk.Application):
             return
         if not self._started:
             self._start_daemon()
+        if "--update" in args:
+            self.update_now()
         if "--show" in args:
             self.show_control()
         elif not args:
@@ -102,6 +104,32 @@ class AnimaApp(Gtk.Application):
                 GLib.idle_add(self._notify_update, new)
         threading.Thread(target=work, daemon=True).start()
         return False
+
+    def update_now(self):
+        """Busca, descarga e instala la versión nueva sin ventana (la usan
+        `--update` y la bandeja). El resultado llega como notificación."""
+        import threading
+        from .core import updater
+
+        def say(msg):
+            n = Gio.Notification.new(backend.APP_NAME)
+            n.set_body(msg)
+            GLib.idle_add(self.send_notification, "update-result", n)
+
+        def work():
+            from .i18n import tr
+            try:
+                v = updater.check_and_store() or updater.pending()
+                if not v:
+                    say(tr("Ya tienes la última versión."))
+                    return
+                say(tr("Descargando v{version}…", version=v))
+                updater.apply_update(v)
+            except Exception as e:  # noqa: BLE001
+                say(str(e))
+                return
+            GLib.idle_add(updater.restart)
+        threading.Thread(target=work, daemon=True).start()
 
     def _notify_update(self, version):
         from .i18n import t
