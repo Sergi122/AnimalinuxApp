@@ -1027,11 +1027,25 @@ class PixelEditor(Gtk.Window):
         content.append(gw.note(
             tr("Marco (M), lazo (Q) y varita (W). Shift añade, Alt resta. Ctrl+A todo · Ctrl+D quitar · "
             "Ctrl+C/X/V copiar, cortar y pegar · Supr borra · Ctrl+flechas mueve 1 px.")))
+        content.append(gw.section_title(tr("AYUDAS DE DIBUJO")))
+        content.append(gw.note(
+            tr("Menú Vista: simetría horizontal, vertical o H+V, modo mosaico (X, Y o X+Y) para texturas que se repiten, "
+            "cuadrícula de píxeles (Ctrl+') de 8, 16 o 32 px, papel cebolla anterior/siguiente y una ventana de vista previa "
+            "con la animación a tamaño real.")))
+        content.append(gw.section_title(tr("SPRITE Y PALETA")))
+        content.append(gw.note(
+            tr("Menú Sprite: tamaño del lienzo, redimensionar, recortar a la selección, voltear o rotar (90°/180°). También hay un "
+            "contorno automático con el color principal. Paleta: clic = color principal, clic derecho = fondo, «+» y «−» añaden o "
+            "quitan colores y «↺» la restaura.")))
         content.append(gw.section_title(tr("CAPAS Y FOTOGRAMAS")))
         content.append(self._tool_grid(self._FRAME_HELP))
         content.append(gw.note(
             tr("Ojo = ver/ocultar, candado = bloquear, doble clic en el nombre = propiedades. "
             "Al guardar la pose las capas se combinan en una imagen por fotograma.")))
+        content.append(gw.section_title(tr("DESHACER, GUARDAR Y EXPORTAR")))
+        content.append(gw.note(
+            tr("Ctrl+Z deshace y Ctrl+Y (o Ctrl+Shift+Z) rehace. «Guardar pose» (Ctrl+S) crea o actualiza la mascota. En Archivo "
+            "puedes importar una imagen (se pixela) y exportar como GIF animado. F1 vuelve a abrir esta guía.")))
         sc.set_child(content); box.append(sc)
 
         footer = Gtk.Box(spacing=10)

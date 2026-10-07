@@ -1112,6 +1112,18 @@ class PaintEditor(Gtk.Window):
         content.append(gw.section_title(tr("CAPAS Y EXPOSICIÓN")))
         content.append(gw.note(tr("Cada capa tiene dibujos y una exposición: qué dibujo se ve en cada fotograma. Ojo = visible, candado = "
                                "bloqueada, círculo = papel cebolla. Clic derecho en una celda: dibujo nuevo, duplicar, extender, limpiar.")))
+        content.append(gw.section_title(tr("PINCELES Y CAPAS")))
+        content.append(gw.note(tr("12 pinceles (redondo suave, lápiz duro, aerógrafo, textura, tiza, acuarela, marcador, crayón, esponja, "
+                               "píxel exacto, abanico y tinta de pluma) en «Propiedades de herramienta». Cada capa tiene opacidad y "
+                               "modo de mezcla; las vectoriales se editan punto a punto con el editor de contorno (A).")))
+        content.append(gw.section_title(tr("FOTOGRAMAS Y RANGO")))
+        content.append(gw.note(tr("F8 inserta un fotograma (Shift+F8 lo borra), F5 extiende la exposición, F6 crea un dibujo nuevo en la "
+                               "celda y F7 duplica el actual. Inicio/Fin, «Bucle» e «Ida y vuelta» (ping-pong) controlan la "
+                               "reproducción; F9 crea una clave de cámara.")))
+        content.append(gw.section_title(tr("PROYECTOS, AUDIO Y EXPORTAR")))
+        content.append(gw.note(tr("Ctrl+Z / Ctrl+Y deshacen y rehacen. Ctrl+N crea una escena, Ctrl+O abre y Ctrl+Shift+S guarda un "
+                               "proyecto .alproj. En Archivo: importar imagen, secuencia o audio de referencia (suena con mpv) y "
+                               "exportar GIF, MP4 (necesita ffmpeg) o secuencia PNG.")))
         content.append(gw.section_title(tr("CÁMARA")))
         content.append(gw.note(tr("En la pestaña Cámara mueve (arrastrar), gira (Alt+arrastrar) y escala (rueda) la cámara; cada cambio crea una "
                                "clave y la cámara se interpola entre claves. Se aplica al exportar y al guardar la pose.")))

@@ -43,7 +43,7 @@ TIPS = {
         ],
     },
     "walk": {
-        "titulo": "Caminar",
+        "titulo": N_("Caminar"),
         "frames": 8,
         "tips": [
             N_("6-8 cuadros alternando pierna adelante / pierna atrás."),
@@ -55,7 +55,7 @@ TIPS = {
         ],
     },
     "greet": {
-        "titulo": "Saludar",
+        "titulo": N_("Saludar"),
         "frames": 6,
         "tips": [
             N_("Levanta un brazo y agítalo 2-3 veces (sube/baja la mano)."),
@@ -66,7 +66,7 @@ TIPS = {
         ],
     },
     "jump": {
-        "titulo": "Saltar",
+        "titulo": N_("Saltar"),
         "frames": 6,
         "tips": [
             N_("Anticipación: agáchate (squash) aplastando un poco el cuerpo."),
@@ -77,7 +77,7 @@ TIPS = {
         ],
     },
     "angry": {
-        "titulo": "Enojo",
+        "titulo": N_("Enojo"),
         "frames": 6,
         "tips": [
             N_("Temblor rápido: pequeños movimientos de lado a lado (2-3 px)."),

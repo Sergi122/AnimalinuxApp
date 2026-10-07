@@ -164,7 +164,7 @@ class ControlWindow(Gtk.ApplicationWindow):
             pic.set_overflow(Gtk.Overflow.HIDDEN)
             pic.add_css_class("ctl-logo")
             hb.append(pic)
-        title = Gtk.Label(label="AnimaLinux")
+        title = Gtk.Label(label=_backend_mod.APP_NAME)
         title.add_css_class("ctl-title")
         hb.append(title)
         chip = Gtk.Label(label=f"v{__version__}")
@@ -1530,6 +1530,7 @@ class ControlWindow(Gtk.ApplicationWindow):
         ok.add_css_class("suggested-action")
         def _apply(_b):
             code = lang_codes[dd.get_selected()]
+            changed = code != _i18n.get_language()
             _i18n.set_language(code)
             from .. import settings as _st
             _st.set_val("auto_update_check", upd_sw.get_active())
@@ -1538,10 +1539,27 @@ class ControlWindow(Gtk.ApplicationWindow):
             except OSError:
                 pass
             dlg.destroy()
+            if changed:
+                GLib.idle_add(self._reopen_for_language)
         ok.connect("clicked", _apply)
         btn_row.append(ok)
         box.append(btn_row)
         dlg.present()
+
+    def _reopen_for_language(self):
+        """Los textos de una ventana GTK se fijan al construirla: para ver el
+        idioma nuevo hay que volver a crear la ventana principal y la bandeja."""
+        from ..backends import current as backend
+        app = self.app
+        try:
+            self.destroy()
+        except Exception:  # noqa: BLE001
+            pass
+        app.control = None
+        backend.stop_tray()
+        backend.start_tray(app)
+        app.show_control()
+        return False
 
     # ── Ayuda poses "Con vida" ───────────────────────────────────────────────
     @staticmethod

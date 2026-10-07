@@ -15,6 +15,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GLib  # noqa: E402
 
 from .framedit import FrameModel
+from .i18n import tr
 
 POSES = ["default", "walk", "idle", "greet", "jump", "angry"]
 
@@ -28,7 +29,7 @@ def _pil_to_surface(pil):
 
 class FrameEditor(Gtk.ApplicationWindow):
     def __init__(self, app, anim_id, guided=False):
-        super().__init__(application=app, title="Editor de sprites (frame por frame)")
+        super().__init__(application=app, title=tr("Editor de sprites (frame por frame)"))
         self.app = app
         self.anim_id = anim_id
         self.guided = guided
@@ -63,9 +64,9 @@ class FrameEditor(Gtk.ApplicationWindow):
         left.append(tl_scroll)
 
         tl_btns = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-        for label, cb in [("➕ Añadir", self._add), ("⧉ Duplicar", self._dup),
-                          ("🗑 Borrar", self._del), ("◀", self._left),
-                          ("▶", self._right), ("🖼 Importar dibujo", self._import)]:
+        for label, cb in [(tr("➕ Añadir"), self._add), (tr("⧉ Duplicar"), self._dup),
+                          (tr("🗑 Borrar"), self._del), ("◀", self._left),
+                          ("▶", self._right), (tr("🖼 Importar dibujo"), self._import)]:
             b = Gtk.Button(label=label)
             b.connect("clicked", cb)
             tl_btns.append(b)
@@ -76,21 +77,21 @@ class FrameEditor(Gtk.ApplicationWindow):
         right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         right.set_size_request(240, -1)
 
-        self.play_btn = Gtk.ToggleButton(label="▶ Reproducir")
+        self.play_btn = Gtk.ToggleButton(label=tr("▶ Reproducir"))
         self.play_btn.connect("toggled", self._toggle_play)
         right.append(self.play_btn)
 
-        right.append(Gtk.Label(label="Cuadro actual:", xalign=0))
-        self.dx = self._spin(right, "Mover X", -300, 300, 0)
-        self.dy = self._spin(right, "Mover Y", -300, 300, 0)
-        self.angle = self._spin(right, "Rotar °", -180, 180, 0)
-        self.scale = self._spin(right, "Escala %", 20, 400, 100)
-        self.flip = Gtk.CheckButton(label="Voltear horizontal")
+        right.append(Gtk.Label(label=tr("Cuadro actual:"), xalign=0))
+        self.dx = self._spin(right, tr("Mover X"), -300, 300, 0)
+        self.dy = self._spin(right, tr("Mover Y"), -300, 300, 0)
+        self.angle = self._spin(right, tr("Rotar °"), -180, 180, 0)
+        self.scale = self._spin(right, tr("Escala %"), 20, 400, 100)
+        self.flip = Gtk.CheckButton(label=tr("Voltear horizontal"))
         self.flip.connect("toggled", self._apply)
         right.append(self.flip)
 
         right.append(Gtk.Separator())
-        right.append(Gtk.Label(label="Guardar como pose:", xalign=0))
+        right.append(Gtk.Label(label=tr("Guardar como pose:"), xalign=0))
         self.pose_dd = Gtk.DropDown.new_from_strings(POSES)
         self.pose_dd.connect("notify::selected", lambda *_: self._update_tips())
         right.append(self.pose_dd)
@@ -101,10 +102,10 @@ class FrameEditor(Gtk.ApplicationWindow):
         self.tips_label.add_css_class("dim-label")
         right.append(self.tips_label)
 
-        val = Gtk.Button(label="Validar (revisar)")
+        val = Gtk.Button(label=tr("Validar (revisar)"))
         val.connect("clicked", self._validate)
         right.append(val)
-        save = Gtk.Button(label="Guardar pose")
+        save = Gtk.Button(label=tr("Guardar pose"))
         save.add_css_class("suggested-action")
         save.connect("clicked", self._save)
         right.append(save)
@@ -133,10 +134,10 @@ class FrameEditor(Gtk.ApplicationWindow):
         from . import tips
         pose = POSES[self.pose_dd.get_selected()]
         t = tips.tip_for(pose)
-        txt = f"🎬 {t['titulo']}  (~{t['frames']} cuadros)\n"
+        txt = tr("🎬 {titulo}  (~{frames} cuadros)", titulo=t["titulo"], frames=t["frames"]) + "\n"
         txt += "\n".join("• " + s for s in t["tips"])
         if self.guided:
-            txt += "\n\nConsejo: crea esta acción, pulsa «Guardar pose» y sigue con la próxima."
+            txt += "\n\n" + tr("Consejo: crea esta acción, pulsa «Guardar pose» y sigue con la próxima.")
         self.tips_label.set_text(txt)
 
     # ---- helpers UI ----
@@ -211,7 +212,7 @@ class FrameEditor(Gtk.ApplicationWindow):
             self.current += 1; self._rebuild_timeline()
 
     def _import(self, _b):
-        dlg = Gtk.FileDialog(); dlg.set_title("Importar dibujo a este cuadro")
+        dlg = Gtk.FileDialog(); dlg.set_title(tr("Importar dibujo a este cuadro"))
         dlg.open(self, None, self._import_done)
 
     def _import_done(self, dlg, res):
@@ -283,7 +284,7 @@ class FrameEditor(Gtk.ApplicationWindow):
             n, w, h = self.model.save_as_pose(fd, pose)
             self.app.register_pose(self.anim_id, pose,
                                    fps=int(self.fps.get_value()))
-            msg = f"Pose «{pose}» guardada ({n} cuadros)."
+            msg = tr("Pose «{pose}» guardada ({n} cuadros).", pose=pose, n=n)
             if self.guided:
                 from . import tips
                 done = self.app.library.animations.get(self.anim_id, {}).get(
@@ -292,11 +293,11 @@ class FrameEditor(Gtk.ApplicationWindow):
                 if nxt and nxt in POSES:
                     self.pose_dd.set_selected(POSES.index(nxt))
                     self._update_tips()
-                    msg += f" Sigue con: {tips.tip_for(nxt)['titulo']}."
+                    msg += " " + tr("Sigue con: {x}.", x=tips.tip_for(nxt)["titulo"])
                 else:
-                    msg += " ¡Todas las acciones listas! Pon la mascota en Vida."
+                    msg += " " + tr("¡Todas las acciones listas! Pon la mascota en Vida.")
             else:
-                msg += " Pon la mascota en modo Vida."
+                msg += " " + tr("Pon la mascota en modo Vida.")
             self.status.set_text(msg)
         except Exception as e:  # noqa: BLE001
-            self.status.set_text(f"Error al guardar: {e}")
+            self.status.set_text(tr("Error al guardar: {e}", e=e))

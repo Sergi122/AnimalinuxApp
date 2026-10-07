@@ -17,6 +17,7 @@ from pathlib import Path
 from PIL import Image
 
 from .core import image_processor as importer
+from .i18n import tr
 
 
 def default_frame(source="base"):
@@ -113,10 +114,10 @@ class FrameModel:
         avisos = []
         frames = self.render_all()
         if len(frames) < 2:
-            avisos.append("Tienes 1 cuadro: añade más para que se anime.")
+            avisos.append(tr("Tienes 1 cuadro: añade más para que se anime."))
         sizes = {f.size for f in frames}
         if len(sizes) > 1:
-            avisos.append("Los cuadros tienen distinto tamaño (se uniformarán).")
+            avisos.append(tr("Los cuadros tienen distinto tamaño (se uniformarán)."))
         # alineación de los pies (parte inferior del contenido)
         bottoms = []
         for f in frames:
@@ -124,16 +125,16 @@ class FrameModel:
             if bb:
                 bottoms.append(bb[3])
         if bottoms and (max(bottoms) - min(bottoms)) > max(4, frames[0].height * 0.06):
-            avisos.append("Los pies se mueven mucho entre cuadros: revisa la "
-                          "alineación para que no 'patine'.")
+            avisos.append(tr("Los pies se mueven mucho entre cuadros: revisa la "
+                          "alineación para que no 'patine'."))
         # personaje cortado por el borde
         for idx, f in enumerate(frames):
             bb = f.getbbox()
             if bb and (bb[0] <= 0 or bb[1] <= 0 or bb[2] >= f.width or bb[3] >= f.height):
-                avisos.append(f"El cuadro {idx + 1} toca el borde (puede recortarse).")
+                avisos.append(tr("El cuadro {n} toca el borde (puede recortarse).", n=idx + 1))
                 break
         if not avisos:
-            avisos.append("Todo correcto ✔ La animación se ve consistente.")
+            avisos.append(tr("Todo correcto ✔ La animación se ve consistente."))
         return avisos
 
     # ---- guardar como pose ----
