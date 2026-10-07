@@ -9,14 +9,10 @@ módulos no cambia.
 El manager NO crea bucles GTK ni bandeja: solo gestiona las ventanas overlay
 (MascotWindow) y los datos de la librería.
 """
-import json
-import subprocess
-import threading
-
 from gi.repository import GLib
 
+from ..backends import current as backend
 from ..overlay import MascotWindow
-from ..overlay.hyprcursor import clients as hypr_clients
 
 
 class MascotManager:
@@ -37,89 +33,20 @@ class MascotManager:
 
     def _refresh_platforms(self):
         # las plataformas solo las usa el modo Vida (andar/trepar por
-        # bordes de ventana); sin ninguna mascota en ese modo, lanzar un
-        # hilo + subproceso hyprctl cada tick es gasto puro (fork/exec y
-        # wakeups constantes, malo para batería en equipos modestos).
+        # bordes de ventana); sin ninguna mascota en ese modo, consultarlas
+        # cada tick es gasto puro (wakeups constantes, malo para batería).
         if not self._platforms_busy and any(
                 w.mode == "life" for w in self.mascots.values()):
             self._platforms_busy = True
-            threading.Thread(target=self._fetch_platforms_bg, daemon=True).start()
+            backend.platforms_async(self._on_platforms)
         return True   # seguir repitiendo
 
-    def _fetch_platforms_bg(self):
-        """Hilo de fondo: SOLO hyprctl (subproceso aparte, no toca GDK/X11 —
-        seguro fuera del hilo principal). El fallback a Wnck usa GDK/libwnck,
-        que NO es thread-safe: llamarlo aquí (como se hacía antes) corrompía
-        de forma intermitente el repintado en X11 (Xfce/Cinnamon) — carrera
-        con el hilo de GTK que estaba dibujando la mascota a la vez, viéndose
-        como un parpadeo/desaparición que se autocorregía sola en el
-        siguiente frame. Por eso el fallback se reenvía al hilo principal."""
-        plats = self._fetch_platforms_hyprctl()
+    def _on_platforms(self, plats):
+        """Llamado por el backend en el hilo principal."""
         if plats is not None:
             self.platforms = plats
-            self._platforms_busy = False
-        else:
-            GLib.idle_add(self._fetch_platforms_wnck_main)
-
-    def _fetch_platforms_wnck_main(self):
-        """Fallback Wnck: se ejecuta en el hilo principal (GLib.idle_add)."""
-        plats = self._fetch_platforms_wnck()
-        self.platforms = plats if plats is not None else self.platforms
         self._platforms_busy = False
-        return False   # no repetir (es un idle_add de una sola vez)
-
-    def _fetch_platforms_hyprctl(self):
-        try:
-            clients = hypr_clients()   # socket IPC, sin fork/exec
-            if clients is None:
-                out = subprocess.run(
-                    ["hyprctl", "-j", "clients"],
-                    capture_output=True, text=True, timeout=2).stdout
-                clients = json.loads(out)
-            plats = []
-            for c in clients:
-                if c.get("hidden") or not c.get("mapped", True):
-                    continue
-                if c.get("workspace", {}).get("id", 1) < 0:
-                    continue   # special/scratchpad
-                at = c.get("at") or [0, 0]
-                size = c.get("size") or [0, 0]
-                if size[0] < 80 or size[1] < 40:
-                    continue
-                # borde SUPERIOR de la ventana = plataforma
-                plats.append((at[0], at[0] + size[0], at[1]))
-            return plats
-        except Exception:  # noqa: BLE001
-            return None
-
-    def _fetch_platforms_wnck(self):
-        """Lista de ventanas vía libwnck (EWMH), para X11 sin hyprctl. Cubre
-        GNOME/Cinnamon/MATE/Xfce con una sola implementación. Las mascotas
-        mismas quedan excluidas solas: llevan _NET_WM_STATE_SKIP_TASKBAR
-        (ver overlay/_x11_hints.py) y is_skip_tasklist() lo detecta."""
-        try:
-            import gi
-            gi.require_version("Wnck", "3.0")
-            from gi.repository import Wnck
-        except Exception:  # noqa: BLE001
-            return None
-        try:
-            screen = Wnck.Screen.get_default()
-            screen.force_update()
-            plats = []
-            for w in screen.get_windows():
-                if w.is_minimized() or w.is_skip_tasklist():
-                    continue
-                if w.get_window_type() not in (
-                        Wnck.WindowType.NORMAL, Wnck.WindowType.DIALOG):
-                    continue
-                x, y, width, height = w.get_geometry()
-                if width < 80 or height < 40:
-                    continue
-                plats.append((x, x + width, y))
-            return plats
-        except Exception:  # noqa: BLE001
-            return None
+        return False
 
     # ---------- ciclo de vida de las ventanas ----------
     def spawn(self, anim):

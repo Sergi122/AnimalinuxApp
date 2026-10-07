@@ -2,7 +2,7 @@
 Cerebro de AnimaLinux. Un único proceso GtkApplication que:
   - mantiene las mascotas (ventanas overlay) en el escritorio
   - abre la ventana de configuración cuando se lo piden
-  - lanza el icono de bandeja (proceso aparte, ver tray.py)
+  - lanza el icono de bandeja (proceso aparte, ver backends)
   - usa instancia única: relanzar `animalinux --show` solo trae la ventana
 
 Modos (argumentos):
@@ -18,8 +18,7 @@ from gi.repository import Gtk, Gio, GLib  # noqa: E402
 from .core.library import Library  # noqa: E402
 from .core.mascot_manager import MascotManager  # noqa: E402
 from .ui.control import ControlWindow  # noqa: E402
-from .hypr import HyprMonitor  # noqa: E402
-from .overlay import BACKEND  # noqa: E402
+from .backends import current as backend  # noqa: E402
 from . import pack as packmod  # noqa: E402
 
 APP_ID = "dev.animalinux.App"
@@ -36,11 +35,8 @@ class AnimaApp(Gtk.Application):
         self.mascots = self.manager.mascots   # alias compartido (mismo dict)
         self.control = None
         self._started = False
-        self._tray_proc = None
-        self._hypr = None
+        self._fs_watch = None
         self._prox_id = None
-        self._fs_watch_id = None
-        self._fs_active = False
 
     # ------------------------------------------------------------------
     def do_command_line(self, command_line):
@@ -78,29 +74,13 @@ class AnimaApp(Gtk.Application):
         # ese pico de carga simultánea.
         for i, anim in enumerate(self.library.active()):
             GLib.timeout_add(i * 400, self.manager.spawn, anim)
-        # Pausa por pantalla completa: el comportamiento por defecto depende
-        # del backend porque el efecto visual es distinto en cada uno.
-        #   - Wayland/layer-shell (Hyprland/Sway): la mascota vive en la capa
-        #     OVERLAY, así que se ve SIEMPRE encima, incluso sobre un juego o
-        #     vídeo a pantalla completa. Pausarla ahí se notaría (se
-        #     congelaría a la vista), así que sigue DESACTIVADO por defecto
-        #     — opt-in con pause_on_fullscreen: true en library.json.
-        #   - X11 (GNOME/KDE/Xfce/MATE/Cinnamon, o XWayland forzado): no hay
-        #     capa "overlay" real, así que una ventana fullscreen ajena
-        #     normalmente TAPA la mascota igual. Seguir animándola (frame
-        #     clock continuo + timers) sin que se vea nada es puro gasto de
-        #     batería/CPU, así que aquí queda ACTIVADO por defecto — se
-        #     desactiva con pause_on_fullscreen: false.
-        self._hypr = None
-        pause_cfg = self.library.config.get("pause_on_fullscreen", None)
-        if BACKEND == "wayland":
-            if pause_cfg is True:
-                self._hypr = HyprMonitor(self._on_fullscreen)
-                self._hypr.start()
-        elif pause_cfg is not False:
-            self._fs_watch_id = GLib.timeout_add(2000, self._check_fullscreen_x11)
-        # bandeja (proceso aparte para no mezclar GTK3 con GTK4)
-        self._launch_tray()
+        # Pausa por pantalla completa: la política (opt-in o por defecto) la
+        # decide cada backend porque el efecto visual es distinto en cada uno.
+        self._fs_watch = backend.fullscreen_watch(
+            self._on_fullscreen,
+            self.library.config.get("pause_on_fullscreen", None))
+        # bandeja
+        backend.start_tray()
         # saludo entre mascotas que se cruzan (modo Vida)
         self._prox_id = GLib.timeout_add(800, self.manager.check_proximity)
         # vigilar bordes de ventanas para que la mascota se suba/camine por ellos
@@ -130,43 +110,10 @@ class AnimaApp(Gtk.Application):
             self.control.refresh_update_banner()
         return False
 
-    def _launch_tray(self):
-        try:
-            import os
-            # El tray es GTK3 y NO debe heredar el LD_PRELOAD de gtk4-layer-shell
-            # (mezclar esa librería GTK4 en un proceso GTK3 rompe gtk_init).
-            env = os.environ.copy()
-            env.pop("LD_PRELOAD", None)
-            env.pop("ANIMALINUX_PRELOADED", None)
-            launcher = Gio.SubprocessLauncher.new(Gio.SubprocessFlags.NONE)
-            launcher.set_environ([f"{k}={v}" for k, v in env.items()])
-            self._tray_proc = launcher.spawnv(["python3", "-m", "animalinux.tray"])
-        except GLib.Error:
-            pass  # sin bandeja; se puede abrir con `animalinux --show`
-
     # ------------------------------------------------------------------
     def _on_fullscreen(self, active):
         self.manager.pause_all(active)
         return False
-
-    def _check_fullscreen_x11(self):
-        """Backend X11: sondeo liviano (sin subproceso) de si la ventana
-        activa está a pantalla completa, vía Wnck/EWMH — ya es una
-        dependencia blanda del proyecto (ver mascot_manager._fetch_platforms_wnck)."""
-        try:
-            import gi
-            gi.require_version("Wnck", "3.0")
-            from gi.repository import Wnck
-            screen = Wnck.Screen.get_default()
-            screen.force_update()
-            active = screen.get_active_window()
-            fs = bool(active and active.is_fullscreen())
-        except Exception:  # noqa: BLE001
-            fs = False
-        if fs != self._fs_active:
-            self._fs_active = fs
-            self.manager.pause_all(fs)
-        return True
 
     # ------------------------------------------------------------------
     # llamadas desde la ventana de configuración → delegan en MascotManager
@@ -250,98 +197,17 @@ class AnimaApp(Gtk.Application):
         if self._prox_id:
             GLib.source_remove(self._prox_id)
             self._prox_id = None
-        if self._hypr:
-            self._hypr.stop()
-        if self._fs_watch_id:
-            GLib.source_remove(self._fs_watch_id)
-            self._fs_watch_id = None
-        if self._tray_proc:
-            try:
-                self._tray_proc.force_exit()
-            except GLib.Error:
-                pass
+        if self._fs_watch:
+            self._fs_watch.stop()
+            self._fs_watch = None
+        backend.stop_tray()
         if self._started:
             self.release()
         self.quit()
 
 
-def _ensure_x11_backend_for_non_wlroots_wayland():
-    """
-    wlr-layer-shell (usado por overlay/normal_animation.py) solo existe en
-    compositores wlroots (Hyprland, Sway...). En una sesión Wayland de
-    GNOME/KDE no hay layer-shell, así que el overlay usaría el backend X11
-    (overlay/x11_animation.py) pero GTK, por defecto, conectaría por Wayland
-    puro (sin XWayland) y ese backend perdería los hints EWMH y el
-    click-through basado en Gdk.Surface, pensados para una superficie X11.
-
-    Solución: si detectamos Wayland SIN wlr-layer-shell, forzamos
-    GDK_BACKEND=x11 y nos relanzamos, para que GTK conecte por XWayland (que
-    trae cualquier compositor Wayland de escritorio) y el backend X11
-    funcione exactamente igual que en una sesión X11 nativa (Cinnamon, MATE,
-    Xfce). En Hyprland/Sway (Wayland CON layer-shell) esta función no hace
-    nada: no toca el entorno ni relanza el proceso.
-    """
-    import os
-    import sys
-
-    if os.environ.get("ANIMALINUX_X11_FORCED"):
-        return  # ya relanzado, no repetir
-
-    session = os.environ.get("XDG_SESSION_TYPE", "").lower()
-    is_wayland = session == "wayland" or bool(os.environ.get("WAYLAND_DISPLAY"))
-    if not is_wayland:
-        return  # sesión X11 nativa: nada que forzar
-
-    try:
-        import gi
-        gi.require_version("Gtk4LayerShell", "1.0")
-        from gi.repository import Gtk4LayerShell  # noqa: F401
-    except Exception:  # noqa: BLE001
-        pass
-    else:
-        return  # wlr-layer-shell disponible (Hyprland/Sway): no tocar nada
-
-    if not os.environ.get("DISPLAY"):
-        return  # no hay XWayland a mano; seguir en Wayland puro (degradado)
-
-    os.environ["GDK_BACKEND"] = "x11"
-    os.environ["ANIMALINUX_X11_FORCED"] = "1"
-    os.execv(sys.executable, [sys.executable, "-m", "animalinux"] + sys.argv[1:])
-
-
-def _ensure_layer_shell_preload():
-    """
-    gtk4-layer-shell DEBE precargarse antes que GTK, o init_for_window() no
-    funciona y las mascotas salen como ventanas normales (con marco y fondo).
-    Como LD_PRELOAD se lee al arrancar el proceso, nos relanzamos a nosotros
-    mismos con la variable puesta. Así el usuario no tiene que tocar nada.
-    """
-    import glob
-    import os
-    import sys
-
-    if os.environ.get("ANIMALINUX_PRELOADED"):
-        return  # ya estamos relanzados, no repetir
-
-    libs = []
-    for base in ("/usr/lib", "/usr/lib64", "/lib", "/usr/lib/x86_64-linux-gnu"):
-        libs += glob.glob(os.path.join(base, "libgtk4-layer-shell.so*"))
-    if not libs:
-        return  # no está instalada; seguimos (saldrá el warning)
-
-    # preferir el symlink .so; si no, cualquiera sirve para LD_PRELOAD
-    lib = next((p for p in libs if p.endswith(".so")), sorted(libs)[0])
-    preload = os.environ.get("LD_PRELOAD", "")
-    if lib not in preload:
-        os.environ["LD_PRELOAD"] = (preload + ":" + lib).strip(":")
-    os.environ["ANIMALINUX_PRELOADED"] = "1"
-    # relanzar el proceso ya con la librería precargada
-    os.execv(sys.executable, [sys.executable, "-m", "animalinux"] + sys.argv[1:])
-
-
 def main():
     import sys
-    _ensure_x11_backend_for_non_wlroots_wayland()
-    _ensure_layer_shell_preload()
+    backend.prepare_process()
     app = AnimaApp()
     return app.run(sys.argv)

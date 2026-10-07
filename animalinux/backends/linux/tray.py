@@ -13,7 +13,7 @@ la config con `animalinux --show` o un atajo de teclado.
 import os
 import subprocess
 import sys
-from .i18n import tr
+from ...i18n import tr
 
 
 def _run(*args):

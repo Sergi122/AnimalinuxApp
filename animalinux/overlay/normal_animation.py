@@ -27,7 +27,7 @@ from gi.repository import Gtk4LayerShell as LayerShell  # noqa: E402
 from .live_animation import LiveAnimationMixin  # noqa: E402
 from .poses import PoseLoaderMixin  # noqa: E402
 from .clock import Clock  # noqa: E402
-from .hyprcursor import cursor_pos  # noqa: E402
+from ..backends.linux.hyprcursor import cursor_pos  # noqa: E402
 from .. import settings
 
 _CSS_APPLIED = False
