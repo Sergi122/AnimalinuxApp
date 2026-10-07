@@ -241,3 +241,48 @@ body::after{content:"";position:fixed;inset:0;z-index:70;pointer-events:none;opa
 .winbox ol{margin:0 0 14px;padding-left:20px;color:var(--ink);line-height:1.8}
 .winbox .note{margin:6px 0 0}
 #os-hint{color:var(--pink);font-weight:600}
+
+/* editores y descargas */
+.edgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:34px}
+.edcard{padding:22px;display:flex;flex-direction:column;gap:12px}
+.edcard h3{margin:4px 0 0;font:700 1.2rem "Inter",sans-serif}.edcard h3 small{display:block;color:var(--dim);font-weight:500;font-size:.8rem;margin-top:3px}
+.edcard .shot{width:100%;border-radius:12px;border:1px solid var(--line);display:block;aspect-ratio:16/10;object-fit:cover;object-position:top left}
+.edcard ul{margin:0;padding-left:18px;color:var(--dim);line-height:1.65;font-size:.93rem}.edcard li{margin:4px 0}.edcard li b{color:var(--ink)}
+.edcard .ico.big{font-size:3rem;line-height:1;margin:10px 0 0}
+.mk{margin:46px 0 14px;font:700 1.4rem "Inter",sans-serif}
+.mkgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.mkgrid .card{padding:18px;display:flex;flex-direction:column;gap:6px}.mkgrid b{font-size:1.02rem}.mkgrid span{color:var(--dim);font-size:.92rem;line-height:1.55}
+.dlrow{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:6px 0 18px}
+.dl{display:flex;align-items:center;gap:16px;padding:18px 20px;text-decoration:none;color:var(--ink);transition:transform .25s,border-color .25s}
+.dl:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.3)}
+.dl.rec{outline:2px solid var(--pink);outline-offset:-2px}
+.dl .dli{font-size:2.2rem}.dl div{flex:1}.dl b{display:block;font-size:1.08rem}.dl small{color:var(--dim)}
+.dl .go{font-weight:700;color:var(--pink);white-space:nowrap}
+@media(max-width:960px){.edgrid,.mkgrid{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.edgrid,.mkgrid,.dlrow{grid-template-columns:1fr}.dl{flex-wrap:wrap}}
+
+/* ── movimiento tipo Apple (mejora progresiva: sin soporte, la página queda estática y correcta) ── */
+.dlrow + .note{margin:0 2px 26px}
+@view-transition{navigation:auto}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.45s;animation-timing-function:cubic-bezier(.22,1,.36,1)}
+.btn.primary{--mx:0px;--my:0px;translate:var(--mx) var(--my);transition:translate .35s cubic-bezier(.22,1,.36,1),box-shadow .3s,background-position .6s}
+.nav .l{position:relative}
+.nav .l::after{content:"";position:absolute;left:12%;right:12%;bottom:-6px;height:2px;border-radius:2px;background:var(--grad);transform:scaleX(0);transform-origin:left;transition:transform .45s cubic-bezier(.22,1,.36,1)}
+.nav .l.cur{color:var(--ink)}.nav .l.cur::after{transform:scaleX(1)}
+.dl.rec{animation:recglow 3.2s ease-in-out infinite}
+@keyframes recglow{0%,100%{box-shadow:0 0 0 0 rgba(255,111,165,0)}50%{box-shadow:0 0 38px -6px rgba(255,111,165,.55)}}
+.dl .go{display:inline-block;transition:transform .35s cubic-bezier(.22,1,.36,1)}.dl:hover .go{transform:translateX(5px)}
+.edcard .shot{transition:transform .6s cubic-bezier(.22,1,.36,1),box-shadow .6s}
+.edcard:hover .shot{transform:scale(1.025);box-shadow:0 24px 60px -24px rgba(166,128,255,.55)}
+@supports (animation-timeline:view()){
+  .edcard .shot{animation:shotin linear both;animation-timeline:view();animation-range:entry 5% cover 38%;transform-origin:50% 100%}
+  @keyframes shotin{from{opacity:.25;transform:perspective(1100px) rotateX(14deg) translateY(40px) scale(.9)}to{opacity:1;transform:perspective(1100px) rotateX(0) translateY(0) scale(1)}}
+  section h2 .grad{background-size:220% 100%;animation:gradsweep linear both;animation-timeline:view();animation-range:entry 0% exit 60%}
+  @keyframes gradsweep{from{background-position:0% 50%}to{background-position:100% 50%}}
+  .mkgrid .card{animation:cardrise linear both;animation-timeline:view();animation-range:entry 0% entry 55%}
+  @keyframes cardrise{from{opacity:.0;transform:translateY(34px) scale(.97)}to{opacity:1;transform:none}}
+}
+@media(prefers-reduced-motion:reduce){
+  .dl.rec,.edcard .shot,section h2 .grad,.mkgrid .card{animation:none!important}
+  .btn.primary{translate:none!important}::view-transition-group(*){animation:none!important}
+}

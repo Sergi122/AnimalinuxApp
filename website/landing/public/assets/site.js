@@ -100,6 +100,10 @@
   const isWin = /Windows|Win32|Win64/i.test(plat);
   const isLinux = /Linux|X11/i.test(plat) && !/Android/i.test(plat);
   const dl = $('#dl-main'), hint = $('#os-hint');
+  const cw = $('#dl-card-win'), cl = $('#dl-card-linux');
+  if (cl) cl.addEventListener('click', () => selectTab(cl.dataset.tabGo || 'arch'));
+  if (isWin && cw) cw.classList.add('rec');
+  if (isLinux && cl) cl.classList.add('rec');
   if (isWin) {
     selectTab('windows');
     if (dl) { dl.textContent = '⬇ Descargar para Windows'; dl.href = dl.dataset.win; }
