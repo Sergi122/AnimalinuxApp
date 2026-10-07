@@ -25,7 +25,7 @@ y compartirlo. Eso es lo que hizo famoso a Shimeji.
 """
 import json
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from .i18n import tr
 
 from .core import image_processor as importer
@@ -135,11 +135,23 @@ def import_pack(library, pack_path):
     return anim_id
 
 
+def _unsafe_member(name):
+    """True si el miembro del zip podría escribir fuera de la carpeta destino.
+    Se evalúa con las reglas de POSIX *y* de Windows a la vez: un pack malicioso
+    no debe depender del sistema en el que se abra (en Windows '/etc/passwd' no
+    cuenta como absoluta para pathlib, pero 'C:x' o '\\x' sí escapan)."""
+    if not name or "\\" in name or "\x00" in name:
+        return True
+    posix, win = PurePosixPath(name), PureWindowsPath(name)
+    if posix.is_absolute() or win.is_absolute() or win.drive or win.root:
+        return True
+    return ".." in posix.parts or ".." in win.parts
+
+
 def _validate_zip(z):
     """Protege contra Zip Slip (rutas tipo ../) y miembros sospechosos."""
     for name in z.namelist():
-        p = Path(name)
-        if p.is_absolute() or ".." in p.parts:
+        if _unsafe_member(name):
             raise RuntimeError(tr("Pack inseguro: contiene rutas no permitidas."))
     if "mascot.json" not in z.namelist():
         raise RuntimeError(tr("El pack no tiene mascot.json."))
