@@ -24,6 +24,9 @@ NIF_MESSAGE, NIF_ICON, NIF_TIP = 1, 2, 4
 MF_STRING, MF_SEPARATOR = 0, 0x800
 TPM_RIGHTBUTTON, TPM_RETURNCMD, TPM_BOTTOMALIGN = 0x0002, 0x0100, 0x0020
 ID_SHOW, ID_QUIT = 1, 2
+# órdenes que otra instancia puede enviar por WM_COPYDATA (nada más se ejecuta)
+_ALLOWED_ARGS = {"--show", "--quit", "--daemon"}
+MAX_COPYDATA = 256
 
 WNDPROC = ctypes.WINFUNCTYPE(win32.LRESULT, wt.HWND, wt.UINT, wt.WPARAM, wt.LPARAM)
 
@@ -134,9 +137,13 @@ class Tray:
                 return 0
             if msg == WM_COPYDATA:
                 cds = ctypes.cast(lparam, ctypes.POINTER(COPYDATASTRUCT)).contents
+                if not cds.lpData or cds.cbData > MAX_COPYDATA:
+                    return 0
                 raw = ctypes.string_at(cds.lpData, cds.cbData) if cds.cbData else b""
-                args = [a for a in raw.decode("utf-8", "ignore").split("\0") if a]
-                self._dispatch(args)
+                args = [a for a in raw.decode("utf-8", "ignore").split("\0")
+                        if a in _ALLOWED_ARGS]
+                if args:
+                    self._dispatch(args)
                 return 1
         except Exception:  # noqa: BLE001
             pass   # una excepción no puede cruzar el límite de ctypes

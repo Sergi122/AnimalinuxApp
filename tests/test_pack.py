@@ -141,3 +141,67 @@ class TestValidateZipSecurity:
 
         with zipfile.ZipFile(safe) as z:
             pack._validate_zip(z)  # no debe lanzar
+
+
+def _evil_pack(path, meta_extra=None, members=None):
+    """Pack con mascot.json válido + las alteraciones que se quieran probar."""
+    import io
+    png = io.BytesIO()
+    Image.new("RGBA", (8, 8), (1, 2, 3, 255)).save(png, "PNG")
+    meta = {"format": pack.MAGIC, "version": 1, "name": "x", "poses": ["default"]}
+    meta.update(meta_extra or {})
+    with zipfile.ZipFile(path, "w") as z:
+        z.writestr("mascot.json", json.dumps(meta))
+        for name, data in (members or {"poses/default/frame_0000.png": png.getvalue()}).items():
+            z.writestr(name, data)
+    return path
+
+
+class TestPackHardening:
+    """Un .alpack viene de internet: nada de su contenido debe poder escapar de
+    la carpeta de la librería ni agotar la memoria (sobre todo en Windows)."""
+
+    @pytest.mark.parametrize("pose", ["C:", "..", "a/b", "a\\b", "CON", "nul", "", "x" * 80, "../x", "/etc"])
+    def test_rejects_unsafe_pose_names(self, library, tmp_path, pose):
+        p = _evil_pack(tmp_path / "e.alpack", {"poses": ["default", pose]})
+        with pytest.raises(RuntimeError):
+            pack.import_pack(library, p)
+        assert library.animations == {}
+
+    def test_rejects_non_list_poses(self, library, tmp_path):
+        p = _evil_pack(tmp_path / "e.alpack", {"poses": "default"})
+        with pytest.raises(RuntimeError):
+            pack.import_pack(library, p)
+
+    @pytest.mark.parametrize("name", ["C:x/frame.png", "poses\\default\\a.png", "/abs.png", "a/../../b.png"])
+    def test_rejects_unsafe_member_names(self, library, tmp_path, name):
+        p = _evil_pack(tmp_path / "e.alpack", members={name: b"x"})
+        with pytest.raises(RuntimeError):
+            pack.import_pack(library, p)
+
+    def test_rejects_oversized_member(self, library, tmp_path, monkeypatch):
+        monkeypatch.setattr(pack, "MAX_MEMBER_BYTES", 10)
+        p = _evil_pack(tmp_path / "e.alpack")
+        with pytest.raises(RuntimeError):
+            pack.import_pack(library, p)
+
+    def test_rejects_png_with_huge_dimensions(self, library, tmp_path, monkeypatch):
+        monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 10)   # el PNG de 8x8 = 64 px
+        p = _evil_pack(tmp_path / "e.alpack")
+        with pytest.raises(RuntimeError):
+            pack.import_pack(library, p)
+
+    def test_rejects_non_image_frame(self, library, tmp_path):
+        p = _evil_pack(tmp_path / "e.alpack", members={"poses/default/frame_0000.png": b"no soy un png"})
+        with pytest.raises(RuntimeError):
+            pack.import_pack(library, p)
+
+    def test_sanitizes_metadata(self, library, tmp_path):
+        p = _evil_pack(tmp_path / "e.alpack", {"name": "N" * 500, "author": 123, "fps": "mucho"})
+        aid = pack.import_pack(library, p)
+        a = library.animations[aid]
+        assert len(a["name"]) <= 60 and a["author"] == "" and a["fps"] == 12
+
+    def test_fps_is_clamped(self, library, tmp_path):
+        aid = pack.import_pack(library, _evil_pack(tmp_path / "e.alpack", {"fps": 100000}))
+        assert library.animations[aid]["fps"] == 60

@@ -23,7 +23,9 @@ mascot.json:
 Cualquiera puede crear un pack (un solo gif basta: se vuelve la pose 'default')
 y compartirlo. Eso es lo que hizo famoso a Shimeji.
 """
+import io
 import json
+import re
 import zipfile
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from .i18n import tr
@@ -33,6 +35,15 @@ from .core import image_processor as importer
 POSE_NAMES = ["default", "walk", "idle", "greet", "jump"]
 MAGIC = "animalinux-pack"
 MAX_PACK_BYTES = 200 * 1024 * 1024   # 200 MB: tope de seguridad al importar
+# topes frente a "zip bombs" (un .alpack pequeño que se descomprime enorme)
+MAX_MEMBER_BYTES = 20 * 1024 * 1024  # un fotograma PNG
+MAX_TOTAL_BYTES = 600 * 1024 * 1024  # todo el pack descomprimido
+MAX_MEMBERS = 3000
+# nombre de pose seguro: se usa como nombre de carpeta (en Windows "C:", "CON",
+# "..", rutas con \ o / serían peligrosos)
+_POSE_RE = re.compile(r"^[A-Za-z0-9_-]{1,40}$")
+_WIN_RESERVED = {"con", "prn", "aux", "nul", *(f"com{i}" for i in range(1, 10)),
+                 *(f"lpt{i}" for i in range(1, 10))}
 
 
 # ----------------------------------------------------------------------
@@ -97,12 +108,19 @@ def import_pack(library, pack_path):
         if meta.get("format") != MAGIC:
             raise RuntimeError(tr("Ese archivo no es un pack de AnimaLinux válido."))
 
+        if not isinstance(meta, dict):
+            raise RuntimeError(tr("Ese archivo no es un pack de AnimaLinux válido."))
+        poses = meta.get("poses", ["default"])
+        if not isinstance(poses, list) or len(poses) > 64 or not all(
+                isinstance(x, str) and _POSE_RE.fullmatch(x) and x.lower() not in _WIN_RESERVED
+                for x in poses):
+            raise RuntimeError(tr("Pack inseguro: contiene rutas no permitidas."))
+
         anim_id = library.new_id()
         frames_dir = library.frames_dir(anim_id)
         frames_dir.mkdir(parents=True, exist_ok=True)
 
         # extraer cada pose
-        poses = meta.get("poses", ["default"])
         for pose in poses:
             members = [n for n in z.namelist()
                        if n.startswith(f"poses/{pose}/") and n.endswith(".png")]
@@ -115,6 +133,7 @@ def import_pack(library, pack_path):
                 target.mkdir(parents=True, exist_ok=True)
             for i, name in enumerate(sorted(members)):
                 data = z.read(name)
+                _check_png(data)
                 (target / f"frame_{i:04d}.png").write_bytes(data)
 
     # generar espejados de cada pose (para mirar a la izquierda en modo Vida)
@@ -128,11 +147,35 @@ def import_pack(library, pack_path):
     w, h = Image.open(first[0]).size if first else (100, 100)
     fc = len(first)
 
-    library.add(anim_id, meta.get("name", "Mascota"), fc, w, h)
-    library.update(anim_id, fps=meta.get("fps", 12),
-                   author=meta.get("author", ""),
+    library.add(anim_id, _clean_text(meta.get("name"), "Mascota"), fc, w, h)
+    library.update(anim_id, fps=_clean_fps(meta.get("fps")),
+                   author=_clean_text(meta.get("author"), ""),
                    poses=poses)
     return anim_id
+
+
+def _clean_text(v, default, limit=60):
+    return v.strip()[:limit] if isinstance(v, str) and v.strip() else default
+
+
+def _clean_fps(v):
+    try:
+        return max(1, min(60, int(v)))
+    except (TypeError, ValueError):
+        return 12
+
+
+def _check_png(data):
+    """El fotograma debe ser una imagen real y de tamaño razonable (evita
+    PNG diminutos en disco que se expanden a gigas al dibujarlos)."""
+    from PIL import Image
+    try:
+        with Image.open(io.BytesIO(data)) as im:
+            w, h = im.size
+    except Exception as e:  # noqa: BLE001
+        raise RuntimeError(tr("Ese archivo no es un pack de AnimaLinux válido.")) from e
+    if w * h > Image.MAX_IMAGE_PIXELS:
+        raise RuntimeError(tr("El pack es demasiado grande (límite 200 MB)."))
 
 
 def _unsafe_member(name):
@@ -153,5 +196,9 @@ def _validate_zip(z):
     for name in z.namelist():
         if _unsafe_member(name):
             raise RuntimeError(tr("Pack inseguro: contiene rutas no permitidas."))
+    infos = z.infolist()
+    if len(infos) > MAX_MEMBERS or sum(i.file_size for i in infos) > MAX_TOTAL_BYTES \
+            or any(i.file_size > MAX_MEMBER_BYTES for i in infos):
+        raise RuntimeError(tr("El pack es demasiado grande (límite 200 MB)."))
     if "mascot.json" not in z.namelist():
         raise RuntimeError(tr("El pack no tiene mascot.json."))

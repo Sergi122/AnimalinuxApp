@@ -540,7 +540,20 @@ class Scene:
     @classmethod
     def load(cls, path):
         with zipfile.ZipFile(path) as zf:
+            # un .alproj puede venir de otra persona: topes contra "zip bombs"
+            infos = zf.infolist()
+            if (len(infos) > 20000 or any(i.file_size > 64 * 1024 * 1024 for i in infos)
+                    or sum(i.file_size for i in infos) > 1024 * 1024 * 1024):
+                raise ValueError("Proyecto demasiado grande o sospechoso")
             meta = json.loads(zf.read("project.json"))
+            if not isinstance(meta, dict):
+                raise ValueError("Proyecto inválido")
+            dims = meta.get("canvas") or meta
+            w, h, n = dims.get("w", 0), dims.get("h", 0), meta.get("frames", 0)
+            n = len(n) if isinstance(n, list) else n
+            if not (isinstance(w, int) and isinstance(h, int) and isinstance(n, int)
+                    and 1 <= w <= 4096 and 1 <= h <= 4096 and 0 <= n <= 5000):
+                raise ValueError("Proyecto con dimensiones o fotogramas fuera de rango")
             v = meta.get("version", 0)
             if v == 2: return cls._load_v2(zf, meta)
             if v == 1: return cls._load_v1(zf, meta)

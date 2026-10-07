@@ -113,6 +113,11 @@ def apply_update(version: str, log=lambda _m: None) -> None:
     Bloqueante: llamar desde un hilo."""
     if not re.fullmatch(r"\d+\.\d+\.\d+", version):
         raise RuntimeError(tr("versión inválida: {version}", version=version))
+    if getattr(sys, "frozen", False):
+        # el .exe empaquetado no puede reinstalarse con pip (sys.executable es
+        # la propia app): se lleva al usuario a descargar el instalador nuevo
+        backend.open_url(f"https://github.com/{REPO}/releases")
+        raise RuntimeError(tr("Descarga el instalador nuevo desde la página de versiones (se abrió en el navegador)."))
     tmp = Path(tempfile.mkdtemp(prefix="animalinux-update-"))
     try:
         log(tr("Descargando v{version}…", version=version))

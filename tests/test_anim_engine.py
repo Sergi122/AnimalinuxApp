@@ -194,3 +194,19 @@ def test_undo_restores_scene_size(sc):
     assert (sc.w, sc.h) == (64, 48) and sc.layers[0].drawings[0] is d
     sc.redo()
     assert (sc.w, sc.h) == (100, 80)
+
+
+@pytest.mark.parametrize("meta", [
+    {"version": 2, "w": 10 ** 9, "h": 10, "frames": 1, "layers": []},
+    {"version": 2, "w": 10, "h": 10, "frames": 10 ** 9, "layers": []},
+    [1, 2],
+])
+def test_hostile_project_is_rejected(tmp_path, meta):
+    """Un .alproj ajeno no debe poder pedir lienzos o fotogramas gigantes."""
+    import json
+    import zipfile
+    p = tmp_path / "x.alproj"
+    with zipfile.ZipFile(p, "w") as z:
+        z.writestr("project.json", json.dumps(meta))
+    with pytest.raises(ValueError):
+        ae.Scene.load(str(p))
