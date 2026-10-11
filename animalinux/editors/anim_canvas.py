@@ -1019,7 +1019,7 @@ class AnimCanvas(Gtk.DrawingArea):
         self._cam_alt = self._alt
 
     def _cam_apply(self, cam):
-        self.scene.cam_keys[self.cur] = {k: float(cam[k]) for k in ae.CAM_DEFAULT}
+        self.scene.cam_keys[self.cur] = ae.cam_key(cam, self.scene.cam_keys.get(self.cur))
         self._changed()
 
     def _cam_move(self, cx, cy):

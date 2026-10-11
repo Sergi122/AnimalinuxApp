@@ -233,6 +233,26 @@ class Layer:
 
 CAM_DEFAULT = {"tx": 0.0, "ty": 0.0, "scale": 1.0, "rot": 0.0}
 
+# Suavizado del tramo que EMPIEZA en una clave de cámara (campo opcional "ease" de la clave).
+EASES = ("linear", "in", "out", "in_out", "hold")
+
+
+def ease_t(name, t):
+    """Curva de suavizado de 0..1 → 0..1. Nombre desconocido = lineal (compatibilidad)."""
+    if name == "in": return t * t
+    if name == "out": return 1 - (1 - t) * (1 - t)
+    if name == "in_out": return t * t * (3 - 2 * t)
+    if name == "hold": return 0.0
+    return t
+
+
+def cam_key(cam, prev=None):
+    """Clave de cámara limpia; conserva el suavizado de `prev` (o de `cam`) para no perderlo al editar."""
+    k = {a: float(cam.get(a, CAM_DEFAULT[a])) for a in CAM_DEFAULT}
+    e = (prev or {}).get("ease") or cam.get("ease")
+    if e in EASES and e != "linear": k["ease"] = e
+    return k
+
 
 # ── escena ───────────────────────────────────────────────────────────────────
 def safe_audio(path):
@@ -482,14 +502,22 @@ class Scene:
         if f >= keys[-1]: return dict(self.cam_keys[keys[-1]])
         for a, b in zip(keys, keys[1:]):
             if a <= f <= b:
-                t = (f - a) / (b - a)
                 ka, kb = self.cam_keys[a], self.cam_keys[b]
+                t = ease_t(ka.get("ease"), (f - a) / (b - a))
                 return {k: ka[k] + (kb[k] - ka[k]) * t for k in CAM_DEFAULT}
         return dict(CAM_DEFAULT)
 
     def set_camera_key(self, f, cam):
         self.snap()
-        self.cam_keys[f] = {k: float(cam.get(k, CAM_DEFAULT[k])) for k in CAM_DEFAULT}
+        self.cam_keys[f] = cam_key(cam, self.cam_keys.get(f))
+
+    def set_camera_ease(self, f, name):
+        """Suavizado del tramo que sale de la clave f (linear/in/out/in_out/hold)."""
+        if f not in self.cam_keys or name not in EASES: return
+        self.snap()
+        k = dict(self.cam_keys[f]); k.pop("ease", None)
+        if name != "linear": k["ease"] = name
+        self.cam_keys[f] = k
 
     def remove_camera_key(self, f):
         if f in self.cam_keys:

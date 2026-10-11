@@ -228,3 +228,16 @@ def test_project_with_malicious_audio_is_neutralized(tmp_path):
     sc.audio = "--script=/tmp/evil.lua"
     sc.save(str(p))
     assert ae.Scene.load(str(p)).audio is None
+
+
+def test_camera_ease(sc):
+    sc.ensure_frames(11)
+    sc.set_camera_key(0, {"tx": 0}); sc.set_camera_key(10, {"tx": 100})
+    sc.set_camera_ease(0, "in")
+    assert sc.camera_at(5)["tx"] == pytest.approx(25)        # t² → 0.25
+    sc.set_camera_ease(0, "hold")
+    assert sc.camera_at(5)["tx"] == 0 and sc.camera_at(10)["tx"] == 100
+    sc.set_camera_key(0, {"tx": 0})                           # reeditar no pierde el suavizado
+    assert sc.cam_keys[0].get("ease") == "hold"
+    sc.set_camera_ease(0, "linear")
+    assert "ease" not in sc.cam_keys[0] and sc.camera_at(5)["tx"] == pytest.approx(50)

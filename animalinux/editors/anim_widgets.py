@@ -461,6 +461,9 @@ class CameraDock(Gtk.Box):
                           (tr("Reiniciar"), canvas.camera_reset)):
             b = Gtk.Button(label=label); b.connect("clicked", lambda _b, f=cb: (f(), self.refresh())); btns.append(b)
         self.append(btns)
+        er = Gtk.Box(spacing=8); l = Gtk.Label(label=tr("Suavizado del tramo"), xalign=0); l.set_size_request(96, -1); er.append(l)
+        self.ease = Gtk.DropDown.new_from_strings([tr(n) for n in ("Lineal", "Arranca lento", "Frena al final", "Arranca y frena", "Mantener (salto)")])
+        self.ease.set_hexpand(True); self.ease.connect("notify::selected", self._ease_changed); er.append(self.ease); self.append(er)
         self.info = Gtk.Label(xalign=0); self.info.set_wrap(True); self.info.add_css_class("dim-label"); self.append(self.info)
         self.refresh()
 
@@ -470,14 +473,22 @@ class CameraDock(Gtk.Box):
         self._sync = True
         for k, sp in self.spins.items(): sp.set_value(cam[k])
         keys = sorted(c.scene.cam_keys)
+        k = c.scene.cam_keys.get(c.cur)
+        self.ease.set_sensitive(k is not None)
+        self.ease.set_selected(ae.EASES.index(k.get("ease")) if k and k.get("ease") in ae.EASES else 0)
         self.info.set_text((tr("Claves de cámara en los fotogramas: ") + ", ".join(str(k + 1) for k in keys))
                            if keys else tr("Sin claves: la cámara está quieta. Cambia un valor para crear una clave."))
         self._sync = False
+
+    def _ease_changed(self, dd, _p):
+        if self._sync: return
+        c = self.canvas
+        c.scene.set_camera_ease(c.cur, ae.EASES[dd.get_selected()]); c._changed()
 
     def _edit(self, key, val):
         if self._sync: return
         c = self.canvas
         cam = dict(c.scene.camera_at(c.cur)); cam[key] = val
         if c.cur not in c.scene.cam_keys: c.scene.snap()
-        c.scene.cam_keys[c.cur] = {k: float(cam[k]) for k in ae.CAM_DEFAULT}
+        c.scene.cam_keys[c.cur] = ae.cam_key(cam, c.scene.cam_keys.get(c.cur))
         c._changed()
