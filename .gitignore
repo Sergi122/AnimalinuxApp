@@ -10,3 +10,6 @@ web/
 .agents/
 skills-lock.json
 *.log
+
+# caché de despliegue de Firebase
+.firebase/
