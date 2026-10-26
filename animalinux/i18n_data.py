@@ -879,3 +879,6 @@ TR.update({
 TR.update({
 "¡Toque de bloqueo!": ("Block touch!", "Toque de bloqueio!", "Touche de contre !", "Blockberührung!", "ワンタッチ!", "拦网触球!"),
 })
+TR.update({
+"¡Doble toque en el saque!": ("Double touch on the serve!", "Dois toques no saque!", "Double touche au service !", "Doppelberührung beim Aufschlag!", "サーブでダブルコンタクト!", "发球二次触球!"),
+})

@@ -133,3 +133,17 @@ def test_basket_shots_and_fouls():
         m.mvx = m.mvy = 0
         m.update(0)
     assert m.owner != "you"
+
+
+def test_volley_serve_is_a_single_touch():
+    m = _run(Volley, {"difficulty": "medium", "mode": "time", "minutes": 99}, 2,
+             lambda m, t: None, rivals=1, helper=False)
+    m._now = 0.0
+    # tu saque ya salió (un toque) y el balón sigue en tu campo
+    m.state, m.serving, m._pushing = "rally", "you", False
+    b = m.ball
+    b.x, b.y, b.vx, b.vy = m.W * 0.2, m.F - 300, 6.0, -4.0
+    m.mouse = (b.x - b.r - 5, b.y)            # lo vuelves a tocar
+    before = m.score["pets"]
+    m._your_side(b)
+    assert m.score["pets"] == before + 1      # falta: punto del rival

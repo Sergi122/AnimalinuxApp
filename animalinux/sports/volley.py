@@ -141,6 +141,7 @@ class Volley(Match):
     # ── tick ──────────────────────────────────────────────────────────────
     def update(self, now):
         self.st += DT
+        self._now = now
         b, s = self.ball, self.S
         if self.state == "dead":
             if now >= self.serve_after:
@@ -155,6 +156,8 @@ class Volley(Match):
                 self.last_spike = False
                 self.state = "rally"
                 self.serving = "you"
+                self._pushing = True            # este empujón ES el saque
+                self._last_contact = self.st
             elif self.st >= self.serve_at + 8:
                 # 8 s sin sacar: saque flojo automático para no trabar el partido
                 self._send(self.net_x + self.W * 0.2, self.net_top - self.H * 0.2)
@@ -281,6 +284,14 @@ class Volley(Match):
         return True
 
     def _your_side(self, b):
+        if self.serving == "you":
+            # el saque es UN toque: tocarlo otra vez antes de que pase la red es falta
+            contact = self.mouse_push(b, MAX_BALL * self.S, k=PUSH_BOUNCE)
+            if contact and not self._pushing:
+                self._fault(tr("¡Doble toque en el saque!"), self._now)
+                return
+            self._pushing = contact
+            return
         if self.mouse_push(b, MAX_BALL * self.S, k=PUSH_BOUNCE):
             # un empujón continuo (aunque tiemble) cuenta como UN toque: el
             # siguiente necesita 0,3 s sin tocar el balón
@@ -303,6 +314,9 @@ class Volley(Match):
 
     # ── lado de las mascotas ──────────────────────────────────────────────
     def _pets_side(self, b):
+        if self.serving == "pets":
+            self._move_pets_idle(skip=self.actor)
+            return
         if not self.plan:
             if b.vy <= 0 and self.actor is None:
                 return          # aún subiendo (rebote en pared): esperar a que baje
@@ -455,7 +469,7 @@ class Volley(Match):
         """La rival más cerca de la red va al bloqueo: se planta en la red
         cuando el balón está alto cerca de ella en tu campo y salta a la vez
         que tu ayudante (o contra un empujón fuerte hacia su campo)."""
-        if not self.rivals or getattr(self, "block_tried", False):
+        if not self.rivals or getattr(self, "block_tried", False) or self.serving:
             return
         near_net = b.x > self.net_x - self.W * 0.2 and b.y < self.net_top
         fast = b.vx > 2 * self.S and b.x > self.net_x - self.W * 0.14 and b.y < self.net_top + b.r
@@ -505,6 +519,11 @@ class Volley(Match):
         h = self.helper
         sp = 7.0 * self.S * h.k
         bounds = (0, self.net_x - self.net_w)
+        if self.serving:
+            # durante un saque: ni se toca el propio ni se bloquea el rival
+            h.run_to(self.W * 0.25, sp * 0.6, bounds)
+            h.face(b.x)
+            return
         mine = b.x < self.net_x and self.state == "rally"
         tx, ty = self.net_x - self.W * 0.06, self.net_top - self.H * 0.06
         # ellas arman o rematan: tu ayudante salta a bloquear en la red
