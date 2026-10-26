@@ -75,13 +75,39 @@ class Volley(Match):
         t = (-v + math.sqrt(disc)) / (2 * a)
         return t * DT if t >= 0 else None
 
-    def _land_x(self):
-        """Dónde caerá el balón (sin contar la red)."""
+    def _predict(self):
+        """Dónde y en cuántos ticks caerá el balón, simulando el vuelo con
+        los rebotes en paredes, techo y red (igual que la física del juego).
+        Se calcula una vez por tick."""
         b = self.ball
-        a, v, d = 0.5 * self.g, b.vy, (self.F - b.r) - b.y
-        disc = v * v + 4 * a * d
-        t = (-v + math.sqrt(max(0.0, disc))) / (2 * a)
-        return b.x + b.vx * t
+        key = (self.st, b.x, b.y, b.vx, b.vy)
+        if getattr(self, "_pred_key", None) == key:
+            return self._pred
+        x, y, vx, vy, r = b.x, b.y, b.vx, b.vy, b.r
+        half = self.net_w / 2
+        ticks = 0
+        for ticks in range(1, 400):
+            px = x
+            vy += self.g
+            x += vx
+            y += vy
+            if (px - self.net_x) * (x - self.net_x) < 0 and y + r > self.net_top:
+                side = -1 if px < self.net_x else 1
+                x, vx = self.net_x + side * (half + r), -vx * 0.3
+            if x - r < 0:
+                x, vx = r, abs(vx) * 0.6
+            if x + r > self.W:
+                x, vx = self.W - r, -abs(vx) * 0.6
+            if y - r < 0:
+                y, vy = r, abs(vy) * 0.5
+            if y + r >= self.F:
+                break
+        self._pred_key, self._pred = key, (x, ticks)
+        return self._pred
+
+    def _land_x(self):
+        """Dónde caerá el balón (contando rebotes en paredes, techo y red)."""
+        return self._predict()[0]
 
     def _send(self, x1, apex_y, y1=None):
         """Parábola a (x1, y1) con altura máxima apex_y. Si cruza la red, se
@@ -521,11 +547,7 @@ class Volley(Match):
         b = self.ball
         if b.vy <= 0 or p.diving or not p.on_ground:
             return False
-        land = self._land_x()
-        t = self._t_to_y(self.F - b.r)
-        if t is None:
-            return False
-        ticks = t / DT
+        land, ticks = self._predict()
         dist = abs(land - p.cx)
         run_ticks = dist / max(1.0, 7.0 * self.S * p.k)
         if run_ticks <= ticks or dist > self.W * 0.3 or ticks > 26:

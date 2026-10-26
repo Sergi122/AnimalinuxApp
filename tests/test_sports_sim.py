@@ -154,6 +154,12 @@ def test_volley_no_double_touch_by_pets():
     touches = []
     orig_pet = Volley._pet_touch
     orig_touch = Volley._touch
+    orig_point = Volley.point
+
+    def point(self, who, label, pause=1.6):
+        touches.append(("punto", len(touches)))      # cada punto separa jugadas
+        return orig_point(self, who, label, pause)
+    Volley.point = point
 
     def pet_touch(self, p, step):
         touches.append(("pets", id(p)))
@@ -176,6 +182,7 @@ def test_volley_no_double_touch_by_pets():
     finally:
         Volley._pet_touch = orig_pet
         Volley._touch = orig_touch
+        Volley.point = orig_point
     pairs = list(zip(touches, touches[1:]))
     doubles = [a for a, b in pairs if a == b and a != ("you", "you")]
     assert len(touches) > 20 and not doubles, doubles[:5]
