@@ -882,3 +882,6 @@ TR.update({
 TR.update({
 "¡Doble toque en el saque!": ("Double touch on the serve!", "Dois toques no saque!", "Double touche au service !", "Doppelberührung beim Aufschlag!", "サーブでダブルコンタクト!", "发球二次触球!"),
 })
+TR.update({
+"¡Tuya!": ("Yours!", "Sua!", "À toi !", "Deiner!", "任せた!", "你的!"),
+})

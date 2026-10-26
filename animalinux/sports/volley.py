@@ -46,6 +46,7 @@ class Volley(Match):
         self.free_ball = False
         self.windup = None              # remate en preparación (1,5 s para decidir)
         self.touches = 0                # toques de tu equipo en esta posesión
+        self.last_toucher = None        # "you" / "helper": nadie toca dos veces seguidas
         self._pushing = False
         self._last_contact = -1.0
         self.hard_hit = False
@@ -121,6 +122,7 @@ class Volley(Match):
     def _serve(self):
         b = self.ball
         self.touches = 0
+        self.last_toucher = None
         self.serving = None
         self.plan = []
         b.vx = b.vy = 0.0
@@ -233,6 +235,7 @@ class Volley(Match):
             self._rival_block(b)
         else:
             self.touches = 0
+            self.last_toucher = None
             self._pushing = False
             self.block_tried = False
             self._pets_side(b)
@@ -273,9 +276,10 @@ class Volley(Match):
         self.serving = None
         self.serve_after = now + 1.7
 
-    def _touch(self):
-        """Un toque de tu equipo. El cuarto es falta."""
+    def _touch(self, who="you"):
+        """Un toque de tu equipo (tú o tu ayudante). El cuarto es falta."""
         self.touches += 1
+        self.last_toucher = who
         if self.touches > 3:
             self.say(tr("¡Cuatro toques!"), 1.2, (1, 0.5, 0.5), y=self.H * 0.3)
             self.ball.vx = self.ball.vy = 0.0
@@ -296,7 +300,7 @@ class Volley(Match):
             # un empujón continuo (aunque tiemble) cuenta como UN toque: el
             # siguiente necesita 0,3 s sin tocar el balón
             if not self._pushing and self.st - self._last_contact > 0.3:
-                self._touch()
+                self._touch("you")
             self._pushing = True
             self._last_contact = self.st
         else:
@@ -331,7 +335,10 @@ class Volley(Match):
                     self.actor = None
                     return
             r = random.random()
-            if r < skill:
+            if len(self.rivals) == 1:
+                # una sola: no puede tocar dos veces seguidas → la pasa de una
+                self.plan = ["return"] if r < 0.6 + 0.35 * skill else ["error"]
+            elif r < skill:
                 self.plan = ["receive", "set", "spike"]
             elif r < skill + (1 - skill) * 0.55:
                 self.plan = ["return"]
@@ -392,6 +399,7 @@ class Volley(Match):
         b = self.ball
         self.plan.pop(0)
         self._last_actor = p
+        self.actor = None              # el próximo toque lo hace OTRA mascota
         p.cool = 6
         p.win._squash(1.1, 0.9)
         b.y = min(b.y, p.y - b.r * 0.4)
@@ -571,7 +579,7 @@ class Volley(Match):
             return
         # balón alto cerca de la red con toques disponibles: ¡remate!
         near_net = self.net_x - self.W * 0.2 < b.x < self.net_x - b.r
-        if near_net and b.y < self.net_top and self.touches < 3:
+        if near_net and b.y < self.net_top and self.touches < 3 and self.last_toucher != "helper":
             h.run_to(b.x + b.vx * 4, sp * 1.3, bounds)
             h.face(self.net_x)
             gp = 1.3 * self.S
@@ -582,28 +590,37 @@ class Volley(Match):
                 h.jump(-math.sqrt(2 * gp * rise))
             if h.cool == 0 and h.touches(b, b.r) and not h.on_ground:
                 h.cool = 16
-                if self._touch():
+                if self._touch("helper"):
                     self.hard_hit = True
                     self._drive(self._open_spot(), 17)
                     self.say(tr("¡Remate de tu ayudante!"), 1.0, (0.6, 0.9, 1),
                              x=h.cx, y=h.y - 30 * self.S, size=0.6)
             return
-        # balón que baja en tu campo: recibe (o arma si ya hubo un toque)
-        if b.vy > 0 and abs(self._land_x() - h.cx) < self.W * 0.32:
+        # balón que baja en tu campo: juega a 3 toques contigo, sin tocar dos
+        # veces seguidas (si el último toque fue suyo, te deja el balón a ti)
+        if b.vy > 0 and self.last_toucher != "helper" and self.touches < 3 \
+                and abs(self._land_x() - h.cx) < self.W * 0.32:
             h.run_to(self._land_x(), sp, bounds)
             h.face(b.x)
             if h.cool == 0 and h.touches(b, b.r * 0.9):
                 h.cool = 12
                 h.win._squash(1.1, 0.9)
-                if not self._touch():
+                if not self._touch("helper"):
                     return
-                if self.touches >= 3:
-                    self._send(self._open_spot(), self.net_top - self.H * 0.2)
-                    self.say(tr("¡Al otro lado!"), 0.8, (0.6, 0.9, 1), x=h.cx, y=h.y - 30 * self.S, size=0.6)
-                else:
-                    # te lo deja alto junto a la red: remátalo tú o lo remata ella
+                say = lambda t: self.say(t, 0.8, (0.6, 0.9, 1), x=h.cx, y=h.y - 30 * self.S, size=0.6)
+                if self.touches == 1:
+                    # recepción: te la pasa a ti, cerca de tu cursor, a media altura
+                    mx = self.mouse[0] if self.mouse else self.W * 0.3
+                    px = min(max(mx, self.W * 0.12), self.net_x - self.W * 0.18)
+                    self._send(px, self.net_top - self.H * 0.12, self.F - self.H * 0.32)
+                    say(tr("¡Tuya!"))
+                elif self.touches == 2:
+                    # armado: alto junto a la red para que remates tú
                     self._send(tx, self.net_top - self.H * 0.3, ty)
-                    self.say(tr("¡Te la armo!"), 0.8, (0.6, 0.9, 1), x=h.cx, y=h.y - 30 * self.S, size=0.6)
+                    say(tr("¡Te la armo!"))
+                else:
+                    self._send(self._open_spot(), self.net_top - self.H * 0.2)
+                    say(tr("¡Al otro lado!"))
             return
         h.run_to(self.W * 0.25, sp * 0.6, bounds)
         h.face(b.x)

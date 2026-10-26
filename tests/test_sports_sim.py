@@ -147,3 +147,35 @@ def test_volley_serve_is_a_single_touch():
     before = m.score["pets"]
     m._your_side(b)
     assert m.score["pets"] == before + 1      # falta: punto del rival
+
+
+def test_volley_no_double_touch_by_pets():
+    """Ninguna mascota (rival o ayudante) toca dos veces seguidas."""
+    touches = []
+    orig_pet = Volley._pet_touch
+    orig_touch = Volley._touch
+
+    def pet_touch(self, p, step):
+        touches.append(("pets", id(p)))
+        return orig_pet(self, p, step)
+
+    def touch(self, who="you"):
+        touches.append(("you", who))
+        return orig_touch(self, who)
+    Volley._pet_touch = pet_touch
+    Volley._touch = touch
+    try:
+        def player(m, t):
+            b = m.ball
+            if m.state == "serve_you" or (b.x < m.net_x and b.vy > 0 and b.y > m.F - 260):
+                k = t % 4
+                m.mouse = (b.x - b.r - 10 + 6 * k, b.y + b.r + 40 - 22 * k)
+            else:
+                m.mouse = (60, 60)
+        _run(Volley, {"difficulty": "hard", "mode": "time", "minutes": 99}, 6000, player, rivals=2)
+    finally:
+        Volley._pet_touch = orig_pet
+        Volley._touch = orig_touch
+    pairs = list(zip(touches, touches[1:]))
+    doubles = [a for a, b in pairs if a == b and a != ("you", "you")]
+    assert len(touches) > 20 and not doubles, doubles[:5]
