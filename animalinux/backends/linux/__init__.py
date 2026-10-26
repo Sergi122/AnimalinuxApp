@@ -46,6 +46,12 @@ def _has_layer_shell():
     return True
 
 
+def _is_gnome():
+    """GNOME (Mutter) no implementa wlr-layer-shell: ahí va por XWayland."""
+    desk = os.environ.get("XDG_CURRENT_DESKTOP", "").upper()
+    return any(k in desk for k in ("GNOME", "PANTHEON", "UNITY"))
+
+
 def _ensure_x11_backend_for_non_wlroots_wayland():
     """
     wlr-layer-shell solo existe en compositores wlroots (Hyprland, Sway...).
@@ -58,8 +64,8 @@ def _ensure_x11_backend_for_non_wlroots_wayland():
         return
     if not _is_wayland():
         return
-    if _has_layer_shell():
-        return
+    if _has_layer_shell() and not _is_gnome():
+        return    # Hyprland, Sway, KDE Plasma (KWin), niri, labwc…
     if not os.environ.get("DISPLAY"):
         return  # sin XWayland: Wayland puro (degradado)
     os.environ["GDK_BACKEND"] = "x11"
@@ -100,7 +106,7 @@ def overlay():
     if os.environ.get("ANIMALINUX_X11_FORCED"):
         from ...overlay.x11_animation import MascotWindow
         return MascotWindow, "x11"
-    if _is_wayland() and _has_layer_shell():
+    if _is_wayland() and _has_layer_shell() and not _is_gnome():
         from ...overlay.normal_animation import MascotWindow
         return MascotWindow, "wayland"
     from ...overlay.x11_animation import MascotWindow
@@ -108,8 +114,18 @@ def overlay():
 
 
 # ── plataformas (bordes de ventanas) ────────────────────────────────────────
+_LAST_RECTS = []      # (x0, y0, x1, y1) globales de las ventanas visibles
+
+
+def window_rects():
+    """Rectángulos de las ventanas visibles (de la última consulta de
+    plataformas): para esconderse detrás de una en las escondidas."""
+    return list(_LAST_RECTS)
+
+
 def _platforms_hyprctl():
-    from .hyprcursor import clients as hypr_clients
+    global _LAST_RECTS
+    from .hyprcursor import clients as hypr_clients, monitors as hypr_monitors
     try:
         clients = hypr_clients()   # socket IPC, sin fork/exec
         if clients is None:
@@ -117,17 +133,31 @@ def _platforms_hyprctl():
                 ["hyprctl", "-j", "clients"],
                 capture_output=True, text=True, timeout=2).stdout
             clients = json.loads(out)
-        plats = []
+        # solo las ventanas de los escritorios que se VEN: antes la mascota
+        # podía subirse a una ventana de otro escritorio (flotaba en el aire)
+        active = None
+        mons = hypr_monitors()
+        if mons:
+            active = {m.get("activeWorkspace", {}).get("id") for m in mons}
+            active |= {m.get("specialWorkspace", {}).get("id") for m in mons}
+            active.discard(None)
+            active.discard(0)
+        plats, rects = [], []
         for c in clients:
             if c.get("hidden") or not c.get("mapped", True):
                 continue
-            if c.get("workspace", {}).get("id", 1) < 0:
+            ws = c.get("workspace", {}).get("id", 1)
+            if ws < 0:
                 continue   # special/scratchpad
+            if active is not None and ws not in active:
+                continue
             at = c.get("at") or [0, 0]
             size = c.get("size") or [0, 0]
             if size[0] < 80 or size[1] < 40:
                 continue
             plats.append((at[0], at[0] + size[0], at[1]))
+            rects.append((at[0], at[1], at[0] + size[0], at[1] + size[1]))
+        _LAST_RECTS = rects
         return plats
     except Exception:  # noqa: BLE001
         return None
@@ -136,15 +166,19 @@ def _platforms_hyprctl():
 def _platforms_wnck():
     """libwnck (EWMH): GNOME/Cinnamon/MATE/Xfce. Las mascotas quedan fuera
     solas (llevan SKIP_TASKBAR). libwnck NO es thread-safe: solo hilo principal."""
+    global _LAST_RECTS
     try:
         import gi
         gi.require_version("Wnck", "3.0")
         from gi.repository import Wnck
         screen = Wnck.Screen.get_default()
         screen.force_update()
-        plats = []
+        ws = screen.get_active_workspace()
+        plats, rects = [], []
         for w in screen.get_windows():
             if w.is_minimized() or w.is_skip_tasklist():
+                continue
+            if ws is not None and not w.is_visible_on_workspace(ws):
                 continue
             if w.get_window_type() not in (
                     Wnck.WindowType.NORMAL, Wnck.WindowType.DIALOG):
@@ -153,15 +187,132 @@ def _platforms_wnck():
             if width < 80 or height < 40:
                 continue
             plats.append((x, x + width, y))
+            rects.append((x, y, x + width, y + height))
+        _LAST_RECTS = rects
         return plats
     except Exception:  # noqa: BLE001
         return None
 
 
-def platforms_async(callback):
-    """hyprctl en un hilo (subproceso, no toca GDK); si no hay Hyprland, Wnck
-    en el hilo principal."""
+def active_workspace():
+    """Clave del escritorio activo ("hypr:3", "kde:2", "x11:0") o None."""
+    from . import kwin
+    from .hyprcursor import _json_request
+    ws = _json_request(b"j/activeworkspace")
+    if isinstance(ws, dict) and "id" in ws:
+        return f"hypr:{ws['id']}"
+    if kwin.active():
+        d = kwin.bridge().desktop
+        return f"kde:{d}" if d is not None else None
+    try:
+        import gi
+        gi.require_version("Wnck", "3.0")
+        from gi.repository import Wnck
+        scr = Wnck.Screen.get_default()
+        scr.force_update()
+        w = scr.get_active_workspace()
+        return f"x11:{w.get_number()}" if w is not None else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def workspace_watch(callback):
+    """callback(dirección, clave) al cambiar de escritorio: dirección = ±1
+    (hacia el siguiente/anterior), clave como en active_workspace().
+    Hyprland por su socket de eventos; KDE Wayland por el puente de KWin; X11
+    por Wnck. Devuelve True si se puede seguir."""
     from gi.repository import GLib
+    from . import hypr
+    last = {"id": None}
+
+    def on_hypr(data):
+        try:
+            wid = int(data.split(",", 1)[0])
+        except ValueError:
+            return False
+        prev, last["id"] = last["id"], wid
+        if wid != prev and wid > 0:
+            d = 0 if prev is None or prev <= 0 else (1 if wid > prev else -1)
+            callback(d, f"hypr:{wid}")
+        return False
+    if hypr.events().on("workspacev2", on_hypr):
+        return True
+    from . import kwin
+    if kwin.active():
+        kwin.bridge().on_desktop(lambda d, n: callback(d, f"kde:{n}"))
+        return True
+    try:
+        import gi
+        gi.require_version("Wnck", "3.0")
+        from gi.repository import Wnck
+        screen = Wnck.Screen.get_default()
+
+        def on_wnck(scr, prev_ws):
+            cur = scr.get_active_workspace()
+            if cur is None:
+                return
+            n = cur.get_number()
+            d = 0 if prev_ws is None else n - prev_ws.get_number()
+            d = (d > 0) - (d < 0)
+            GLib.idle_add(lambda: callback(d, f"x11:{n}") and False)
+        screen.connect("active-workspace-changed", on_wnck)
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def warp_cursor(x, y):
+    """Lleva el cursor a (x, y) globales. Hyprland por su socket; X11 con
+    XWarpPointer. KDE/GNOME en Wayland no lo permiten: False."""
+    from .hyprcursor import move_cursor
+    if move_cursor(x, y):
+        return True
+    if os.environ.get("WAYLAND_DISPLAY") and not os.environ.get("ANIMALINUX_X11_FORCED"):
+        return False
+    try:
+        from Xlib import display as xd
+        d = xd.Display()
+        d.screen().root.warp_pointer(int(x), int(y))
+        d.sync()
+        d.close()
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def start_bridges(app):
+    """KDE Plasma en Wayland: carga el script-puente de KWin (ventanas,
+    cursor, escritorios, pantalla completa). En el resto no hace nada."""
+    from . import kwin
+    try:
+        if kwin.start(app):
+            kwin.bridge().want_cursor("play", 200)
+            return True
+    except Exception:  # noqa: BLE001
+        pass
+    return False
+
+
+def stop_bridges():
+    from . import kwin
+    if kwin.active():
+        kwin.bridge().stop()
+
+
+def platforms_async(callback):
+    """hyprctl en un hilo (subproceso, no toca GDK); KDE Wayland: lo que
+    mandó el puente de KWin; si no, Wnck en el hilo principal."""
+    from gi.repository import GLib
+    from . import kwin
+    if kwin.active():
+        global _LAST_RECTS
+        rects = kwin.bridge().rects
+        if rects is not None:
+            _LAST_RECTS = list(rects)
+            plats = [(x0, x1, y0) for (x0, y0, x1, y1) in rects
+                     if x1 - x0 >= 80 and y1 - y0 >= 40]
+            GLib.idle_add(lambda: callback(plats) and False)
+            return
 
     def work():
         plats = _platforms_hyprctl()
@@ -213,6 +364,11 @@ def fullscreen_watch(pause, cfg):
     fullscreen ajena tapa la mascota, así que animar sin verse es gasto puro:
     activo salvo cfg is False."""
     from ... import overlay as _ov
+    from . import kwin
+    if _ov.BACKEND == "wayland" and kwin.active():
+        if cfg is True:
+            kwin.bridge().on_fullscreen(pause)
+        return None
     if _ov.BACKEND == "wayland":
         if cfg is True:
             from .hypr import HyprMonitor

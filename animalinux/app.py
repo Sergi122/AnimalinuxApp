@@ -37,6 +37,7 @@ class AnimaApp(Gtk.Application):
         self._started = False
         self._fs_watch = None
         self._prox_id = None
+        self.companion = None
 
     # ------------------------------------------------------------------
     def do_command_line(self, command_line):
@@ -53,6 +54,7 @@ class AnimaApp(Gtk.Application):
             self._start_daemon()
         if "--update" in args:
             self.update_now()
+        self._companion_args(args)
         if "--show" in args:
             self.show_control()
         elif not args:
@@ -68,6 +70,8 @@ class AnimaApp(Gtk.Application):
         from . import i18n
         i18n.init()        # detecta / carga idioma
         theme.apply(None)  # tema oscuro global
+        # KDE Wayland: puente con KWin (antes de crear mascotas y vigilar ventanas)
+        backend.start_bridges(self)
         # restaurar mascotas que estaban en el escritorio: escalonadas (no
         # todas de golpe). Cada mascota es una ventana fullscreen ARGB
         # separada; crear varias en el mismo instante, justo al arrancar, se
@@ -89,6 +93,13 @@ class AnimaApp(Gtk.Application):
         self._prox_id = GLib.timeout_add(800, self.manager.check_proximity)
         # vigilar bordes de ventanas para que la mascota se suba/camine por ellos
         self.manager.start_platform_watch()
+        # sin vida = fija a su escritorio; con vida = te acompaña
+        self.manager.start_workspace_watch()
+        self.manager.start_floor_watch()
+        # compañía: reacciones al sistema, juguetes, juegos, Pomodoro...
+        from .core.companion import Companion
+        self.companion = Companion(self)
+        self.companion.start()
         # buscar versiones nuevas cada vez que se abre la app
         GLib.timeout_add_seconds(3, lambda: self._check_updates() and False)
 
@@ -139,6 +150,51 @@ class AnimaApp(Gtk.Application):
         if self.control:
             self.control.refresh_update_banner()
         return False
+
+    def _companion_args(self, args):
+        """Órdenes de la bandeja: --toy ball|yarn|clear, --pomodoro,
+        --dnd, --play tag|hide."""
+        c = self.companion
+        if c is None:
+            return
+
+        def val(flag, default):
+            if flag in args:
+                i = args.index(flag)
+                if i + 1 < len(args) and not args[i + 1].startswith("--"):
+                    return args[i + 1]
+                return default
+            return None
+        toy = val("--toy", "ball")
+        if toy == "clear":
+            c.clear_toys()
+        elif toy:
+            c.throw_toy(toy)
+        if val("--pomodoro", "toggle"):
+            c.pomodoro.toggle()
+        dnd = val("--dnd", "toggle")
+        if dnd:
+            c.set_dnd_manual({"on": True, "off": False}.get(dnd, not c.dnd_manual))
+        play = val("--play", "tag")
+        if play:
+            c.start_game(play)
+        sport = val("--sport", "football")
+        if sport:
+            self.show_match_menu(sport)
+
+    def show_match_menu(self, sport=None):
+        from .ui.match_dialog import MatchWindow
+        MatchWindow(self, sport=sport).present()
+
+    def start_sport(self, sport):
+        from . import sports
+        from .core.companion import sport_opts
+        match, why = sports.start(self, sport, sport_opts())
+        if match is None and why:
+            n = Gio.Notification.new(backend.APP_NAME)
+            n.set_body(why)
+            self.send_notification("sport", n)
+        return match, why
 
     # ------------------------------------------------------------------
     def _on_fullscreen(self, active):
@@ -223,6 +279,8 @@ class AnimaApp(Gtk.Application):
         return False
 
     def quit_all(self):
+        if self.companion is not None:
+            self.companion.stop()
         self.manager.destroy_all()
         if self._prox_id:
             GLib.source_remove(self._prox_id)
@@ -231,6 +289,7 @@ class AnimaApp(Gtk.Application):
             self._fs_watch.stop()
             self._fs_watch = None
         backend.stop_tray()
+        backend.stop_bridges()
         if self._started:
             self.release()
         self.quit()
@@ -241,5 +300,8 @@ def main():
     backend.prepare_process()
     if backend.forward_to_running(sys.argv[1:]):
         return 0   # ya hay una instancia: se le pasó la orden
+    # nombre visible en notificaciones (si no, KDE muestra «__main__.py») y
+    # para que el sobresalto por notificaciones ignore las nuestras
+    GLib.set_application_name(backend.APP_NAME)
     app = AnimaApp()
     return app.run(sys.argv)

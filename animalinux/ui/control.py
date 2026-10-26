@@ -32,7 +32,8 @@ def open_url(url: str) -> None:
 POSE_GUIDE_ORDER = (
     ("default", "🧍"), ("idle", "💤"), ("walk", "🚶"), ("greet", "👋"),
     ("kiss", "😘"), ("jump", "🦘"), ("angry", "😠"), ("grab", "✊"),
-    ("fall", "💫"),
+    ("fall", "💫"), ("sleep", "😴"), ("dance", "💃"), ("tired", "🥵"),
+    ("worried", "😟"), ("surprised", "😲"), ("stretch", "🙆"),
 )
 
 BG_METHODS = [
@@ -197,6 +198,10 @@ class ControlWindow(Gtk.ApplicationWindow):
 
         hb.append(ghost("film", tr("Novedades e historial de cambios"),
                         lambda: open_url("https://animalinux.web.app/#cambios")))
+        hb.append(ghost("heart", tr("Compañía: reacciones, juegos, Pomodoro y recordatorios"),
+                        self._show_companion, label=tr("Compañía")))
+        hb.append(ghost("trophy", tr("Deportes: fútbol, vóley y básquet contra tus mascotas"),
+                        lambda: self.app.show_match_menu(), label=tr("Deportes")))
         hb.append(ghost("help", t("help_tip"), lambda: self._show_tour(force=True)))
         hb.append(ghost("settings", t("settings_title"), self._show_settings_dialog))
         cl = ghost("close", tr("Cerrar esta ventana (las mascotas siguen activas)"), self.close)
@@ -614,7 +619,8 @@ class ControlWindow(Gtk.ApplicationWindow):
         s3 = Gtk.Box(); s3.add_css_class("menu-sep"); mv.append(s3)
         mv.append(self._menu_item(mp, t("card_export"),
                                   (lambda: self._on_export_pack(aid)) if life else (lambda: self._on_export_gif(aid))))
-        mv.append(self._menu_item(mp, "🌐 " + t("card_share"), lambda: self._on_share_pack(aid)))
+        mv.append(self._menu_item(mp, "💬 " + tr("Exportar como sticker…"), lambda: self._on_sticker(aid)))
+        mv.append(self._menu_item(mp, "🌐 " + tr("Subir a la comunidad…"), lambda: self._on_upload(aid)))
         s4 = Gtk.Box(); s4.add_css_class("menu-sep"); mv.append(s4)
         mv.append(self._menu_item(mp, t("card_delete"), lambda: self._confirm_delete(anim), danger=True))
         mp.set_child(mv); more.set_popover(mp)
@@ -1068,6 +1074,10 @@ class ControlWindow(Gtk.ApplicationWindow):
         except Exception as e:  # noqa: BLE001
             self.status.set_text(tr("Error al exportar: {e}", e=e))
 
+    def _on_upload(self, aid):
+        from .upload_dialog import UploadWindow
+        UploadWindow(self.app, aid, parent=self).present()
+
     def _on_share_pack(self, aid):
         """Exportar + abrir directo la web de subida — un solo click en vez de
         exportar, buscar la web y navegar hasta 'Subir mascota' a mano."""
@@ -1091,6 +1101,15 @@ class ControlWindow(Gtk.ApplicationWindow):
                 "https://animalinux-community.web.app/upload.html", None)
         except Exception as e:  # noqa: BLE001
             self.status.set_text(tr("Error al exportar: {e}", e=e))
+
+    def _on_sticker(self, aid):
+        from .sticker_dialog import StickerDialog
+        from .. import stickers
+        anim = self.app.library.animations.get(aid, {})
+        fd = self.app.library.frames_dir(aid)
+        poses = ["default"] + [p for p in anim.get("poses", []) if p != "default"]
+        StickerDialog(self, anim.get("name", "sticker"), anim.get("fps", 12),
+                      lambda pose: stickers.load_pose(fd, pose), poses).present()
 
     def _on_export_gif(self, aid):
         """Exportar una mascota 'sin vida' (GIF/MP4 importado o dibujado) —
@@ -1546,6 +1565,10 @@ class ControlWindow(Gtk.ApplicationWindow):
         box.append(btn_row)
         dlg.present()
 
+    def _show_companion(self):
+        from .companion_dialog import CompanionWindow
+        CompanionWindow(self.app, parent=self).present()
+
     def _reopen_for_language(self):
         """Los textos de una ventana GTK se fijan al construirla: para ver el
         idioma nuevo hay que volver a crear la ventana principal y la bandeja."""
@@ -1580,7 +1603,7 @@ class ControlWindow(Gtk.ApplicationWindow):
             ("greet", "greet" in MANDATORY_POSES, None), ("kiss", "kiss" in MANDATORY_POSES, None),
             ("jump", "jump" in MANDATORY_POSES, None), ("angry", "angry" in MANDATORY_POSES, None),
             ("grab", "grab" in MANDATORY_POSES, None), ("fall", "fall" in MANDATORY_POSES, None),
-        ]
+        ] + [(p, False, None) for p in ("sleep", "dance", "tired", "worried", "surprised", "stretch")]
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
         box.add_css_class("folder-tree")
         root = Gtk.Label(label="📁 mi_mascota/", xalign=0)

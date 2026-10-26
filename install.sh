@@ -25,7 +25,7 @@ case "$PKG_MGR" in
         sudo pacman -S --needed --noconfirm \
             gtk4 python-gobject python-cairo python-pillow python-xlib \
             python-pip ffmpeg libayatana-appindicator
-        echo ">> gtk4-layer-shell (solo hace falta en Hyprland/Sway)..."
+        echo ">> gtk4-layer-shell (Hyprland, Sway y KDE Plasma en Wayland)..."
         if ! pacman -Qi gtk4-layer-shell &>/dev/null; then
             if command -v yay &>/dev/null; then
                 yay -S --needed --noconfirm gtk4-layer-shell
@@ -42,7 +42,7 @@ case "$PKG_MGR" in
     apt)
         sudo apt update
         sudo apt install -y python3 python3-gi python3-gi-cairo \
-            gir1.2-gtk-4.0 python3-pip python3-pil python3-xlib ffmpeg \
+            gir1.2-gtk-4.0 python3-pip python3-pil python3-numpy python3-xlib ffmpeg \
             gir1.2-wnck-3.0
         echo ">> Ícono de bandeja (appindicator)..."
         sudo apt install -y gir1.2-ayatanaappindicator3-0.1 || {
@@ -50,31 +50,31 @@ case "$PKG_MGR" in
             echo "   (el nombre del paquete varía según la versión de Ubuntu/"
             echo "   Debian). La app funciona igual, solo sin ícono de bandeja."
         }
-        echo ">> gtk4-layer-shell (solo hace falta en Hyprland/Sway)..."
-        sudo apt install -y gir1.2-gtklayershell-0.1 || {
-            echo "!! No encontré gir1.2-gtklayershell-0.1 en tus repos."
-            echo "   Solo hace falta en Hyprland/Sway; en GNOME/Cinnamon/MATE/Xfce"
+        echo ">> gtk4-layer-shell (Hyprland, Sway y KDE Plasma en Wayland)..."
+        sudo apt install -y gir1.2-gtk4layershell-1.0 libgtk4-layer-shell0 || {
+            echo "!! No encontré gir1.2-gtk4layershell-1.0 en tus repos."
+            echo "   Hace falta en Hyprland/Sway/KDE Wayland; en GNOME/Cinnamon/MATE/Xfce"
             echo "   (X11) no afecta a la app."
         }
         ;;
     dnf)
         sudo dnf install -y python3 python3-gobject python3-cairo \
-            python3-pip gtk4 python3-pillow python3-xlib ffmpeg \
+            python3-pip gtk4 python3-pillow python3-numpy python3-xlib ffmpeg \
             libappindicator-gtk3 libwnck3
-        echo ">> gtk4-layer-shell (solo hace falta en Hyprland/Sway)..."
+        echo ">> gtk4-layer-shell (Hyprland, Sway y KDE Plasma en Wayland)..."
         sudo dnf install -y gtk4-layer-shell || {
             echo "!! No encontré gtk4-layer-shell en tus repos."
-            echo "   Solo hace falta en Hyprland/Sway; en GNOME/Cinnamon/MATE/Xfce"
+            echo "   Hace falta en Hyprland/Sway/KDE Wayland; en GNOME/Cinnamon/MATE/Xfce"
             echo "   (X11) no afecta a la app."
         }
         ;;
     zypper)
         sudo zypper install -y python3 python3-gobject python3-gobject-cairo \
-            python3-pip gtk4 python3-Pillow python3-xlib ffmpeg libwnck3
-        echo ">> gtk4-layer-shell (solo hace falta en Hyprland/Sway)..."
+            python3-pip gtk4 python3-Pillow python3-numpy python3-xlib ffmpeg libwnck3
+        echo ">> gtk4-layer-shell (Hyprland, Sway y KDE Plasma en Wayland)..."
         sudo zypper install -y gtk4-layer-shell || {
             echo "!! No encontré gtk4-layer-shell en tus repos."
-            echo "   Solo hace falta en Hyprland/Sway; en GNOME/Cinnamon/MATE/Xfce"
+            echo "   Hace falta en Hyprland/Sway/KDE Wayland; en GNOME/Cinnamon/MATE/Xfce"
             echo "   (X11) no afecta a la app."
         }
         ;;

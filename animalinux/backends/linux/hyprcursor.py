@@ -20,9 +20,11 @@ _PATH = _path()
 
 
 def cursor_pos():
-    """(x, y) globales del cursor, o None si no hay Hyprland / falla."""
+    """(x, y) globales del cursor, o None si no hay Hyprland / falla.
+    En KDE Wayland, lo último que mandó el puente de KWin."""
     if _PATH is None:
-        return None
+        from . import kwin
+        return kwin.bridge().cursor_pos() if kwin.active() else None
     try:
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         s.settimeout(0.05)
@@ -36,9 +38,34 @@ def cursor_pos():
         return None
 
 
+def move_cursor(x, y):
+    """Mueve el cursor (coords globales). True si se pudo."""
+    if _PATH is None:
+        return False
+    try:
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.settimeout(0.05)
+        s.connect(_PATH)
+        s.sendall(f"dispatch movecursor {int(x)} {int(y)}".encode())
+        s.recv(64)
+        s.close()
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def clients():
     """Lista `j/clients` de Hyprland por el socket IPC (sin lanzar hyprctl).
     Devuelve None si no hay Hyprland o falla (el llamador usa su fallback)."""
+    return _json_request(b"j/clients")
+
+
+def monitors():
+    """`j/monitors` (escritorio activo de cada monitor) o None."""
+    return _json_request(b"j/monitors")
+
+
+def _json_request(cmd):
     if _PATH is None:
         return None
     import json
@@ -46,7 +73,7 @@ def clients():
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         s.settimeout(1.0)
         s.connect(_PATH)
-        s.sendall(b"j/clients")
+        s.sendall(cmd)
         buf = b""
         while True:
             chunk = s.recv(65536)

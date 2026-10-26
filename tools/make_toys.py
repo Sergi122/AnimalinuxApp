@@ -1,0 +1,262 @@
+"""Dibuja los juguetes (pixel art 16×16, escalado ×3 sin suavizar).
+
+    python tools/make_toys.py   → animalinux/ui/assets/toys/{ball,yarn}/frame_0000.png
+"""
+from pathlib import Path
+
+from PIL import Image
+
+OUT = Path(__file__).resolve().parents[1] / "animalinux" / "ui" / "assets" / "toys"
+S, K = 16, 3
+OUTLINE = (40, 30, 48, 255)
+
+# pelota: gajos rojo / blanco / azul con luz arriba a la izquierda
+BALL = [
+    "......oooo......",
+    "....ooRRWWoo....",
+    "...oRRRWWWBBo...",
+    "..oRhRRWWWBBBo..",
+    "..oRRRRWWWBBBo..",
+    ".oRRRRRWWWBBBBo.",
+    ".oRRRRRWWWBBBBo.",
+    ".orRRRRWWWBBBbo.",
+    ".orrRRRwWWBBbbo.",
+    ".orrrRRwwWBbbbo.",
+    "..orrrrwwwbbbo..",
+    "..orrrrwwwbbbo..",
+    "...orrrwwwbbo...",
+    "....oorrwwoo....",
+    "......oooo......",
+    "................",
+]
+BALL_PAL = {"o": OUTLINE, "R": (232, 72, 72, 255), "r": (170, 40, 58, 255),
+            "W": (250, 246, 236, 255), "w": (200, 194, 196, 255),
+            "B": (76, 140, 232, 255), "b": (46, 90, 170, 255),
+            "h": (255, 200, 190, 255)}
+
+# ovillo: lana rosa con hebras y una punta suelta
+YARN = [
+    "......oooo......",
+    "....ooPPPPoo....",
+    "...oPhhPPpPPo...",
+    "..oPhPPPpPPPPo..",
+    "..oPPPPpPPPPpo..",
+    ".oppPPpPPPPpPPo.",
+    ".oPPppPPPPpPPPo.",
+    ".oPPPPppPPpPPpo.",
+    ".opPPPPPppPPpPo.",
+    ".oPppPPPPPppPpo.",
+    "..oPPppPPPPPpo..",
+    "..opPPPpppPPpo..",
+    "...oppPPPPppo.oo",
+    "....ooppppooooo.",
+    "......oooo......",
+    "................",
+]
+YARN_PAL = {"o": OUTLINE, "P": (240, 128, 172, 255), "p": (190, 80, 132, 255),
+            "h": (255, 210, 228, 255)}
+
+# balón de vóley: gajos blanco / amarillo / azul
+VOLLEY = [
+    "......oooo......",
+    "....ooWWYYoo....",
+    "...oWhWWYYYBo...",
+    "..oWhWWYYYBBBo..",
+    "..oWWWYYYBBBWo..",
+    ".oYWWYYYBBBWWWo.",
+    ".oYYWYYBBBWWWWo.",
+    ".oyYYWYBBWWWWwo.",
+    ".oyyYYWBWWWWwwo.",
+    ".oyyyYYWWWwwwbo.",
+    "..oyyyyWWwwbbo..",
+    "..obyyywwwbbbo..",
+    "...obbyywwbbo...",
+    "....oobbbboo....",
+    "......oooo......",
+    "................",
+]
+VOLLEY_PAL = {"o": OUTLINE, "W": (250, 248, 240, 255), "w": (198, 196, 200, 255),
+              "Y": (255, 214, 64, 255), "y": (206, 154, 30, 255),
+              "B": (60, 120, 220, 255), "b": (36, 76, 160, 255), "h": (255, 255, 255, 255)}
+
+# balón de básquet: naranja con costuras oscuras
+BASKET = [
+    "......oooo......",
+    "....ooOOkOoo....",
+    "...oOhOOkOOOo...",
+    "..oOhOOOkOOOkO..",
+    "..oOOOOOkOOkOo..",
+    ".okOOOOOkOkOOOo.",
+    ".oOkkOOOkkOOOOo.",
+    ".oOOOkkkkkkkkko.",
+    ".ooOOOOkkOOOOoo.",
+    ".oOOOOkOkOOOOro.",
+    "..oOOkOOkOOOro..",
+    "..orkOOOkOOrro..",
+    "...orrrrkrrro...",
+    "....oorrkroo....",
+    "......oooo......",
+    "................",
+]
+BASKET_PAL = {"o": OUTLINE, "O": (236, 128, 46, 255), "r": (180, 84, 30, 255),
+              "k": (60, 34, 24, 255), "h": (255, 196, 140, 255)}
+
+# balón de fútbol: blanco con parches negros
+SOCCER = [
+    "......oooo......",
+    "....ooWWWWoo....",
+    "...oWhWKKWWWo...",
+    "..oWhWKKKKWWWo..",
+    "..oKWWKKKKWWKo..",
+    ".oKKWWWKKWWWKKo.",
+    ".oKKWWWWWWWWKKo.",
+    ".oWWWWWWWWWWWwo.",
+    ".oWWKKWWWWKKWwo.",
+    ".oWKKKKWWKKKKwo.",
+    "..oWKKWWWWKKwo..",
+    "..oWWWWKKWwwwo..",
+    "...owwwKKwwwo...",
+    "....oowwwwoo....",
+    "......oooo......",
+    "................",
+]
+SOCCER_PAL = {"o": OUTLINE, "W": (248, 248, 244, 255), "w": (196, 198, 206, 255),
+              "K": (44, 42, 56, 255), "h": (255, 255, 255, 255)}
+
+
+def draw(rows, pal, name):
+    im = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    for y, row in enumerate(rows):
+        for x, ch in enumerate(row):
+            if ch in pal:
+                im.putpixel((x, y), pal[ch])
+    im = im.resize((S * K, S * K), Image.NEAREST)
+    d = OUT / name
+    d.mkdir(parents=True, exist_ok=True)
+    im.save(d / "frame_0000.png")
+
+
+if __name__ == "__main__":
+    draw(BALL, BALL_PAL, "ball")
+    draw(YARN, YARN_PAL, "yarn")
+    draw(VOLLEY, VOLLEY_PAL, "volley")
+    draw(SOCCER, SOCCER_PAL, "soccer")
+    draw(BASKET, BASKET_PAL, "basket")
+    print("ok", OUT)
+
+
+# ── balones de deporte (24×24, dibujados por geometría y cuantizados) ──────
+N = 24
+
+
+def _sphere(pattern, base_light, base_dark, name):
+    """Esfera con luz arriba-izquierda: pattern(u, v, x, y) -> color base o
+    None (usa base); u,v en [-1,1]. Sombra en 3 escalones + contorno."""
+    im = Image.new("RGBA", (N, N), (0, 0, 0, 0))
+    c = (N - 1) / 2.0
+    r = N / 2.0 - 0.6
+    for y in range(N):
+        for x in range(N):
+            dx, dy = (x - c) / r, (y - c) / r
+            d2 = dx * dx + dy * dy
+            if d2 > 1.0:
+                continue
+            col = pattern(dx, dy, x, y) or base_light
+            # luz: producto con dirección (-0.5,-0.6)
+            dz = (1 - d2) ** 0.5
+            lit = -0.5 * dx - 0.6 * dy + 0.62 * dz
+            if lit < 0.12:
+                col = _shade(col, 0.62)
+            elif lit < 0.38:
+                col = _shade(col, 0.82)
+            if lit > 0.86 and d2 < 0.5:
+                col = _shade(col, 1.18)
+            im.putpixel((x, y), col)
+    # contorno de 1 px
+    px = im.load()
+    out = im.copy()
+    for y in range(N):
+        for x in range(N):
+            if px[x, y][3]:
+                continue
+            for ox, oy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                xx, yy = x + ox, y + oy
+                if 0 <= xx < N and 0 <= yy < N and px[xx, yy][3]:
+                    out.putpixel((x, y), OUTLINE)
+                    break
+    out = out.resize((N * 2, N * 2), Image.NEAREST)
+    d = OUT / name
+    d.mkdir(parents=True, exist_ok=True)
+    out.save(d / "frame_0000.png")
+
+
+def _shade(c, k):
+    return tuple(max(0, min(255, int(v * k))) for v in c[:3]) + (255,)
+
+
+def _in_star(px, py, cx, cy, R, rot):
+    """¿(px,py) dentro de una estrella de 5 puntas (radio interior 0.42 R)?"""
+    import math
+    pts = []
+    for i in range(10):
+        rr = R if i % 2 == 0 else R * 0.42
+        a = rot + i * math.pi / 5 - math.pi / 2
+        pts.append((cx + rr * math.cos(a), cy + rr * math.sin(a)))
+    inside = False
+    j = len(pts) - 1
+    for i in range(len(pts)):
+        xi, yi = pts[i]
+        xj, yj = pts[j]
+        if (yi > py) != (yj > py) and px < (xj - xi) * (py - yi) / (yj - yi) + xi:
+            inside = not inside
+        j = i
+    return inside
+
+
+def _champions(u, v, x, y):
+    """Blanco con estrellas azul marino (como el balón de la Champions):
+    una grande al centro con su interior claro y medias estrellas en el borde."""
+    navy, sky = (28, 38, 96, 255), (120, 160, 220, 255)
+    if _in_star(u, v, -0.02, 0.06, 0.72, 0.0):
+        return sky if _in_star(u, v, -0.02, 0.06, 0.36, 0.0) else navy
+    for (sx, sy, sr, rot) in ((0.86, -0.72, 0.5, 0.3), (-0.86, -0.7, 0.5, 0.6),
+                              (0.82, 0.86, 0.5, 0.15), (-0.84, 0.84, 0.5, 0.45)):
+        if _in_star(u, v, sx, sy, sr, rot):
+            return navy
+    return None
+
+
+def _molten(u, v, x, y):
+    """Blanco con dos franjas curvas roja y verde (estilo Molten)."""
+    import math
+    red, green = (214, 40, 52, 255), (30, 150, 84, 255)
+    w1 = v - 0.55 * math.sin(2.2 * u + 0.6) + 0.1
+    w2 = v - 0.55 * math.sin(2.2 * u + 0.6) - 0.62
+    w3 = v - 0.55 * math.sin(2.2 * u + 0.6) + 0.82
+    if abs(w1) < 0.17:
+        return red
+    if abs(w2) < 0.15:
+        return green
+    if abs(w3) < 0.15:
+        return green
+    return None
+
+
+def _wilson(u, v, x, y):
+    """Cuero naranja-marrón con costuras negras y grano (estilo Wilson)."""
+    seam = (34, 22, 18, 255)
+    if abs(u) < 0.07 or abs(v) < 0.07:
+        return seam
+    for s in (-1, 1):                      # costuras laterales curvas
+        if abs((u - s * 0.95) ** 2 + v * v - 0.42) < 0.09:
+            return seam
+    if (x * 7 + y * 13) % 11 == 0:         # grano del cuero
+        return (186, 92, 38, 255)
+    return None
+
+
+if __name__ == "__main__":
+    _sphere(_champions, (246, 246, 242, 255), None, "soccer")
+    _sphere(_molten, (248, 247, 240, 255), None, "volley")
+    _sphere(_wilson, (214, 112, 46, 255), None, "basket")
+    print("balones ok")

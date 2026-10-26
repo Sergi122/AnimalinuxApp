@@ -305,3 +305,29 @@ def _revert_focus(reassert_input_xid=None):
     go()
     for delay_ms in (30, 80, 150, 300, 600):
         GLib.timeout_add(delay_ms, go)
+
+
+def set_below(gtk_window, below):
+    """Manda la mascota por detrás de las ventanas (escondidas) o la devuelve
+    a «siempre encima»: quitar ABOVE y poner BELOW, o al revés."""
+    resolved = _x11_window(gtk_window)
+    if resolved is None:
+        return
+    dpy, win = resolved
+    try:
+        from Xlib import X
+        from Xlib.protocol import event as xlib_event
+        root = dpy.screen().root
+        state_atom = dpy.intern_atom("_NET_WM_STATE")
+        mask = X.SubstructureRedirectMask | X.SubstructureNotifyMask
+        above = dpy.intern_atom("_NET_WM_STATE_ABOVE")
+        below_a = dpy.intern_atom("_NET_WM_STATE_BELOW")
+        for action, atom in ((0, above if below else below_a),
+                             (1, below_a if below else above)):
+            ev = xlib_event.ClientMessage(
+                window=win, client_type=state_atom,
+                data=(32, (action, atom, 0, 1, 0)))
+            root.send_event(ev, event_mask=mask)
+        dpy.flush()
+    except Exception:  # noqa: BLE001
+        pass

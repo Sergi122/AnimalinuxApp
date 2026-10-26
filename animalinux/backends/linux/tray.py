@@ -78,6 +78,21 @@ def main():
 
     menu.append(Gtk.SeparatorMenuItem())
 
+    for label, args in ((tr("⚽  Lanzar una pelota"), ("--toy", "ball")),
+                        (tr("🧶  Lanzar un ovillo"), ("--toy", "yarn")),
+                        (tr("🧺  Guardar los juguetes"), ("--toy", "clear")),
+                        (tr("🎲  ¡A jugar!"), ("--play",)),
+                        (tr("⚽  Partido de fútbol"), ("--sport", "football")),
+                        (tr("🏐  Partido de vóley"), ("--sport", "volley")),
+                        (tr("🏀  Partido de básquet"), ("--sport", "basket")),
+                        (tr("🍅  Pomodoro (iniciar / detener)"), ("--pomodoro",)),
+                        (tr("🔕  No molestar (activar / quitar)"), ("--dnd",))):
+        it = Gtk.MenuItem(label=label)
+        it.connect("activate", lambda _w, a=args: _run(*a))
+        menu.append(it)
+
+    menu.append(Gtk.SeparatorMenuItem())
+
     item_quit = Gtk.MenuItem(label=tr("⏻  Salir de AnimaLinux"))
     item_quit.connect("activate", lambda _w: (_run("--quit"), Gtk.main_quit()))
     menu.append(item_quit)

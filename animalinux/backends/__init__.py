@@ -33,6 +33,12 @@ backend debe cumplir:
     SUBPROCESS_KW / PIP_EXTRA     kwargs para subprocess y flags de pip
     ffmpeg_hint()                 cómo instalar ffmpeg (None = autodetectar)
     autostart                     módulo con is_enabled() / set_enabled(bool)
+    start_bridges(app) / stop_bridges()  puentes con el compositor (KWin)
+    window_rects()                -> [(x0, y0, x1, y1)] de la última consulta
+                                  de plataformas (escondidas detrás de ventanas)
+    workspace_watch(callback)     callback(±1|0, clave) al cambiar de escritorio
+    active_workspace()            clave del escritorio activo o None
+    warp_cursor(x, y)             mueve el cursor (False si el sistema no deja)
 
 Este módulo debe seguir siendo barato de importar: nada de GTK aquí.
 """

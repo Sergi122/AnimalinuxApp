@@ -119,6 +119,8 @@ _PATHS = {
     "mirror":  '<path d="M12 3v18" stroke-dasharray="2 2"/><path d="M8 7L3 12l5 5zM16 7l5 5-5 5z"/>',
     "film":    '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 8h16M4 16h16M9 3v18M15 3v18" stroke-opacity="0.7"/>',
     "paper":   '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/>',
+    "trophy":  '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4"/><path d="M12 13v4M9 20h6M10 17h4"/>',
+    "heart":   '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
     "sound":   '<path d="M4 9v6h4l5 4V5L8 9z" fill="%s"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>' % _STROKE,
     "newfile": '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M12 11v6M9 14h6"/>',
     "onion_skin": '<circle cx="9" cy="12" r="6" stroke-opacity="0.45"/><circle cx="15" cy="12" r="6"/>',

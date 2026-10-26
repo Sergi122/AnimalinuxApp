@@ -120,6 +120,17 @@ def make_overlay_window(hwnd):
                         SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED)
 
 
+def set_bottom(hwnd, bottom):
+    """Escondidas: al fondo del orden Z (detrás de las ventanas) o de vuelta
+    a siempre encima."""
+    after = HWND(1) if bottom else HWND_TOPMOST  # 1 = HWND_BOTTOM
+    if bottom:
+        user32.SetWindowPos(hwnd, HWND(-2), 0, 0, 0, 0,  # HWND_NOTOPMOST
+                            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
+    user32.SetWindowPos(hwnd, after, 0, 0, 0, 0,
+                        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
+
+
 def move_window(hwnd, x, y):
     user32.SetWindowPos(hwnd, None, int(x), int(y), 0, 0,
                         SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE)

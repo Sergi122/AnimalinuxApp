@@ -73,6 +73,10 @@ class MascotWindow(_base.MascotWindow):
         win32.set_window_shape(self._hwnd, self._pad * k, self._pad * k,
                                self._cat_w * k, self._cat_h * k)
 
+    def _set_behind_windows(self, on):
+        if self._hwnd is not None:
+            win32.set_bottom(self._hwnd, on)
+
     # ---- puntero global ----
     def _global_pointer(self):
         p = win32.cursor_pos()

@@ -24,9 +24,17 @@ NIF_MESSAGE, NIF_ICON, NIF_TIP = 1, 2, 4
 MF_STRING, MF_SEPARATOR = 0, 0x800
 TPM_RIGHTBUTTON, TPM_RETURNCMD, TPM_BOTTOMALIGN = 0x0002, 0x0100, 0x0020
 ID_SHOW, ID_QUIT, ID_UPDATE = 1, 2, 3
+ID_BALL, ID_YARN, ID_CLEAR, ID_POMO, ID_DND, ID_PLAY = 10, 11, 12, 13, 14, 15
 # órdenes que otra instancia puede enviar por WM_COPYDATA (nada más se ejecuta)
-_ALLOWED_ARGS = {"--show", "--quit", "--daemon", "--update"}
+_ALLOWED_ARGS = {"--show", "--quit", "--daemon", "--update",
+                 "--toy", "--pomodoro", "--dnd", "--play",
+                 "ball", "yarn", "clear", "toggle", "on", "off", "tag", "hide",
+                 "--sport", "football", "volley", "basket"}
 MAX_COPYDATA = 256
+
+_MENU_ARGS = {ID_BALL: ("--toy", "ball"), ID_YARN: ("--toy", "yarn"),
+              ID_CLEAR: ("--toy", "clear"), ID_POMO: ("--pomodoro",),
+              ID_DND: ("--dnd",), ID_PLAY: ("--play",)}
 
 WNDPROC = ctypes.WINFUNCTYPE(win32.LRESULT, wt.HWND, wt.UINT, wt.WPARAM, wt.LPARAM)
 
@@ -159,6 +167,13 @@ class Tray:
         user32.AppendMenuW(m, MF_STRING, ID_SHOW, tr("⚙  Configurar"))
         user32.AppendMenuW(m, MF_STRING, ID_UPDATE, tr("⬆  Buscar actualizaciones"))
         user32.AppendMenuW(m, MF_SEPARATOR, 0, None)
+        user32.AppendMenuW(m, MF_STRING, ID_BALL, tr("⚽  Lanzar una pelota"))
+        user32.AppendMenuW(m, MF_STRING, ID_YARN, tr("🧶  Lanzar un ovillo"))
+        user32.AppendMenuW(m, MF_STRING, ID_CLEAR, tr("🧺  Guardar los juguetes"))
+        user32.AppendMenuW(m, MF_STRING, ID_PLAY, tr("🎲  ¡A jugar!"))
+        user32.AppendMenuW(m, MF_STRING, ID_POMO, tr("🍅  Pomodoro (iniciar / detener)"))
+        user32.AppendMenuW(m, MF_STRING, ID_DND, tr("🔕  No molestar (activar / quitar)"))
+        user32.AppendMenuW(m, MF_SEPARATOR, 0, None)
         user32.AppendMenuW(m, MF_STRING, ID_QUIT, tr("⏻  Salir de AnimaLinux"))
         user32.SetForegroundWindow(hwnd)   # sin esto el menú no se cierra al hacer clic fuera
         cmd = user32.TrackPopupMenu(m, TPM_RIGHTBUTTON | TPM_RETURNCMD | TPM_BOTTOMALIGN,
@@ -170,6 +185,8 @@ class Tray:
             self._dispatch(["--update"])
         elif cmd == ID_QUIT:
             self._dispatch(["--quit"])
+        elif cmd in _MENU_ARGS:
+            self._dispatch(list(_MENU_ARGS[cmd]))
 
     def destroy(self):
         shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(self._nid))

@@ -35,13 +35,47 @@ def overlay():
 
 
 # ── plataformas (bordes de ventanas) ────────────────────────────────────────
+_LAST_RECTS = []
+
+
+def window_rects():
+    return list(_LAST_RECTS)
+
+
+def warp_cursor(x, y):
+    import ctypes
+    from . import win32
+    k = win32.system_scale()
+    return bool(ctypes.windll.user32.SetCursorPos(int(x * k), int(y * k)))
+
+
+def start_bridges(app):
+    return False
+
+
+def stop_bridges():
+    pass
+
+
+def active_workspace():
+    return None
+
+
+def workspace_watch(callback):
+    """Escritorios virtuales de Windows: sin API pública estable; no se sigue."""
+    return None
+
+
 def platforms_async(callback):
     """EnumWindows tarda <1 ms: se resuelve en el acto, en el hilo principal."""
+    global _LAST_RECTS
     from . import win32
     try:
         k = 1.0 / win32.system_scale()   # px físicos -> lógicos de GDK
-        plats = [(int(l * k), int(r * k), int(t * k))
-                 for (l, t, r, _b) in win32.top_level_rects()]
+        rects = [(int(l * k), int(t * k), int(r * k), int(b * k))
+                 for (l, t, r, b) in win32.top_level_rects()]
+        plats = [(l, r, t) for (l, t, r, _b) in rects]
+        _LAST_RECTS = rects
     except Exception:  # noqa: BLE001
         plats = None
     callback(plats)

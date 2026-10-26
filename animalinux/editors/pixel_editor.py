@@ -245,6 +245,9 @@ class PixelEditor(Gtk.Window):
         act("save", self._save_pose)
         act("import", lambda: self._on_import(None))
         act("gif", self._export_gif_dialog)
+        act("ase_open", self._ase_open_dialog)
+        act("ase_save", self._ase_save_dialog)
+        act("sticker", self._sticker_dialog)
         act("close", self._confirm_close)
         # editar
         act("undo", c.undo); act("redo", c.redo)
@@ -308,7 +311,9 @@ class PixelEditor(Gtk.Window):
 
         archivo = menu(
             sect(I(tr("Guardar pose"), "ed.save", "<Control>s"), I(tr("Importar imagen…"), "ed.import"),
-                 I(tr("Exportar como GIF…"), "ed.gif")),
+                 I(tr("Exportar como GIF…"), "ed.gif"), I(tr("Exportar como sticker…"), "ed.sticker")),
+            sect(I(tr("Abrir archivo de Aseprite…"), "ed.ase_open", "<Control>o"),
+                 I(tr("Guardar como .aseprite…"), "ed.ase_save", "<Control><Shift>s")),
             sect(I(tr("Cerrar el editor"), "ed.close", "<Control>w")))
         editar = menu(
             sect(I(tr("Deshacer"), "ed.undo", "<Control>z"), I(tr("Rehacer"), "ed.redo", "<Control>y")),
@@ -844,7 +849,9 @@ class PixelEditor(Gtk.Window):
             if low == "z":
                 (c.redo() if shift else c.undo()); return True
             if low == "y": c.redo(); return True
+            if low == "s" and shift: self._ase_save_dialog(); return True
             if low == "s": self._save_pose(); return True
+            if low == "o": self._ase_open_dialog(); return True
             if low == "w": self._confirm_close(); return True
             if low == "a": c.select_all(); return True
             if low == "d": c.deselect(); return True
@@ -1188,6 +1195,61 @@ class PixelEditor(Gtk.Window):
         dlg.destroy()
         self._sync()
         self._show_tutorial()
+
+    def _sticker_dialog(self):
+        from ..ui.sticker_dialog import StickerDialog
+        frames = [self.canvas.to_pil(i).convert("RGBA") for i in range(self.canvas.frame_count)]
+        name = self.pose_entry.get_text().strip() or "sticker"
+        StickerDialog(self, name, int(self.fps_spin.get_value()), lambda _p: frames).present()
+
+    # ── Aseprite (.aseprite / .ase) ──────────────────────────────────────────
+    def _ase_filter(self):
+        flt = Gtk.FileFilter(); flt.set_name(tr("Aseprite (.aseprite, .ase)"))
+        flt.add_pattern("*.aseprite"); flt.add_pattern("*.ase")
+        store = Gio.ListStore.new(Gtk.FileFilter); store.append(flt)
+        return store
+
+    def _ase_open_dialog(self):
+        dlg = Gtk.FileDialog(); dlg.set_title(tr("Abrir archivo de Aseprite"))
+        dlg.set_filters(self._ase_filter())
+        dlg.open(self, None, self._ase_open_done)
+
+    def _ase_open_done(self, dlg, result):
+        from . import aseprite
+        try: gf = dlg.open_finish(result)
+        except GLib.Error: return
+        try:
+            spr = aseprite.read(gf.get_path())
+        except (OSError, aseprite.AseError) as e:
+            self._flash(tr("No se pudo abrir: {err}", err=e)); return
+        if not self.canvas.load_aseprite(spr):
+            self._flash(tr("El sprite es demasiado grande (máximo 512×512) o está vacío.")); return
+        if spr.durations:
+            avg = sum(spr.durations) / len(spr.durations)
+            self.fps_spin.set_value(max(1, min(60, round(1000 / max(1, avg)))))
+        self._sync()
+        self._flash(tr("Abierto: {name} · {n} capas · {f} fotogramas", name=Path(gf.get_path()).name,
+                       n=len(spr.layers), f=self.canvas.frame_count))
+
+    def _ase_save_dialog(self):
+        dlg = Gtk.FileDialog(); dlg.set_title(tr("Guardar como .aseprite"))
+        pose = self.pose_entry.get_text().strip() or "sprite"
+        dlg.set_initial_name(f"{pose}.aseprite")
+        dlg.set_filters(self._ase_filter())
+        dlg.save(self, None, self._ase_save_done)
+
+    def _ase_save_done(self, dlg, result):
+        from . import aseprite
+        try: gf = dlg.save_finish(result)
+        except GLib.Error: return
+        path = gf.get_path()
+        if not path.lower().endswith((".aseprite", ".ase")): path += ".aseprite"
+        ms = max(10, round(1000 / int(self.fps_spin.get_value())))
+        try:
+            aseprite.write(path, self.canvas.to_aseprite(ms))
+        except OSError as e:
+            self._flash(tr("No se pudo guardar: {err}", err=e)); return
+        self._flash(tr("Guardado: {name}", name=Path(path).name))
 
     # ── exportar GIF ─────────────────────────────────────────────────────────
     def _export_gif_dialog(self):

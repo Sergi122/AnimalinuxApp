@@ -25,6 +25,7 @@ import random
 from gi.repository import GLib  # noqa: E402
 
 from .clock import Clock  # noqa: E402
+from .companion import CompanionMixin  # noqa: E402
 
 
 # Poses obligatorias: el usuario puede desactivar poses "de más" (greet,
@@ -47,7 +48,7 @@ BORED_GRAB_DUR_S = 10       # el agarre dura 10 s
 BORED_DISABLE_S = 5 * 60    # 5 min más ignorada → se desactiva del panel
 
 
-class LiveAnimationMixin:
+class LiveAnimationMixin(CompanionMixin):
     """Comportamiento 'con vida'. Se mezcla en MascotWindow."""
 
     _body_t = 0   # contador de ticks para el movimiento procedural del cuerpo
@@ -113,6 +114,9 @@ class LiveAnimationMixin:
     def _body_raw(self):
         t = self._body_t
         st = self._state
+        c = self._companion_body(t)
+        if c is not None:
+            return c
         if st in ("walk", "to_climb"):
             p = self._walk_phase * math.pi        # un paso por unidad de fase
             air = abs(math.sin(p))                # 0 = pie apoyado, 1 = en el aire
@@ -369,6 +373,10 @@ class LiveAnimationMixin:
 
     def _exit_life(self):
         self._stop_behavior_clock()
+        if self._hidden_layer:
+            self._set_behind_windows(False)
+            self._hidden_layer = False
+        self._state = "idle"
         if self._bored_grab:
             self._end_bored_grab()
         self._facing_left = False
@@ -391,6 +399,10 @@ class LiveAnimationMixin:
             self._facing_left = self._dir < 0
             self._speed = max(1, round(random.randint(3, 4) * self._phys_k))
             self._set_pose("walk" if self._has_pose("walk") else "default")
+            return
+
+        # música, CPU, batería, noche (ver overlay/companion.py)
+        if self._companion_pick():
             return
 
         # dormirse tras mucha quietud (idea 4)
@@ -423,9 +435,17 @@ class LiveAnimationMixin:
             self._state_ttl = random.randint(45, 120)
             if random.random() < 0.25 or self._dir == 0:
                 self._dir = random.choice([-1, 1])
-            self._speed = max(1, round(random.randint(2, 4) * self._phys_k))
+            self._speed = max(1, round(random.randint(2, 4) * self._phys_k
+                                       * self._speed_k()))
             self._facing_left = self._dir < 0
             self._set_pose("walk" if self._has_pose("walk") else "default")
+        elif self._mood == "tired":
+            # con la CPU al rojo no tiene ganas de saltar
+            self._state = "idle"
+            self._state_ttl = random.randint(20, 40)
+            self._idle_accum += self._state_ttl
+            self._speed = 0
+            self._set_pose(self._pose_or("tired", "idle"))
         elif r < 0.88:
             self._idle_accum = 0
             self._start_hop()
@@ -497,7 +517,9 @@ class LiveAnimationMixin:
         reserva si "greet" está desactivada — dos mascotas saltando al
         cruzarse se ve como si se hubiesen bugueado."""
         if (self._greet_cd > 0 or self._greet_ttl > 0 or self._bored_grab or
-                self._state in ("grab", "toss", "jump", "falling", "to_climb")):
+                self._state in ("grab", "toss", "jump", "falling", "to_climb",
+                                "chase", "flee", "to_hide", "hidden", "count",
+                                "seek_sleep", "sleep")):
             return
         self.face_toward(other_cx)
         self._retreat_from = other_cx
@@ -553,6 +575,10 @@ class LiveAnimationMixin:
                     self._state = "falling"
                     self._set_pose("fall" if self._has_pose("fall")
                                    else ("jump" if self._has_pose("jump") else "default"))
+            return True
+
+        # ── estados de compañía (baile, perseguir, escondidas...) ──────────
+        if self._companion_tick():
             return True
 
         # ── ir a trepar a una ventana (idea 5 proactiva) ───────────────────

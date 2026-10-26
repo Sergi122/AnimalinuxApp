@@ -17,6 +17,8 @@ superficie), pero no seguir el cursor por toda la pantalla (Wayland no deja leer
 la posición global del puntero).
 """
 
+import random
+
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -26,7 +28,9 @@ from gi.repository import Gtk4LayerShell as LayerShell  # noqa: E402
 
 from .live_animation import LiveAnimationMixin  # noqa: E402
 from .poses import PoseLoaderMixin  # noqa: E402
+from .toy import ToyMixin  # noqa: E402
 from .clock import Clock  # noqa: E402
+from . import bubble as _bubble  # noqa: E402
 from ..backends.linux.hyprcursor import cursor_pos  # noqa: E402
 from .. import settings
 
@@ -53,6 +57,8 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
         self._lean = 0.0   # grados
         self._bob = 0.0    # desplazamiento vertical, fracción de la altura (+ = arriba)
         self._mirror = False   # espejo horizontal (mirar a la izquierda)
+        self._spin = 0.0       # giro sobre el CENTRO (juguetes que ruedan), grados
+        self._bubble = None    # (textura, w, h, ancla) del globo/cartel, ver bubble.py
 
     def set_mirror(self, on):
         on = bool(on)
@@ -81,6 +87,15 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
             self._bob = frac
             self.invalidate_contents()
 
+    def set_spin(self, deg):
+        if deg != self._spin:
+            self._spin = deg
+            self.invalidate_contents()
+
+    def set_bubble(self, bubble):
+        self._bubble = bubble
+        self.invalidate_contents()
+
     def set_lean(self, deg):
         if deg != self._lean:
             self._lean = deg
@@ -97,6 +112,11 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
             return
         sx, sy, lean, bob = self._sx, self._sy, self._lean, self._bob
         deform = (sx != 1.0 or sy != 1.0 or lean != 0.0 or bob != 0.0)
+        if self._spin:
+            snapshot.save()
+            snapshot.translate(Graphene.Point().init(width / 2.0, height / 2.0))
+            snapshot.rotate(self._spin)
+            snapshot.translate(Graphene.Point().init(-width / 2.0, -height / 2.0))
         if deform:
             snapshot.save()
             # anclar la transformación en los pies (centro-abajo)
@@ -117,6 +137,10 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
             self._tex.snapshot(snapshot, width, height)
         if deform:
             snapshot.restore()
+        if self._spin:
+            snapshot.restore()
+        if self._bubble is not None:
+            _bubble.snapshot_bubble(snapshot, self._bubble, width)
 
 
 def _apply_transparency(display):
@@ -148,7 +172,7 @@ def _apply_transparency(display):
     _CSS_APPLIED = True
 
 
-class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
+class MascotWindow(PoseLoaderMixin, ToyMixin, LiveAnimationMixin, Gtk.Window):
     # Hacia dónde mira. Se espeja al dibujar (no hay texturas "flip" duplicadas
     # en memoria): el setter avisa al paintable.
     @property
@@ -222,7 +246,10 @@ class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
         # por todo el escritorio) y vuelve a compacta al soltar.
         self._full = False
         # con Hyprland el cursor se lee por su socket → nunca hace falta pantalla completa
-        self._poll_ok = cursor_pos() is not None
+        # (en KDE el cursor llega por el puente de KWin, pero sin la cadencia
+        # de 16 ms que pide un arrastre: ahí se usa la superficie completa)
+        from ..backends.linux import hyprcursor as _hc
+        self._poll_ok = _hc._PATH is not None and cursor_pos() is not None
         self._cursor_task = None
         self._surf_w = self._surf_h = 0
         self._ox = self._oy = 0
@@ -388,7 +415,8 @@ class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
             self._overlay.set_margin_start(self._x)
             self._overlay.set_margin_top(self._y)
             return
-        pad = int(0.45 * max(self._cat_w, self._cat_h)) + 6
+        # holgura para squash/inclinación; más si hay un globo o cartel encima
+        pad = max(int(0.45 * max(self._cat_w, self._cat_h)) + 6, self._deco_pad)
         ox = min(pad, self._x)
         oy = min(pad, self._y)
         self._ox, self._oy = ox, oy
@@ -540,7 +568,7 @@ class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
             self._cursor_task = None
         self._sync_surface()
         self._apply_input_region()
-        if self.mode == "life" and self._state != "grab":
+        if self.mode in ("life", "toy") and self._state != "grab":
             vx = getattr(self, "_drag_vx", 0.0)   # px/seg (medido en drag-update)
             vy = getattr(self, "_drag_vy", 0.0)
             # si el último movimiento fue hace rato, soltaste PARADO → sin impulso
@@ -550,7 +578,9 @@ class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
                 if age > 0.08:
                     vx = vy = 0.0
             speed = (vx * vx + vy * vy) ** 0.5
-            if speed > 250:
+            if self.mode == "toy":
+                self.toy_throw(vx, vy)
+            elif speed > 250:
                 # LANZAR: impulso horizontal → arco parabólico. px/seg → px/tick
                 # con factor pequeño y ACOTADO (máx 14 px/tick) para que sea un
                 # lanzamiento creíble y NUNCA un salto/teletransporte.
@@ -562,7 +592,8 @@ class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
                 self._toss_vx = 0.0
                 self._toss_vy = 0.0
                 self._state = "falling"
-            self._pose = "jump" if self._has_pose("jump") else "default"
+            if self.mode == "life":
+                self._pose = "jump" if self._has_pose("jump") else "default"
         if self.on_moved:
             self.on_moved(self.anim["id"], self._x, self._y)
         self._drag_vx = 0.0
@@ -595,9 +626,22 @@ class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
         except Exception:  # noqa: BLE001
             pass
 
+    def _set_behind_windows(self, on):
+        """Escondidas: la capa BOTTOM queda por detrás de las ventanas."""
+        LayerShell.set_layer(self, LayerShell.Layer.BOTTOM if on
+                             else LayerShell.Layer.OVERLAY)
+
+    def _cursor_global(self):
+        return cursor_pos()
+
     def _on_click(self, gesture, n_press, x, y):
         if self.mode == "life":
             self._react_to_touch()
+        elif self.mode == "toy":
+            if n_press >= 2:
+                GLib.idle_add(lambda: self._app.manager.remove_toy(self.anim["id"]) and False)
+            else:
+                self.kick(random.choice((-1, 1)), 0.6)
 
     # ---------- poses / texturas ----------
     # ---------- arranque ----------
@@ -606,6 +650,9 @@ class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
         self._update_screen_size()
         if self.mode == "life":
             self._enter_life()
+        elif self.mode == "toy":
+            self._set_position(self._x, self._y)
+            self._enter_toy()
         else:
             # gif estático: reubica el sprite ahora que conocemos el tamaño real
             self._set_position(self._x, self._y)
@@ -614,6 +661,25 @@ class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
         # Sin tick callback permanente: el repintado se pide solo cuando cambia
         # la textura/posición (ver Clock). Un tick callback por mascota
         # despertaba al proceso en cada vsync (~60 Hz × nº de mascotas).
+
+    def refresh_floor_gap(self):
+        """KDE: hueco real de la barra de abajo (lo cuenta el puente de KWin)
+        para que la mascota camine encima del panel y no detrás."""
+        from ..backends.linux import kwin
+        if not kwin.active():
+            return
+        gap = kwin.bridge().bottom_gap(self._mon_x, self._mon_y,
+                                       self._screen_w, self._screen_h)
+        if gap is None or not 0 <= gap <= 200 or gap == self._floor_offset_y:
+            return
+        self._floor_offset_y = gap
+        if self.mode in ("life", "toy"):
+            old = self._floor_y
+            self._floor_y = max(0, self._screen_h - gap - self._cat_h)
+            if self._ground_y == old:
+                self._ground_y = self._floor_y
+            if self._y >= old - 1 and not self._dragging:
+                self._set_position(self._x, self._floor_y)
 
     def _update_screen_size(self):
         try:
@@ -633,6 +699,7 @@ class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
                 self._mon_x, self._mon_y = geo.x, geo.y
         except Exception:  # noqa: BLE001
             pass
+        self.refresh_floor_gap()
 
     # ---------- animación de frames ----------
     def _schedule_anim(self):
@@ -728,6 +795,8 @@ class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
             self._schedule_anim()
             if self.mode == "life":
                 self._start_behavior_clock()
+            elif self.mode == "toy":
+                self._enter_toy()
 
     def center_x(self):
         scale = self.anim.get("scale", 1.0)

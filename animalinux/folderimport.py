@@ -27,7 +27,8 @@ from PIL import Image
 from .core import image_processor as importer
 
 KNOWN_POSES = ["default", "idle", "walk", "greet", "kiss", "jump", "angry",
-               "grab", "fall"]
+               "grab", "fall", "sleep", "dance", "tired", "worried", "surprised",
+               "stretch"]
 IMG_EXT = (".png", ".webp", ".gif", ".jpg", ".jpeg", ".apng")
 
 

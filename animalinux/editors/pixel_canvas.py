@@ -582,6 +582,39 @@ class PixelCanvas(Gtk.DrawingArea):
         self.queue_draw(); self._notify(layers=True)
         return True
 
+    # ── Aseprite ─────────────────────────────────────────────────────────────
+    def load_aseprite(self, spr, max_dim=512):
+        """Carga un AseSprite (ver editors/aseprite.py) con sus capas."""
+        if max(spr.width, spr.height) > max_dim:
+            return False
+        nfr = min(MAX_FRAMES, len(spr.layers[0].frames))
+        if nfr == 0:
+            return False
+        self.cw, self.ch = spr.width, spr.height
+        layers = []
+        for al in spr.layers:
+            lay = Layer(al.name or tr("Capa 1"), 0, 0)
+            lay.visible, lay.opacity = al.visible, al.opacity
+            lay.frames = [bytearray(f) for f in al.frames[:nfr]]
+            layers.append(lay)
+        self.layers = layers
+        self._layer = len(layers) - 1; self._cur = 0
+        self._undo.clear(); self._redo.clear()
+        self.sel = None; self._sel_path = None
+        self._reset_caches(); self._auto_fit = True
+        self.queue_draw(); self._notify(layers=True)
+        return True
+
+    def to_aseprite(self, frame_ms=100):
+        from .aseprite import AseSprite, AseLayer
+        spr = AseSprite(self.cw, self.ch)
+        for l in self.layers:
+            al = AseLayer(l.name, l.visible, l.opacity)
+            al.frames = [bytes(f) for f in l.frames]
+            spr.layers.append(al)
+        spr.durations = [frame_ms] * self.frame_count
+        return spr
+
     def import_image(self, path, pixelate=True):
         resample = Image.NEAREST if pixelate else Image.LANCZOS
         im = Image.open(path).convert("RGBA").resize((self.cw, self.ch), resample)

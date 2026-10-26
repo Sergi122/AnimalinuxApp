@@ -23,6 +23,8 @@ el sprite movido por márgenes internos aplica sin cambios: Gdk.Surface.set_inpu
 """
 import os
 
+import random
+
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -30,8 +32,10 @@ from gi.repository import Gtk, Gdk, GLib, GObject, Graphene  # noqa: E402
 
 from .live_animation import LiveAnimationMixin  # noqa: E402
 from .poses import PoseLoaderMixin  # noqa: E402
+from .toy import ToyMixin  # noqa: E402
 from . import _x11_hints, _x11_panel
 from .clock import Clock  # noqa: E402
+from . import bubble as _bubble  # noqa: E402
 from .. import settings
 
 _CSS_APPLIED = False
@@ -57,6 +61,8 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
         self._lean = 0.0   # grados
         self._bob = 0.0    # desplazamiento vertical, fracción de la altura (+ = arriba)
         self._mirror = False   # espejo horizontal (mirar a la izquierda)
+        self._spin = 0.0       # giro sobre el CENTRO (juguetes que ruedan), grados
+        self._bubble = None    # (textura, w, h, ancla) del globo/cartel, ver bubble.py
 
     def set_texture(self, tex):
         self._tex = tex
@@ -85,6 +91,15 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
             self._bob = frac
             self.invalidate_contents()
 
+    def set_spin(self, deg):
+        if deg != self._spin:
+            self._spin = deg
+            self.invalidate_contents()
+
+    def set_bubble(self, bubble):
+        self._bubble = bubble
+        self.invalidate_contents()
+
     def set_lean(self, deg):
         if deg != self._lean:
             self._lean = deg
@@ -101,6 +116,11 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
             return
         sx, sy, lean, bob = self._sx, self._sy, self._lean, self._bob
         deform = (sx != 1.0 or sy != 1.0 or lean != 0.0 or bob != 0.0)
+        if self._spin:
+            snapshot.save()
+            snapshot.translate(Graphene.Point().init(width / 2.0, height / 2.0))
+            snapshot.rotate(self._spin)
+            snapshot.translate(Graphene.Point().init(-width / 2.0, -height / 2.0))
         if deform:
             snapshot.save()
             snapshot.translate(Graphene.Point().init(width / 2.0, height - bob * height))
@@ -120,6 +140,10 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
             self._tex.snapshot(snapshot, width, height)
         if deform:
             snapshot.restore()
+        if self._spin:
+            snapshot.restore()
+        if self._bubble is not None:
+            _bubble.snapshot_bubble(snapshot, self._bubble, width)
 
 
 def _apply_transparency(display):
@@ -150,7 +174,7 @@ def _apply_transparency(display):
     _CSS_APPLIED = True
 
 
-class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
+class MascotWindow(PoseLoaderMixin, ToyMixin, LiveAnimationMixin, Gtk.Window):
     BAKE = False   # en X11 las texturas se dejan a resolución original
     FORCE_COMPACT = False   # los backends derivados (Windows) siempre usan ventana del tamaño del sprite
 
@@ -366,7 +390,26 @@ class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
 
     # ---------- modo compacto ----------
     def _calc_pad(self):
-        return int(0.45 * max(self._cat_w, self._cat_h)) + 6 if self._compact else 0
+        if not self._compact:
+            return 0
+        return max(int(0.45 * max(self._cat_w, self._cat_h)) + 6, self._deco_pad)
+
+    def _deco_changed(self):
+        """Hay (o se quitó) un globo encima: la ventana compacta se agranda."""
+        if self._compact:
+            pad = self._calc_pad()
+            if pad != self._pad:
+                self._pad = pad
+                self._apply_win_size()
+                self._xpos = None
+        self._set_position(self._x, self._y)
+
+    def _set_behind_windows(self, on):
+        """Escondidas: por debajo del resto de ventanas (EWMH BELOW)."""
+        _x11_hints.set_below(self, on)
+
+    def _cursor_global(self):
+        return self._global_pointer()
 
     def _win_dims(self):
         if self._compact:
@@ -489,7 +532,7 @@ class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
         if self._cursor_task is not None:
             Clock.get().cancel(self._cursor_task)
             self._cursor_task = None
-        if self.mode == "life" and self._state != "grab":
+        if self.mode in ("life", "toy") and self._state != "grab":
             vx = getattr(self, "_drag_vx", 0.0)   # px/seg (medido en drag-update)
             vy = getattr(self, "_drag_vy", 0.0)
             # si el último movimiento fue hace rato, soltaste PARADO → sin impulso
@@ -499,7 +542,9 @@ class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
                 if age > 0.08:
                     vx = vy = 0.0
             speed = (vx * vx + vy * vy) ** 0.5
-            if speed > 250:
+            if self.mode == "toy":
+                self.toy_throw(vx, vy)
+            elif speed > 250:
                 # LANZAR: impulso horizontal → arco parabólico. px/seg → px/tick
                 # con factor pequeño y ACOTADO (máx 14 px/tick) para que sea un
                 # lanzamiento creíble y NUNCA un salto/teletransporte.
@@ -511,7 +556,8 @@ class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
                 self._toss_vx = 0.0
                 self._toss_vy = 0.0
                 self._state = "falling"
-            self._pose = "jump" if self._has_pose("jump") else "default"
+            if self.mode == "life":
+                self._pose = "jump" if self._has_pose("jump") else "default"
         if self.on_moved:
             self.on_moved(self.anim["id"], self._x, self._y)
         self._drag_vx = 0.0
@@ -543,6 +589,11 @@ class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
     def _on_click(self, gesture, n_press, x, y):
         if self.mode == "life":
             self._react_to_touch()
+        elif self.mode == "toy":
+            if n_press >= 2:
+                GLib.idle_add(lambda: self._app.manager.remove_toy(self.anim["id"]) and False)
+            else:
+                self.kick(random.choice((-1, 1)), 0.6)
 
     def _poll_grab_cursor(self):
         """Durante el agarre por enojo (no el berrinche por aburrimiento, que
@@ -600,6 +651,9 @@ class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
             self._move_x11()
         if self.mode == "life":
             self._enter_life()
+        elif self.mode == "toy":
+            self._set_position(self._x, self._y)
+            self._enter_toy()
         else:
             self._set_position(self._x, self._y)
         self._schedule_anim()
@@ -723,6 +777,8 @@ class MascotWindow(PoseLoaderMixin, LiveAnimationMixin, Gtk.Window):
             self._schedule_anim()
             if self.mode == "life":
                 self._start_behavior_clock()
+            elif self.mode == "toy":
+                self._enter_toy()
 
     def center_x(self):
         scale = self.anim.get("scale", 1.0)
