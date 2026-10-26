@@ -136,17 +136,16 @@ def test_basket_shots_and_fouls():
 
 
 def test_volley_serve_is_a_single_touch():
+    """Mientras tu saque va en el aire, tu cursor no lo toca (ni falta sin querer)."""
     m = _run(Volley, {"difficulty": "medium", "mode": "time", "minutes": 99}, 2,
              lambda m, t: None, rivals=1, helper=False)
     m._now = 0.0
-    # tu saque ya salió (un toque) y el balón sigue en tu campo
     m.state, m.serving, m._pushing = "rally", "you", False
     b = m.ball
     b.x, b.y, b.vx, b.vy = m.W * 0.2, m.F - 300, 6.0, -4.0
-    m.mouse = (b.x - b.r - 5, b.y)            # lo vuelves a tocar
-    before = m.score["pets"]
+    m.mouse = (b.x - b.r - 5, b.y)            # el cursor sigue pegado al balón
     m._your_side(b)
-    assert m.score["pets"] == before + 1      # falta: punto del rival
+    assert (b.vx, b.vy) == (6.0, -4.0) and m.score == {"you": 0, "pets": 0}
 
 
 def test_volley_no_double_touch_by_pets():

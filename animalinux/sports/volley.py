@@ -315,12 +315,9 @@ class Volley(Match):
 
     def _your_side(self, b):
         if self.serving == "you":
-            # el saque es UN toque: tocarlo otra vez antes de que pase la red es falta
-            contact = self.mouse_push(b, MAX_BALL * self.S, k=PUSH_BOUNCE)
-            if contact and not self._pushing:
-                self._fault(tr("¡Doble toque en el saque!"), self._now)
-                return
-            self._pushing = contact
+            # el saque es UN toque: mientras va en el aire tu cursor no toca el
+            # balón (así no hay dobles toques sin querer al sacar)
+            self._pushing = False
             return
         if self.mouse_push(b, MAX_BALL * self.S, k=PUSH_BOUNCE):
             # un empujón continuo (aunque tiemble) cuenta como UN toque: el
