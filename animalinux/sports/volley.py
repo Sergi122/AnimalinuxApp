@@ -35,7 +35,7 @@ class Volley(Match):
         self.g = 0.42 * s
         self.net_x = self.W / 2
         self.net_w = max(5, 7 * s)         # red fina (también su choque)
-        self.net_top = self.F - min(self.H * 0.42, max(1.7 * self.avg_h, self.H * 0.2))
+        self.net_top = self.F - min(self.H * 0.5, max(2.3 * self.avg_h, self.H * 0.3))
         self.y_hit = self.F - max(1.1 * self.avg_h, self.H * 0.18)
         self.st = 0.0                   # reloj de la simulación (s)
         self.state = "serve_you"
@@ -111,9 +111,11 @@ class Volley(Match):
             vx = (tx - b.x) / ticks
             vy = ((self.F - b.r) - b.y - 0.5 * self.g * ticks * ticks) / ticks
             if self._clears(b.x, b.y, vx, vy):
-                break
+                b.vx, b.vy = vx, vy
+                return
             ticks += 1.5
-        b.vx, b.vy = vx, vy
+        # desde tan abajo no pasa directo: bolea por encima de la red
+        self._send(tx, min(b.y, self.net_top) - self.H * 0.1)
 
     # ── saques ────────────────────────────────────────────────────────────
     def _serve(self):
@@ -392,7 +394,7 @@ class Volley(Match):
             self.actor = None
 
     def _spike_point(self):
-        return self.net_x + self.W * 0.06, self.net_top - self.H * 0.06
+        return self.net_x + self.W * 0.06, self.net_top - self.H * 0.13
 
     def _set_for_spike(self, setter):
         """El armado sube y cae en el punto de remate en ~1,5 s: ese es tu
