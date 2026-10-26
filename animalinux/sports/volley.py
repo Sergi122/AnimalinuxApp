@@ -34,7 +34,7 @@ class Volley(Match):
         s = self.S
         self.g = 0.42 * s
         self.net_x = self.W / 2
-        self.net_w = max(5, 7 * s)
+        self.net_w = max(12, 22 * s)       # ancho de la malla (y de su choque)
         self.net_top = self.F - min(self.H * 0.42, max(1.7 * self.avg_h, self.H * 0.2))
         self.y_hit = self.F - max(1.1 * self.avg_h, self.H * 0.18)
         self.st = 0.0                   # reloj de la simulación (s)
@@ -574,32 +574,39 @@ class Volley(Match):
     def draw_field(self, cr):
         s = self.S
         x, top = self.net_x, self.net_top
-        # palo
-        cr.set_source_rgba(0.85, 0.85, 0.9, 0.95)
-        cr.rectangle(x - self.net_w / 2, top, self.net_w, self.F - top)
+        half = self.net_w / 2
+        mh = max(70 * s, (self.F - top) * 0.4)        # alto de la malla
+        # poste (metal) del piso hasta la cinta
+        cr.set_source_rgba(0.62, 0.64, 0.7, 1)
+        cr.rectangle(x - 3 * s, top - 4 * s, 6 * s, self.F - top + 4 * s)
         cr.fill()
-        # malla (la parte de arriba, como una red de verdad)
-        mh = max(60 * s, (self.F - top) * 0.35)
-        cr.set_source_rgba(1, 1, 1, 0.3)
-        cr.set_line_width(1)
-        step = 9 * s
+        cr.set_source_rgba(0.85, 0.87, 0.92, 1)
+        cr.rectangle(x - 3 * s, top - 4 * s, 2 * s, self.F - top + 4 * s)
+        cr.fill()
+        # malla: franja oscura con cuadrícula, como una red de verdad vista de lado
+        cr.set_source_rgba(0.06, 0.07, 0.1, 0.55)
+        cr.rectangle(x - half, top, self.net_w, mh)
+        cr.fill()
+        cr.set_source_rgba(1, 1, 1, 0.45)
+        cr.set_line_width(max(1.0, 1.2 * s))
+        step = 7 * s
         yy = top
         while yy <= top + mh:
-            cr.move_to(x - 22 * s, yy); cr.line_to(x + 22 * s, yy)
+            cr.move_to(x - half, yy)
+            cr.line_to(x + half, yy)
             yy += step
-        xx = x - 22 * s
-        while xx <= x + 22 * s:
-            cr.move_to(xx, top); cr.line_to(xx, top + mh)
+        xx = x - half
+        while xx <= x + half + 0.5:
+            cr.move_to(xx, top)
+            cr.line_to(xx, top + mh)
             xx += step
         cr.stroke()
-        # cinta blanca y antena
-        cr.set_source_rgba(1, 1, 1, 0.95)
-        cr.rectangle(x - 24 * s, top - 3 * s, 48 * s, 6 * s)
+        # cinta blanca arriba y cinta fina abajo
+        cr.set_source_rgba(1, 1, 1, 0.98)
+        cr.rectangle(x - half - 2 * s, top - 3 * s, self.net_w + 4 * s, 7 * s)
         cr.fill()
-        for k in range(6):
-            cr.set_source_rgba(*((0.9, 0.2, 0.25, 1) if k % 2 == 0 else (1, 1, 1, 1)))
-            cr.rectangle(x - 2 * s, top - (k + 1) * 10 * s, 4 * s, 10 * s)
-            cr.fill()
+        cr.rectangle(x - half, top + mh - 2 * s, self.net_w, 3 * s)
+        cr.fill()
         # campo rival: zona prohibida para tu cursor
         cr.set_source_rgba(1, 0.4, 0.5, 0.05)
         cr.rectangle(x + self.net_w / 2, 0, self.W - x, self.F)
