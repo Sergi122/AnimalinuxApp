@@ -24,8 +24,8 @@ class Football(Match):
 
     def setup(self):
         s = self.S
-        self.GW = max(70 * s, self.W * 0.055)            # fondo del arco
-        self.GH = max(2.1 * self.max_h, self.H * 0.24)   # alto del arco
+        self.GW = max(52 * s, self.W * 0.04)             # fondo del arco
+        self.GH = max(1.45 * self.avg_h, self.H * 0.16)  # alto del arco
         self.g = 0.95 * s
         # roles: con 2+ rivales, la del arco es la más cercana a su arco
         if len(self.rivals) >= 2:
@@ -152,14 +152,14 @@ class Football(Match):
         p.face(b.x)
         # salta a por balones altos cerca
         if b.y < p.y and abs(b.x - p.cx) < p.w and b.vy > 0 and chance(0.08):
-            p.jump(-13 * p.k)
+            p.jump(-17 * p.k)
 
     def _keeper_jump(self, p, b, toward):
         """Arquero: salta a por balones altos que van hacia su arco."""
         coming = b.vx * toward > 2 * self.S
         if coming and b.y < p.y + p.h * 0.2 and abs(b.x - p.cx) < p.w * 2.2 \
                 and chance(0.25 * self.diff["skill"] + 0.1):
-            p.jump(-14 * p.k)
+            p.jump(-18 * p.k)
 
     def _kick(self, p, b, direction, clear=False):
         if p.cool > 0 or not p.touches(b, 2):

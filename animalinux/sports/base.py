@@ -287,17 +287,20 @@ class Match:
 
     def _motion(self, x, y):
         lim = self.cursor_limit()
+        top = self.H * 0.5                  # tu cursor juega en la mitad de abajo
+        out = False
         if lim is not None and x > lim:
-            # tu cursor no pasa al campo rival: se le devuelve a tu lado
-            x = lim
-            if not getattr(self, "_warping", False):
-                self._warping = True
-                from ..backends import current as backend
-                try:
-                    backend.warp_cursor(self.mon[0] + lim - 4, self.mon[1] + y)
-                except Exception:  # noqa: BLE001
-                    pass
-                GLib.timeout_add(30, self._unwarp)
+            x, out = lim - 4, True          # no pasa al campo rival
+        if y < top:
+            y, out = top + 4, True          # ni sube de la mitad de la pantalla
+        if out and not getattr(self, "_warping", False):
+            self._warping = True
+            from ..backends import current as backend
+            try:
+                backend.warp_cursor(self.mon[0] + x, self.mon[1] + y)
+            except Exception:  # noqa: BLE001
+                pass
+            GLib.timeout_add(30, self._unwarp)
         self.mouse = (x, y)
 
     def _unwarp(self):

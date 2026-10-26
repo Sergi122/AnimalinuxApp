@@ -34,7 +34,7 @@ class Basket(Match):
     def setup(self):
         s = self.S
         self.g = 0.9 * s
-        self.rim_y = self.F - min(self.H * 0.55, max(2.0 * self.avg_h, self.H * 0.3))
+        self.rim_y = self.F - min(self.H * 0.62, max(2.7 * self.avg_h, self.H * 0.42))
         self.rim_w = self.ball.r * 3.3
         self.board_w = max(6, 10 * s)
         self.three = self.W * 0.42           # distancia de triple
@@ -130,7 +130,7 @@ class Basket(Match):
         near = min(self.rivals, key=lambda p: abs(p.cx - b.x))
         dist = abs(near.cx - b.x)
         if dist < near.w * 2.5:
-            near.jump(-13 * near.k)
+            near.jump(-17 * near.k)
             near.face(b.x)
             k = 1.0 - dist / (near.w * 2.5)
             if chance(0.15 + 0.6 * self.diff["skill"] * k):
@@ -264,7 +264,7 @@ class Basket(Match):
             p.run_to(b.x, sp * p.k, (0, self.W))
             p.face(b.x)
             if b.y < p.y and abs(b.x - p.cx) < p.w and b.vy > 0 and chance(0.06):
-                p.jump(-13 * p.k)
+                p.jump(-17 * p.k)
             if p.cool == 0 and p.touches(b, 4):
                 if b.y > self.F - p.h * 1.6 or chance(0.4):
                     self._pet_takes(p)
@@ -345,7 +345,7 @@ class Basket(Match):
         d.face(b.x)
         coming = self.owner is None and b.vx > 2 * self.S and b.x > self.W * 0.55
         if coming and abs(b.x - d.cx) < d.w * 2.2 and b.y < d.y and chance(0.2):
-            d.jump(-14 * d.k)
+            d.jump(-18 * d.k)
         if self.owner is None and d.cool == 0 and d.touches(b, 3) and b.y < d.y + d.h * 0.4:
             if chance({0.3: 0.25, 0.6: 0.45, 0.9: 0.65}.get(self.diff["skill"], 0.45)):
                 b.vx, b.vy = -abs(b.vx) * 0.5 - 4 * self.S, -5 * self.S
@@ -361,7 +361,7 @@ class Basket(Match):
         h.face(b.x)
         coming = self.owner is None and b.vx < -2 * self.S and b.x < self.W * 0.45
         if coming and abs(b.x - h.cx) < h.w * 2.2 and b.y < h.y and chance(0.2):
-            h.jump(-14 * h.k)
+            h.jump(-18 * h.k)
         if self.owner is None and h.cool == 0 and h.touches(b, 3) and chance(0.35):
             b.vx, b.vy = abs(b.vx) * 0.5 + 4 * self.S, -5 * self.S
             h.cool = 12

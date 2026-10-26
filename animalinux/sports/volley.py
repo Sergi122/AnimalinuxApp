@@ -49,6 +49,7 @@ class Volley(Match):
         self._pushing = False
         self._last_contact = -1.0
         self.hard_hit = False
+        self.spike_live = False
         self.actor = None
         self.serve_at = 0.0
         self.serve_after = 0.0
@@ -221,11 +222,14 @@ class Volley(Match):
             return
 
         if b.x < self.net_x:
+            self.spike_live = False
             self._your_side(b)
             self._move_pets_idle()
+            self._rival_block(b)
         else:
             self.touches = 0
             self._pushing = False
+            self.block_tried = False
             self._pets_side(b)
         if self.helper:
             self._helper(b)
@@ -416,6 +420,7 @@ class Volley(Match):
         kind = w["kind"]
         b, s, d = self.ball, self.S, self.diff
         self.last_spike = True
+        self.spike_live = True          # remate en el aire (hasta que cruce o lo bloqueen)
         p.win._lean_to(12 if p.win._facing_left else -12)
         p.win._squash(1.15, 0.85)
         if kind == "power":
@@ -426,6 +431,49 @@ class Volley(Match):
             # finta: toque suave por encima del bloqueo, cae cerca de la red
             self._send(self.net_x - self.W * random.uniform(0.04, 0.1), self.net_top - self.H * 0.07)
             self.say(tr("¡Finta!"), 0.9, (1, 0.8, 0.4), x=b.x, y=b.y - 50 * s, size=0.7)
+
+    # ── bloqueos en la red ────────────────────────────────────────────────
+    def _block_jump(self, p):
+        """Salto alto de bloqueo: las manos por encima de la cinta."""
+        gp = 1.3 * self.S
+        # el cuerpo tapa la franja justo por encima de la cinta
+        rise = max(6.0, p.floor_top - (self.net_top - p.h * 0.8))
+        p.jump(-math.sqrt(2 * gp * rise))
+
+    def _rival_block(self, b):
+        """La rival más cerca de la red va al bloqueo: se planta en la red
+        cuando el balón está alto cerca de ella en tu campo y salta a la vez
+        que tu ayudante (o contra un empujón fuerte hacia su campo)."""
+        if not self.rivals or getattr(self, "block_tried", False):
+            return
+        near_net = b.x > self.net_x - self.W * 0.2 and b.y < self.net_top
+        fast = b.vx > 2 * self.S and b.x > self.net_x - self.W * 0.14 and b.y < self.net_top + b.r
+        if not (near_net or fast):
+            return
+        p = min(self.rivals, key=lambda r: abs(r.cx - self.net_x))
+        p.run_to(self.net_x + self.net_w + p.w * 0.5, 9 * self.S * p.k,
+                 (self.net_x + self.net_w, self.W))
+        p.face(self.net_x)
+        gp = 1.3 * self.S
+        rise = max(6.0, p.floor_top - (self.net_top - p.h * 0.8))
+        t_p = math.sqrt(2 * rise / gp)                         # ticks hasta su punto alto
+        h = self.helper
+        if p.on_ground:
+            if h is not None and not h.on_ground and abs(h.cx - self.net_x) < self.W * 0.15:
+                if max(0.0, -h.vy / gp) <= t_p:                # salta a la vez que tu ayudante
+                    self._block_jump(p)
+            elif fast and (self.net_x - b.x) / max(1.0, b.vx) <= t_p:
+                self._block_jump(p)
+        reach = abs(p.cx - self.net_x) < p.w * 1.1 and p.y < self.net_top
+        if not p.on_ground and reach and p.touches(b, b.r * 1.3) and b.vx > 0:
+            self.block_tried = True
+            if chance(0.25 + 0.5 * self.diff["skill"]):
+                b.x = self.net_x - self.net_w - b.r
+                b.vx = -abs(b.vx) * 0.55 - 2 * self.S
+                b.vy = abs(b.vy) * 0.3 + 3 * self.S
+                p.win._squash(1.1, 0.9)
+                self.say(tr("¡Bloqueo!"), 0.9, (1, 0.6, 0.5), x=self.net_x + 40 * self.S,
+                         y=self.net_top - 60 * self.S, size=0.7)
 
     def _move_pets_idle(self, skip=None):
         """Sin balón en su campo: vuelven a su posición."""
@@ -444,8 +492,43 @@ class Volley(Match):
         bounds = (0, self.net_x - self.net_w)
         mine = b.x < self.net_x and self.state == "rally"
         tx, ty = self.net_x - self.W * 0.06, self.net_top - self.H * 0.06
+        # ellas arman o rematan: tu ayudante salta a bloquear en la red
+        attack = self.windup is not None or (self.spike_live and b.vx < 0 and not mine)
+        if attack and self.state == "rally":
+            spot = self.net_x - self.net_w - h.w * 0.5
+            left = max(0.1, (self.windup["until"] - self.st) if self.windup else 0.1)
+            need = abs(spot - h.cx) / (left / DT)
+            h.run_to(spot, max(sp * 1.4, need * 1.3), bounds)
+            h.face(self.net_x)
+            # salta anticipando el golpe (como un bloqueador de verdad)
+            w = self.windup
+            # salta para llegar arriba a la vez que la rematadora
+            gp = 1.3 * self.S
+            rise = max(6.0, h.floor_top - (self.net_top - h.h * 0.8))
+            t_h = math.sqrt(2 * rise / gp)                     # ticks hasta su punto más alto
+            timing = False
+            if w is not None and not w["p"].on_ground:
+                t_sp = max(0.0, -w["p"].vy / gp)                # ticks hasta el de la rematadora
+                timing = t_sp <= t_h
+            near = abs(b.x - self.net_x) < self.W * 0.1 and b.y < self.net_top + b.r and b.vx < 0
+            if h.on_ground and (timing or near) and abs(h.cx - spot) < h.w * 1.5:
+                self._block_jump(h)
+            reach = abs(h.cx - self.net_x) < h.w * 1.2 and h.y < self.net_top
+            if not h.on_ground and reach and h.cool == 0 and h.touches(b, b.r * 1.3):
+                h.cool = 20
+                if chance(0.55):
+                    b.x = self.net_x + self.net_w + b.r
+                    b.vx = abs(b.vx) * 0.55 + 2 * self.S
+                    b.vy = abs(b.vy) * 0.3 + 3 * self.S
+                    self.hard_hit = True
+                    self.last_spike = False
+                    self.spike_live = False
+                    self.say(tr("¡Bloqueo de tu ayudante!"), 1.0, (0.6, 0.9, 1),
+                             x=h.cx, y=h.y - 30 * self.S, size=0.6)
+            return
         if not mine:
-            h.run_to(self.W * 0.25, sp * 0.6, bounds)
+            # balón en su campo: espera adelantada, lista para ir al bloqueo
+            h.run_to(self.net_x - self.W * 0.16, sp * 0.8, bounds)
             h.face(b.x)
             return
         # balón alto cerca de la red con toques disponibles: ¡remate!

@@ -872,3 +872,7 @@ TR.update({
 "¡Saque al fondo!": ("Serve hit the back wall!", "Saque no fundo!", "Service dans le mur du fond !", "Aufschlag an die Rückwand!", "サーブが後ろの壁に!", "发球打到后墙!"),
 "Empuja el balón a su campo · tu saque debe pasar la red sin tocar el fondo": ("Push the ball into their court · your serve must clear the net without touching the back wall", "Empurre a bola para o campo delas · seu saque deve passar a rede sem tocar o fundo", "Pousse le ballon dans leur camp · ton service doit passer le filet sans toucher le fond", "Schieb den Ball in ihr Feld · dein Aufschlag muss übers Netz, ohne die Rückwand zu berühren", "相手コートへボールを押そう · サーブは後ろの壁に触れずにネットを越えること", "把球推到对方场地 · 你的发球必须过网且不能碰到后墙"),
 })
+TR.update({
+"¡Bloqueo!": ("Block!", "Bloqueio!", "Contre !", "Block!", "ブロック!", "拦网!"),
+"¡Bloqueo de tu ayudante!": ("Your helper blocks!", "Bloqueio do seu ajudante!", "Contre de ton aide !", "Block deines Helfers!", "アシストのブロック!", "助手拦网!"),
+})
