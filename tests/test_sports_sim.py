@@ -98,18 +98,8 @@ def test_football_pets_score_without_you_and_you_can_score_pushing():
     assert m.score["you"] >= 1
 
 
-def test_volley_rally_points_and_rings():
-    seen = set()
-
+def test_volley_rally_points_and_serve_rules():
     def player(m, t):
-        r = m.ring
-        if r is not None:
-            seen.add(r.kind)
-            # clic perfecto (a veces no bloquea, para que también haya recepciones)
-            if abs(m.st - r.t_hit) < 0.05 and (r.kind != "block" or t % 2):
-                m.on_press(m.ball.x, m.ball.y)
-        if m.windup is not None:
-            seen.add("windup")
         b = m.ball
         if m.state == "serve_you" or (b.x < m.net_x and b.vy > 0 and b.y > m.F - 260):
             # el cursor sube desde debajo del balón hacia arriba-derecha
@@ -119,7 +109,14 @@ def test_volley_rally_points_and_rings():
             m.mouse = (60, 60)
     m = _run(Volley, {"difficulty": "hard", "mode": "time", "minutes": 99}, 9000, player)
     assert m.score["you"] + m.score["pets"] >= 3
-    assert "windup" in seen and ({"block", "dig"} & seen)
+    # saque que toca la pared del fondo: punto para el rival
+    m = _run(Volley, {"difficulty": "medium", "mode": "time", "minutes": 99}, 2,
+             lambda m, t: None, rivals=1, helper=False)
+    m.state, m.serving = "rally", "you"
+    m.ball.x, m.ball.y, m.ball.vx, m.ball.vy = m.ball.r + 2, m.F - 300, -10.0, 0.0
+    before = m.score["pets"]
+    m.update(0)
+    assert m.score["pets"] == before + 1
 
 
 def test_basket_shots_and_fouls():

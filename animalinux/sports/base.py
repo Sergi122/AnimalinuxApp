@@ -193,6 +193,7 @@ class Match:
     SPORT = ""
     BALL = "soccer"
     HOWTO = ""
+    FOOT = 14            # radio de tu «pie» (el cursor), en px a 1080p
 
     def __init__(self, app, opts, pets, helper_win):
         self.app = app
@@ -403,10 +404,10 @@ class Match:
     def mouse_push(self, b, cap, k=1.15):
         """El cursor es un «pie» redondo: empuja el balón, nunca lo agarra.
         Cuanto más rápido lo empujas, más rápido sale."""
-        if self.mouse is None or b.held:
+        if self.mouse is None or b.held or time.monotonic() < getattr(self, "no_push_until", 0):
             return False
         mx, my = self.mouse
-        foot = 14 * self.S
+        foot = self.FOOT * self.S
         dx, dy = b.x - mx, b.y - my
         d = math.hypot(dx, dy)
         if d >= b.r + foot or d == 0:
@@ -420,11 +421,14 @@ class Match:
         else:
             vn = b.vx * nx + b.vy * ny          # cursor quieto: rebota
             if vn < 0:
-                b.vx -= 1.6 * vn * nx
-                b.vy -= 1.6 * vn * ny
+                b.vx -= (0.45 + k) * vn * nx
+                b.vy -= (0.45 + k) * vn * ny
         sp = math.hypot(b.vx, b.vy)
         if sp > cap:
             b.vx, b.vy = b.vx * cap / sp, b.vy * cap / sp
+        # el pie nunca saca el balón de la cancha
+        b.x = min(max(b.x, b.r), self.W - b.r)
+        b.y = min(max(b.y, b.r), self.F - b.r)
         return True
 
     # ── a implementar por cada deporte ────────────────────────────────────

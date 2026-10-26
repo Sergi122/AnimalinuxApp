@@ -20,6 +20,7 @@ class Football(Match):
     SPORT = "football"
     BALL = "soccer"
     HOWTO = N_("Empuja el balón con el mouse hacia el arco de la derecha")
+    FOOT = 34
 
     def setup(self):
         s = self.S

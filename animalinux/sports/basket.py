@@ -14,6 +14,7 @@ mascotas en el de la izquierda. Paredes y techo rebotan.
 """
 import math
 import random
+import time
 
 from ..i18n import N_, tr
 from .base import TICK_MS, Match, Player, ballistic, chance
@@ -21,13 +22,14 @@ from .base import TICK_MS, Match, Player, ballistic, chance
 DT = TICK_MS / 1000.0
 HOLD_MAX_S = 3.0
 SHOT_CLOCK_S = 24.0      # reloj de posesión: hay que tirar antes de 24 s
-MAX_BALL = 40.0
+MAX_BALL = 46.0
 
 
 class Basket(Match):
     SPORT = "basket"
     BALL = "basket"
     HOWTO = N_("Mantén pulsado para agarrar el balón (3 s, sin correr) y suelta con un tirón para tirar al aro de la derecha")
+    FOOT = 30
 
     def setup(self):
         s = self.S
@@ -95,7 +97,7 @@ class Basket(Match):
         b = self.ball
         if self.owner is not None:
             return
-        if math.hypot(x - b.x, y - b.y) <= b.r + 22 * self.S:
+        if math.hypot(x - b.x, y - b.y) <= b.r + 50 * self.S:
             if getattr(self, "pass_to", None) is not None:
                 self.pass_to = None
                 self.say(tr("¡Interceptado!"), 1.0, (1, 0.9, 0.3), y=self.H * 0.3)
@@ -119,8 +121,10 @@ class Basket(Match):
         cap = MAX_BALL * self.S
         if sp > cap:
             vx, vy = vx * cap / sp, vy * cap / sp
-        b.vx, b.vy = vx * 1.05, vy * 1.05
+        b.vx, b.vy = vx * 1.3, vy * 1.3
         self.shot = ("you", b.x)
+        # tu cursor no empuja el balón recién lanzado (si no, chocaría contigo)
+        self.no_push_until = time.monotonic() + 0.35
         self.poss = None
         # ¿una mascota te estorba al lanzar?
         near = min(self.rivals, key=lambda p: abs(p.cx - b.x))
@@ -160,8 +164,8 @@ class Basket(Match):
             sp = math.hypot(self.mvx, self.mvy)
             self.vel_hist.append((self.mvx, self.mvy))
             # un tirón corto para lanzar vale; correr con el balón, no
-            self.fast_ticks = self.fast_ticks + 1 if sp > 22 * s else 0
-            if self.fast_ticks > 7:
+            self.fast_ticks = self.fast_ticks + 1 if sp > 32 * s else 0
+            if self.fast_ticks > 10:
                 self._foul(tr("¡Falta! Corriste con el balón"))
             elif self.st - self.hold_t0 > HOLD_MAX_S:
                 self._foul(tr("¡Falta! 3 segundos"))
