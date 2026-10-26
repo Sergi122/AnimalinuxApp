@@ -252,9 +252,7 @@ async function buildPoseGrid(extractedPoses, declaredPoses, fps) {
 
 // ── Descargar ─────────────────────────────────────────────────────────
 async function downloadPack(pack) {
-  await sb.from("packs")
-    .update({ downloads: (pack.downloads || 0) + 1 })
-    .eq("id", pack.id);
+  await sb.rpc("increment_pack_downloads", { pack_id: pack.id });
   pack.downloads = (pack.downloads || 0) + 1;
   document.getElementById("pack-downloads").textContent =
     `⬇ ${pack.downloads} descargas`;

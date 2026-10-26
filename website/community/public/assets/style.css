@@ -395,3 +395,13 @@ footer {
   nav { display: none; }
   #dz-preview { flex-direction: column; align-items: flex-start; }
 }
+
+/* votos */
+.btn-vote {
+  background: transparent; border: 1px solid var(--border, #3a3f55); color: var(--text2);
+  border-radius: 10px; padding: 4px 10px; font: inherit; font-size: 0.8rem; cursor: pointer;
+  margin-left: auto; margin-right: 8px; transition: transform .12s, color .12s, border-color .12s;
+}
+.btn-vote:hover { color: #ff6b9a; border-color: #ff6b9a; }
+.btn-vote.voted { color: #ff6b9a; border-color: #ff6b9a; background: rgba(255,107,154,.12); }
+.btn-vote.pop { transform: scale(1.18); }

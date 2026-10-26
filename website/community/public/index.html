@@ -45,6 +45,11 @@
       </div>
       <div class="search-bar">
         <input id="search" type="text" placeholder="Buscar mascota o autor…" autocomplete="off">
+        <div class="filter-pills" id="sort-filters">
+          <button class="pill active" data-sort="new">🆕 Más nuevas</button>
+          <button class="pill" data-sort="downloads">⬇ Más descargadas</button>
+          <button class="pill" data-sort="votes">❤ Más votadas</button>
+        </div>
         <div class="filter-pills" id="mode-filters">
           <button class="pill active" data-mode="">Todas</button>
           <button class="pill" data-mode="vida">🧬 Con vida</button>
@@ -103,6 +108,7 @@
         <div class="card-poses"></div>
         <div class="card-footer">
           <span class="card-downloads"></span>
+          <button class="btn-vote" type="button" title="Me gusta">❤ <span class="vote-n">0</span></button>
           <a class="btn-download" href="#">⬇ Descargar</a>
         </div>
       </div>

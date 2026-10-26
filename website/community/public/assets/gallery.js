@@ -1,10 +1,41 @@
 // ── Galería ───────────────────────────────────────────────────────────
-const ALL_POSES = ["default", "idle", "walk", "greet", "kiss", "jump", "angry", "grab", "fall"];
+// ── votos: un id aleatorio por navegador (sin cuenta) ──
+function voterId() {
+  try {
+    let v = localStorage.getItem("al_voter");
+    if (!v) {
+      v = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36)).replace(/-/g, "");
+      localStorage.setItem("al_voter", v);
+    }
+    return v;
+  } catch (_) { return null; }
+}
+function votedSet() {
+  try { return new Set(JSON.parse(localStorage.getItem("al_voted") || "[]")); } catch (_) { return new Set(); }
+}
+function hasVoted(id) { return votedSet().has(id); }
+async function toggleVote(pack, btn) {
+  const voter = voterId();
+  if (!voter) return;
+  const set = votedSet();
+  const on = !set.has(pack.id);
+  const { data, error } = await sb.rpc("vote_pack", { p_pack: pack.id, p_voter: voter, p_on: on });
+  if (error) { console.warn("voto:", error.message); return; }
+  on ? set.add(pack.id) : set.delete(pack.id);
+  try { localStorage.setItem("al_voted", JSON.stringify([...set])); } catch (_) {}
+  pack.votes = data ?? pack.votes;
+  btn.querySelector(".vote-n").textContent = pack.votes ?? 0;
+  btn.classList.toggle("voted", on);
+  btn.classList.add("pop"); setTimeout(() => btn.classList.remove("pop"), 150);
+}
+
+const ALL_POSES = ["default", "idle", "walk", "greet", "kiss", "jump", "angry", "grab", "fall", "sleep", "dance", "tired", "worried", "surprised", "stretch"];
 
 let allPacks = [];
 let activeFilter = "";
 let activeMode   = "";   // "" | "vida" | "sinvida"
 let searchQuery  = "";
+let activeSort   = "new";   // "new" | "downloads" | "votes"
 
 function isVidaPack(pack) {
   const poses = pack.poses || [];
@@ -89,11 +120,23 @@ function buildCard(pack, tpl) {
   card.querySelector(".card-downloads").textContent =
     `⬇ ${pack.downloads ?? 0} descargas`;
 
+  // Votos
+  const voteBtn = card.querySelector(".btn-vote");
+  if (voteBtn) {
+    voteBtn.querySelector(".vote-n").textContent = pack.votes ?? 0;
+    voteBtn.classList.toggle("voted", hasVoted(pack.id));
+    voteBtn.addEventListener("click", e => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleVote(pack, voteBtn);
+    });
+  }
+
   // Click en la tarjeta → página de detalle
   const article = card.querySelector(".pack-card");
   article.style.cursor = "pointer";
   article.addEventListener("click", e => {
-    if (e.target.closest(".btn-download")) return;
+    if (e.target.closest(".btn-download") || e.target.closest(".btn-vote")) return;
     window.location.href = `pack.html?id=${pack.id}`;
   });
 
@@ -133,6 +176,10 @@ function renderGallery() {
     return matchSearch && matchPose;
   });
 
+  const key = activeSort === "downloads" ? "downloads" : activeSort === "votes" ? "votes" : null;
+  if (key) filtered.sort((a, b) => (b[key] || 0) - (a[key] || 0) ||
+                                   String(b.created_at).localeCompare(String(a.created_at)));
+
   const vidaPacks    = filtered.filter(isVidaPack);
   const sinVidaPacks = filtered.filter(p => !isVidaPack(p));
 
@@ -150,10 +197,8 @@ function renderGallery() {
 }
 
 async function downloadPack(pack) {
-  // Incrementar contador
-  await sb.from("packs")
-    .update({ downloads: (pack.downloads || 0) + 1 })
-    .eq("id", pack.id);
+  // Incrementar contador (por RPC: un UPDATE directo lo bloquea RLS)
+  await sb.rpc("increment_pack_downloads", { pack_id: pack.id });
 
   // Descargar archivo
   const { data } = sb.storage
@@ -194,6 +239,17 @@ document.addEventListener("DOMContentLoaded", () => {
     poseFilters.querySelectorAll(".pill").forEach(p => p.classList.remove("active"));
     pill.classList.add("active");
     activeFilter = pill.dataset.pose;
+    renderGallery();
+  });
+
+  // Orden
+  const sortFilters = document.getElementById("sort-filters");
+  sortFilters?.addEventListener("click", e => {
+    const pill = e.target.closest(".pill");
+    if (!pill) return;
+    sortFilters.querySelectorAll(".pill").forEach(p => p.classList.remove("active"));
+    pill.classList.add("active");
+    activeSort = pill.dataset.sort;
     renderGallery();
   });
 

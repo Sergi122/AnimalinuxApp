@@ -22,6 +22,8 @@
 <header class="nav">
   <a class="brand" href="/"><img src="assets/logo.png" alt="">AnimaLinux</a>
   <a class="l hide" href="#features">Funciones</a>
+  <a class="l hide" href="#compania">Compañía</a>
+  <a class="l hide" href="#deportes">Deportes</a>
   <a class="l hide" href="#editores">Editores</a>
   <a class="l hide" href="#instalar">Instalar</a>
   <a class="l hide" href="#cambios">Cambios</a>
@@ -34,9 +36,9 @@
 <section class="hero">
   <div class="wrap g" data-hero>
     <div>
-      <a class="pill" href="#instalar"><b>v0.6.1</b> Nuevo: suavizado de cámara en el editor de animación →</a>
+      <a class="pill" href="#deportes"><b>v0.7.0</b> Nuevo: fútbol, vóley y básquet contra tus mascotas →</a>
       <h1 data-words>Mascotas <span class="grad">con vida</span> para tu escritorio Linux y Windows</h1>
-      <p class="sub">Dibuja con el editor de píxeles o de pintura, comparte packs <code>.alpack</code> y deja que tu mascota camine, salte, salude y te agarre el ratón. Con física real.</p>
+      <p class="sub">Dibuja con el editor de píxeles o de pintura, comparte packs <code>.alpack</code> y deja que tu mascota camine, baile con tu música, juegue con una pelota, te sostenga el Pomodoro y hasta te juegue un partido. Con física real.</p>
       <div class="acts">
         <a class="btn primary" id="dl-main" href="#instalar" data-win="https://github.com/Sergi122/AnimalinuxApp/releases/download/win-v0.6.1/AnimaWin-Setup-0.6.1.exe">Instalar ahora ↓</a>
         <a class="btn" href="https://animalinux-community.web.app">🔍 Buscar animaciones</a>
@@ -45,7 +47,7 @@
     </div>
     <div class="desk" data-parallax="0.06" aria-label="Demostración: mascota caminando por el escritorio">
       <div class="bar"><span></span><span></span><span></span></div>
-      <div class="win"><em>$</em> animalinux --show<br><u>✓</u> overlay listo · 8 poses<br><u>✓</u> física activada<br><em>›</em> la mascota te está mirando…</div>
+      <div class="win"><em>$</em> animalinux --show<br><u>✓</u> overlay listo · 15 poses<br><u>✓</u> física activada<br><em>›</em> suena música: ¡a bailar! 🎵</div>
       <div class="win win2"><em>idle</em> · <em>walk</em> · <em>greet</em><br><em>kiss</em> · <em>jump</em> · <em>angry</em></div>
       <div class="floor"></div>
       <div class="pet" title="¡Haz clic!"><img src="assets/ejemplo_vida_default.png" alt="Mascota de ejemplo"></div>
@@ -70,16 +72,17 @@
   <div class="bento">
     <div class="card b1 rv" data-tilt><div class="ico">✏️</div><h3>Editor de píxeles</h3><p>Estilo Aseprite: capas, línea de tiempo, pixel-perfect, tintas, simetría, modo mosaico, lazo y varita, con los mismos atajos.</p></div>
     <div class="card b2 rv" data-tilt style="--d:80ms"><div class="ico">🖌</div><h3>Editor de animación</h3><p>Estilo Toon Boom Harmony: capas raster y vectoriales, hoja de exposición, papel cebolla, mesa de luz, cámara animada, 12 pinceles y exportar GIF/MP4.</p></div>
-    <div class="card b3 rv" data-tilt><div class="ico">🪟</div><h3>Overlay transparente</h3><p>Una ventana por mascota con física real y 8 poses: idle, walk, greet, kiss, jump, angry, grab y fall.</p></div>
+    <div class="card b3 rv" data-tilt><div class="ico">🪟</div><h3>Overlay transparente</h3><p>Una ventana por mascota con física real y hasta 15 poses: idle, walk, greet, kiss, jump, angry, grab, fall, sleep, dance, tired, worried, surprised y stretch.</p></div>
     <div class="card b4 rv" data-tilt style="--d:80ms"><div class="ico">📦</div><h3>Packs .alpack</h3><p>Importa o exporta personajes completos con todas sus poses y compártelos con la comunidad.</p></div>
-    <div class="card b5 rv" data-tilt style="--d:160ms"><div class="ico">🖥</div><h3>Linux y Windows</h3><p>Hyprland/Sway con layer-shell, GNOME, KDE, Xfce, Cinnamon o MATE por X11 y Windows 10/11 con ventanas nativas Win32.</p></div>
+    <div class="card b5 rv" data-tilt style="--d:160ms"><div class="ico">🖥</div><h3>Linux y Windows</h3><p>Hyprland, Sway y <b>KDE Plasma en Wayland</b> con layer-shell nativo; GNOME, Xfce, Cinnamon o MATE por X11; y Windows 10/11 con ventanas nativas Win32.</p></div>
     <div class="card b6 rv">
       <div><h3 style="margin-top:0">En números</h3><p>Lo que trae la app hoy.</p></div>
       <div class="stats">
         <div class="stat"><b data-count="12">0</b><span>pinceles</span></div>
         <div class="stat"><b data-count="10">0</b><span>blend modes</span></div>
         <div class="stat"><b data-count="48">0</b><span>colores de píxel</span></div>
-        <div class="stat"><b data-count="8">0</b><span>poses</span></div>
+        <div class="stat"><b data-count="15">0</b><span>poses</span></div>
+        <div class="stat"><b data-count="3">0</b><span>deportes</span></div>
         <div class="stat"><b data-count="2">0</b><span>sistemas</span></div>
         <div class="stat"><b data-count="7">0</b><span>idiomas</span></div>
       </div>
@@ -101,6 +104,7 @@
         <li>Papel cebolla, simetría, modo mosaico, cuadrícula, píxel perfecto y tintas.</li>
         <li>Paleta de 48 colores editable, voltear, rotar, escalar, tamaño del lienzo y contorno automático.</li>
         <li>Importa una imagen (la pixela), exporta GIF o fotogramas PNG y guarda cada pose.</li>
+        <li><b>Abre y guarda <code>.aseprite</code></b> directamente (capas, fotogramas y duraciones) y exporta <b>stickers</b>.</li>
       </ul>
     </article>
     <article class="card edcard rv" data-tilt style="--d:80ms">
@@ -135,6 +139,9 @@
     <div class="card rv"><b>📥 Importar</b><span>GIF, WebP, APNG, PNG, vídeo, spritesheets, carpetas de fotogramas y packs <code>.alpack</code>. Recorte de fondo por croma o sin recorte (con IA solo en Linux).</span></div>
     <div class="card rv" style="--d:60ms"><b>📦 Packs para compartir</b><span>Personajes completos con todas sus poses en un solo <code>.alpack</code>, listos para la comunidad.</span></div>
     <div class="card rv" style="--d:120ms"><b>🗂 Proyectos editables</b><span>Guarda tu trabajo como <code>.alproj</code> y retómalo cuando quieras.</span></div>
+    <div class="card rv"><b>💬 Stickers</b><span>Cualquier mascota como sticker animado para Telegram (<code>.webm</code>), Discord (APNG) o WhatsApp (<code>.webp</code>), ajustado a sus límites.</span></div>
+    <div class="card rv" style="--d:60ms"><b>🧩 Aseprite</b><span>Abre tus <code>.aseprite</code> con sus capas y guárdalos de vuelta, sin exportar nada.</span></div>
+    <div class="card rv" style="--d:120ms"><b>🌐 Sube a la comunidad</b><span>Publica tu mascota en la galería desde la app, sin abrir el navegador.</span></div>
   </div>
   <p class="note rv">Capturas reales de AnimaLinux en Windows 10, con lo que dibuja la prueba automática.</p>
 </div></section>
@@ -155,6 +162,62 @@
       <p>Un GIF en bucle flotando en el escritorio. Ideal para un icono animado quieto, sin física ni comportamiento.</p>
     </div>
   </div>
+</div></section>
+
+<section id="compania"><div class="wrap">
+  <p class="eyebrow rv">Compañía</p>
+  <h2 class="rv">Una mascota que <span class="grad">vive contigo</span>.</h2>
+  <p class="lede rv">Reacciona a lo que pasa en tu PC, juega contigo y con las demás, y te ayuda a estudiar o trabajar.</p>
+  <div class="mkgrid" style="margin-top:34px">
+    <div class="card rv"><b>🎵 Baila con tu música</b><span>Spotify, mpv, el navegador… cuando algo suena, baila.</span></div>
+    <div class="card rv" style="--d:60ms"><b>🥵 Se cansa con la CPU al máximo</b><span>Camina despacio, jadea y no quiere saltar.</span></div>
+    <div class="card rv" style="--d:120ms"><b>❗ Se sobresalta con las notificaciones</b><span>Un brinquito y un «!» cada vez que llega un aviso.</span></div>
+    <div class="card rv"><b>🔋 Se preocupa con la batería baja</b><span>Y te pide que la enchufes.</span></div>
+    <div class="card rv" style="--d:60ms"><b>🌙 De noche duerme</b><span>Según la hora real, y las demás se acurrucan a su lado.</span></div>
+    <div class="card rv" style="--d:120ms"><b>🖱 Juega con el cursor</b><span>Si lo dejas quieto se acerca a mirarlo; si lo mueves rápido, lo persigue como un gato con un láser.</span></div>
+    <div class="card rv"><b><img src="assets/toy_ball.png" alt="" style="width:22px;vertical-align:-5px;image-rendering:pixelated"> Pelota y ovillo</b><span>Lánzalos con el mouse y las mascotas corren a patearlos.</span></div>
+    <div class="card rv" style="--d:60ms"><b>🙈 Juegan entre ellas</b><span>Se pillan y juegan a las escondidas detrás de tus ventanas.</span></div>
+    <div class="card rv" style="--d:120ms"><b>🖥 Te siguen de escritorio</b><span>Las con vida llegan de un salto al escritorio nuevo; las sin vida se quedan donde las dejaste.</span></div>
+    <div class="card rv"><b>🍅 Pomodoro</b><span>Una mascota sostiene un cartelito con el tiempo; en el descanso se estiran y te avisan.</span></div>
+    <div class="card rv" style="--d:60ms"><b>💧 Recordatorios</b><span>«Toma agua», «levántate y estírate», cada cuánto tú digas.</span></div>
+    <div class="card rv" style="--d:120ms"><b>🔕 No molestar</b><span>Se esconden solas cuando compartes pantalla o grabas con OBS.</span></div>
+  </div>
+</div></section>
+
+<section id="deportes"><div class="wrap">
+  <p class="eyebrow rv">Deportes</p>
+  <h2 class="rv">Tus mascotas <span class="grad">contra ti</span>.</h2>
+  <p class="lede rv">Elige deporte, equipos (hasta 4 rivales y una mascota de tu lado), dificultad y si se gana por tiempo o a 10 puntos. Se juega con el mouse, en todo tu escritorio.</p>
+  <div class="edgrid">
+    <article class="card edcard rv" data-tilt>
+      <img class="shot" loading="lazy" src="assets/deporte_futbol.webp" alt="Partido de fútbol de AnimaLinux en KDE Plasma">
+      <h3><img src="assets/toy_soccer.png" alt="" style="width:26px;vertical-align:-6px;image-rendering:pixelated"> Fútbol</h3>
+      <ul>
+        <li>En línea sobre el suelo, con un arco en cada esquina.</li>
+        <li>El mouse no agarra el balón: <b>lo empuja</b>. Cuanto más rápido, más fuerte sale.</li>
+        <li>Con 2 o más rivales, una es arquera y las demás atacan y defienden.</li>
+      </ul>
+    </article>
+    <article class="card edcard rv" data-tilt style="--d:80ms">
+      <img class="shot" loading="lazy" src="assets/deporte_voley.webp" alt="Partido de vóley de AnimaLinux en KDE Plasma">
+      <h3><img src="assets/toy_volley.png" alt="" style="width:26px;vertical-align:-6px;image-rendering:pixelated"> Vóley</h3>
+      <ul>
+        <li>Estilo wallyball: las paredes rebotan y solo hay punto cuando el balón toca el piso.</li>
+        <li>Empujas el balón y haces clic a tiempo en <b>anillos estilo osu</b> para rematar, bloquear o recibir.</li>
+        <li>Ellas arman recepción, armado y remate (o finta). Máximo 3 toques por lado.</li>
+      </ul>
+    </article>
+    <article class="card edcard rv" data-tilt style="--d:160ms">
+      <img class="shot" loading="lazy" src="assets/deporte_basquet.webp" alt="Partido de básquet de AnimaLinux en KDE Plasma">
+      <h3><img src="assets/toy_basket.png" alt="" style="width:26px;vertical-align:-6px;image-rendering:pixelated"> Básquet</h3>
+      <ul>
+        <li>Agarras el balón hasta 3 segundos sin correr y lo lanzas con un tirón.</li>
+        <li>Se pasan el balón (puedes interceptarlo), te estorban al tirar y taponan.</li>
+        <li>Canastas de 2 y 3 puntos y reloj de posesión de 24 segundos.</li>
+      </ul>
+    </article>
+  </div>
+  <p class="note rv">Capturas reales en Fedora 44 KDE Plasma (Wayland). El panda es una de las mascotas nuevas de ejemplo.</p>
 </div></section>
 
 <section id="instalar"><div class="wrap">
@@ -195,16 +258,16 @@
 <span class="c"># o compilando tú mismo</span>
 <span class="p">$</span> git clone https://github.com/Sergi122/AnimalinuxApp.git &amp;&amp; cd AnimalinuxApp
 <span class="p">$</span> makepkg -si</pre></div>
-    <div class="panel" id="tab-debian"><pre><button class="copy">Copiar</button><span class="p">$</span> sudo apt install python3 python3-gi gir1.2-gtk-4.0 python3-pip python3-pil \
-                  gir1.2-ayatanaappindicator3-0.1 gir1.2-wnck-3.0
+    <div class="panel" id="tab-debian"><pre><button class="copy">Copiar</button><span class="p">$</span> sudo apt install python3 python3-gi gir1.2-gtk-4.0 python3-pip python3-pil python3-numpy \
+                  gir1.2-ayatanaappindicator3-0.1 gir1.2-wnck-3.0 gir1.2-gtk4layershell-1.0
 
 <span class="p">$</span> git clone https://github.com/Sergi122/AnimalinuxApp.git
 <span class="p">$</span> cd AnimalinuxApp
 <span class="p">$</span> pip install --user --break-system-packages .
 <span class="p">$</span> animalinux --show</pre></div>
     <div class="panel" id="tab-fedora"><pre><button class="copy">Copiar</button><span class="c"># Fedora</span>
-<span class="p">$</span> sudo dnf install python3 python3-gobject gtk4 python3-pillow \
-                  libappindicator-gtk3 libwnck3
+<span class="p">$</span> sudo dnf install python3 python3-gobject gtk4 python3-pillow python3-numpy \
+                  libappindicator-gtk3 libwnck3 gtk4-layer-shell
 
 <span class="c"># openSUSE</span>
 <span class="p">$</span> sudo zypper install python3 python3-gobject gtk4 python3-Pillow libwnck3
@@ -214,14 +277,30 @@
 <span class="p">$</span> pip install --user --break-system-packages .
 <span class="p">$</span> animalinux --show</pre></div>
   </div>
-  <p class="note rv"><code>gtk4-layer-shell</code> solo hace falta en Hyprland/Sway. En GNOME, Cinnamon, MATE y Xfce la app usa su propio backend X11; <code>libwnck</code> es opcional.</p>
+  <p class="note rv"><code>gtk4-layer-shell</code> hace falta en Hyprland, Sway y KDE Plasma (Wayland). En GNOME, Cinnamon, MATE y Xfce la app usa su propio backend X11; <code>libwnck</code> es opcional. O usa <code>install.sh</code>, que lo detecta solo.</p>
 </div></section>
 
 <section id="cambios"><div class="wrap">
   <p class="eyebrow rv">Historial</p>
   <h2 class="rv">Cambios <span class="grad">recientes</span>.</h2>
-  <p class="lede rv">Versión actual: <strong>0.6.1</strong></p>
+  <p class="lede rv">Versión actual: <strong>0.7.0</strong></p>
   <div class="tl">
+    <div class="changelog-item rv">
+      <h3>v0.7.0 <small>Compañía y deportes</small></h3>
+      <span class="date">26 de octubre de 2026</span>
+      <ul>
+        <li><strong>Reaccionan a tu PC:</strong> bailan con la música (MPRIS), se cansan con la CPU al máximo, se sobresaltan con las notificaciones, se preocupan con la batería baja y de noche duermen más (y juntas).</li>
+        <li><strong>Juegan:</strong> persiguen el cursor como un gato con un láser, patean la pelota y el ovillo que lanzas, se pillan y juegan a las escondidas detrás de tus ventanas.</li>
+        <li><strong>Escritorios:</strong> las mascotas con vida llegan de un salto al escritorio nuevo; las sin vida se quedan en el escritorio donde las pusiste.</li>
+        <li><strong>Deportes contra tus mascotas:</strong> fútbol, vóley (con anillos estilo osu, finta, bloqueo y recepción) y básquet (pases, intercepciones, reloj de 24 s). Equipos, dificultad, por tiempo o a 10 puntos.</li>
+        <li><strong>Para estudiar:</strong> Pomodoro con cartelito, recordatorios de agua y de levantarse, y modo no molestar automático al compartir pantalla o grabar.</li>
+        <li><strong>KDE Plasma nativo en Wayland</strong> (antes iba por X11): caminan sobre tus ventanas, encima de la barra, y saben en qué escritorio estás. Probado en Fedora 44.</li>
+        <li><strong>Editores:</strong> abre y guarda <code>.aseprite</code>; exporta stickers para Telegram, Discord y WhatsApp.</li>
+        <li><strong>Poses nuevas:</strong> dance, tired, worried, surprised y stretch (opcionales: si no las dibujas, la mascota usa idle y se mueve igual). Nuevo panda de ejemplo.</li>
+        <li><strong>Comunidad:</strong> votos, orden por más descargadas o más votadas, el contador de descargas por fin suma, y subes tu mascota desde la app.</li>
+        <li>Todo traducido a los 7 idiomas y 117 pruebas automáticas. AnimaWin (Windows) recibirá estas novedades en su próxima versión.</li>
+      </ul>
+    </div>
     <div class="changelog-item rv">
       <h3>v0.6.1 <small>Suavizado de cámara</small></h3>
       <span class="date">11 de octubre de 2026</span>
