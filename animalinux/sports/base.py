@@ -91,6 +91,9 @@ class Player:
         self.cool = 0             # ticks hasta poder volver a tocar
         self.mood_ttl = 0
         self.speed_now = 0.0
+        self.dive_ttl = 0         # plancha: ticks lanzada + levantándose
+        self.dive_vx = 0.0
+        self.dive_bounds = (0, 1e9)
 
     @property
     def cx(self):
@@ -100,7 +103,28 @@ class Player:
     def on_ground(self):
         return self.y >= self.floor_top - 0.5
 
+    @property
+    def diving(self):
+        return self.dive_ttl > 0
+
+    def dive(self, tx, ticks, bounds):
+        """Plancha: se lanza estirada hacia tx para salvar un balón que no
+        alcanza corriendo. Después tarda un poco en levantarse."""
+        if not self.on_ground or self.diving:
+            return False
+        self.dive_bounds = bounds
+        vx = (tx - self.cx) / max(4.0, ticks)
+        cap = self.w * 0.45
+        self.dive_vx = max(-cap, min(cap, vx))
+        self.vy = -5.0 * self.k
+        self.y -= 1
+        self.dive_ttl = int(max(4.0, ticks)) + 18
+        self.win._facing_left = self.dive_vx < 0
+        return True
+
     def run_to(self, tx, speed, bounds):
+        if self.diving:
+            return False                  # en plena plancha no corre
         lo, hi = bounds
         tx = max(lo, min(hi - self.w, tx - self.w / 2))
         d = tx - self.x
@@ -112,7 +136,7 @@ class Player:
         return abs(d) <= speed
 
     def jump(self, vy):
-        if self.on_ground:
+        if self.on_ground and not self.diving:
             self.vy = vy
 
     def face(self, x):
@@ -123,6 +147,12 @@ class Player:
     def physics(self, g):
         if self.hang:
             return
+        if self.diving:
+            lo, hi = self.dive_bounds
+            self.x = max(lo, min(hi - self.w, self.x + self.dive_vx))
+            if self.on_ground:
+                self.dive_vx *= 0.7           # se desliza por el piso
+            self.dive_ttl -= 1
         if not self.on_ground or self.vy < 0:
             self.vy += g
             self.y += self.vy
@@ -146,7 +176,11 @@ class Player:
     def apply(self):
         """Pasa posición y pose a la ventana de la mascota."""
         w = self.win
-        if self.mood_ttl > 0:
+        if self.diving:
+            # estirada en el aire / tumbada en el piso
+            w._set_pose(w._pose_or("fall", "jump"))
+            w._lean_to(-70 if w._facing_left else 70)
+        elif self.mood_ttl > 0:
             pass
         elif not self.on_ground:
             w._set_pose(w._pose_or("jump"))

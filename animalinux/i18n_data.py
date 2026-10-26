@@ -885,3 +885,6 @@ TR.update({
 TR.update({
 "¡Tuya!": ("Yours!", "Sua!", "À toi !", "Deiner!", "任せた!", "你的!"),
 })
+TR.update({
+"¡Plancha!": ("Dive!", "Peixinho!", "Plongeon !", "Hechtbagger!", "フライングレシーブ!", "鱼跃救球!"),
+})

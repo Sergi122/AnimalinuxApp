@@ -361,12 +361,15 @@ class Volley(Match):
         self.free_ball = False
         self.last_spike = False
         if step in ("receive", "return", "set"):
-            p.run_to(self._land_x(), sp, bounds)
+            if not self._try_dive(p, bounds, 0.15 + 0.8 * self.diff["skill"]):
+                p.run_to(self._land_x(), sp, bounds)
             p.face(b.x)
             for o in self.rivals:
                 if o is not p:
                     o.speed_now = 0.0
-            if b.vy > 0 and p.touches(b, b.r * 0.8):
+            if b.vy > 0 and p.touches(b, b.r * (1.3 if p.diving else 0.8)):
+                if p.diving:
+                    self.say(tr("¡Plancha!"), 0.8, (1, 0.8, 0.5), x=p.cx, y=p.y - 30 * self.S, size=0.6)
                 self._pet_touch(p, step)
         elif step == "spike":
             if self.windup is not None:
@@ -512,6 +515,25 @@ class Volley(Match):
             elif r < full + 0.35:
                 self._soft_touch(b, +1)          # lo toca y pasa suave a su campo
 
+    def _try_dive(self, p, bounds, success):
+        """Si el balón va a caer donde p no llega corriendo, se lanza en
+        plancha (con probabilidad `success` de que le salga bien)."""
+        b = self.ball
+        if b.vy <= 0 or p.diving or not p.on_ground:
+            return False
+        land = self._land_x()
+        t = self._t_to_y(self.F - b.r)
+        if t is None:
+            return False
+        ticks = t / DT
+        dist = abs(land - p.cx)
+        run_ticks = dist / max(1.0, 7.0 * self.S * p.k)
+        if run_ticks <= ticks or dist > self.W * 0.3 or ticks > 26:
+            return False
+        if not chance(success):
+            return False
+        return p.dive(land, ticks - 2, bounds)
+
     def _move_pets_idle(self, skip=None):
         """Sin balón en su campo: vuelven a su posición."""
         n = len(self.rivals)
@@ -599,10 +621,13 @@ class Volley(Match):
         # balón que baja en tu campo: juega a 3 toques contigo, sin tocar dos
         # veces seguidas (si el último toque fue suyo, te deja el balón a ti)
         if b.vy > 0 and self.last_toucher != "helper" and self.touches < 3 \
-                and abs(self._land_x() - h.cx) < self.W * 0.32:
-            h.run_to(self._land_x(), sp, bounds)
+                and abs(self._land_x() - h.cx) < self.W * 0.36:
+            if not self._try_dive(h, bounds, 0.85):
+                h.run_to(self._land_x(), sp, bounds)
             h.face(b.x)
-            if h.cool == 0 and h.touches(b, b.r * 0.9):
+            if h.cool == 0 and h.touches(b, b.r * (1.3 if h.diving else 0.9)):
+                if h.diving:
+                    self.say(tr("¡Plancha!"), 0.8, (0.6, 0.9, 1), x=h.cx, y=h.y - 30 * self.S, size=0.6)
                 h.cool = 12
                 h.win._squash(1.1, 0.9)
                 if not self._touch("helper"):
