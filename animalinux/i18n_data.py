@@ -876,3 +876,6 @@ TR.update({
 "¡Bloqueo!": ("Block!", "Bloqueio!", "Contre !", "Block!", "ブロック!", "拦网!"),
 "¡Bloqueo de tu ayudante!": ("Your helper blocks!", "Bloqueio do seu ajudante!", "Contre de ton aide !", "Block deines Helfers!", "アシストのブロック!", "助手拦网!"),
 })
+TR.update({
+"¡Toque de bloqueo!": ("Block touch!", "Toque de bloqueio!", "Touche de contre !", "Blockberührung!", "ワンタッチ!", "拦网触球!"),
+})

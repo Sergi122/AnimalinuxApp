@@ -34,7 +34,7 @@ class Volley(Match):
         s = self.S
         self.g = 0.42 * s
         self.net_x = self.W / 2
-        self.net_w = max(12, 22 * s)       # ancho de la malla (y de su choque)
+        self.net_w = max(5, 7 * s)         # red fina (también su choque)
         self.net_top = self.F - min(self.H * 0.42, max(1.7 * self.avg_h, self.H * 0.2))
         self.y_hit = self.F - max(1.1 * self.avg_h, self.H * 0.18)
         self.st = 0.0                   # reloj de la simulación (s)
@@ -440,6 +440,15 @@ class Volley(Match):
         rise = max(6.0, p.floor_top - (self.net_top - p.h * 0.8))
         p.jump(-math.sqrt(2 * gp * rise))
 
+    def _soft_touch(self, b, direction):
+        """El bloqueo roza el balón: sigue hacia el campo de quien bloquea,
+        frenado y subiendo un poco (fácil de levantar). No cuenta como toque."""
+        b.vx = direction * max(1.5 * self.S, abs(b.vx) * 0.3)
+        b.vy = -random.uniform(4, 7) * self.S
+        b.x = self.net_x + direction * (self.net_w / 2 + b.r + 1)
+        self.say(tr("¡Toque de bloqueo!"), 0.8, (0.9, 0.9, 0.6), x=self.net_x,
+                 y=self.net_top - 60 * self.S, size=0.6)
+
     def _rival_block(self, b):
         """La rival más cerca de la red va al bloqueo: se planta en la red
         cuando el balón está alto cerca de ella en tu campo y salta a la vez
@@ -467,13 +476,17 @@ class Volley(Match):
         reach = abs(p.cx - self.net_x) < p.w * 1.1 and p.y < self.net_top
         if not p.on_ground and reach and p.touches(b, b.r * 1.3) and b.vx > 0:
             self.block_tried = True
-            if chance(0.25 + 0.5 * self.diff["skill"]):
+            r = random.random()
+            full = 0.2 + 0.4 * self.diff["skill"]
+            if r < full:
                 b.x = self.net_x - self.net_w - b.r
                 b.vx = -abs(b.vx) * 0.55 - 2 * self.S
                 b.vy = abs(b.vy) * 0.3 + 3 * self.S
                 p.win._squash(1.1, 0.9)
                 self.say(tr("¡Bloqueo!"), 0.9, (1, 0.6, 0.5), x=self.net_x + 40 * self.S,
                          y=self.net_top - 60 * self.S, size=0.7)
+            elif r < full + 0.35:
+                self._soft_touch(b, +1)          # lo toca y pasa suave a su campo
 
     def _move_pets_idle(self, skip=None):
         """Sin balón en su campo: vuelven a su posición."""
@@ -516,7 +529,11 @@ class Volley(Match):
             reach = abs(h.cx - self.net_x) < h.w * 1.2 and h.y < self.net_top
             if not h.on_ground and reach and h.cool == 0 and h.touches(b, b.r * 1.3):
                 h.cool = 20
-                if chance(0.55):
+                r = random.random()
+                if r < 0.35:
+                    self.spike_live = False
+                    self._soft_touch(b, -1)      # lo toca y pasa suave a tu campo
+                elif r < 0.85:
                     b.x = self.net_x + self.net_w + b.r
                     b.vx = abs(b.vx) * 0.55 + 2 * self.S
                     b.vy = abs(b.vy) * 0.3 + 3 * self.S
@@ -574,38 +591,18 @@ class Volley(Match):
     def draw_field(self, cr):
         s = self.S
         x, top = self.net_x, self.net_top
-        half = self.net_w / 2
-        mh = max(70 * s, (self.F - top) * 0.4)        # alto de la malla
-        # poste (metal) del piso hasta la cinta
-        cr.set_source_rgba(0.62, 0.64, 0.7, 1)
-        cr.rectangle(x - 3 * s, top - 4 * s, 6 * s, self.F - top + 4 * s)
+        mh = max(60 * s, (self.F - top) * 0.35)        # alto de la malla
+        # poste fino del piso hasta la cinta
+        cr.set_source_rgba(0.75, 0.77, 0.82, 0.95)
+        cr.rectangle(x - 1.5 * s, top, 3 * s, self.F - top)
         cr.fill()
-        cr.set_source_rgba(0.85, 0.87, 0.92, 1)
-        cr.rectangle(x - 3 * s, top - 4 * s, 2 * s, self.F - top + 4 * s)
+        # malla: una franja fina y oscura colgada de la cinta (sin cuadritos)
+        cr.set_source_rgba(0.1, 0.11, 0.16, 0.8)
+        cr.rectangle(x - 2.5 * s, top, 5 * s, mh)
         cr.fill()
-        # malla: franja oscura con cuadrícula, como una red de verdad vista de lado
-        cr.set_source_rgba(0.06, 0.07, 0.1, 0.55)
-        cr.rectangle(x - half, top, self.net_w, mh)
-        cr.fill()
-        cr.set_source_rgba(1, 1, 1, 0.45)
-        cr.set_line_width(max(1.0, 1.2 * s))
-        step = 7 * s
-        yy = top
-        while yy <= top + mh:
-            cr.move_to(x - half, yy)
-            cr.line_to(x + half, yy)
-            yy += step
-        xx = x - half
-        while xx <= x + half + 0.5:
-            cr.move_to(xx, top)
-            cr.line_to(xx, top + mh)
-            xx += step
-        cr.stroke()
-        # cinta blanca arriba y cinta fina abajo
+        # cinta blanca arriba
         cr.set_source_rgba(1, 1, 1, 0.98)
-        cr.rectangle(x - half - 2 * s, top - 3 * s, self.net_w + 4 * s, 7 * s)
-        cr.fill()
-        cr.rectangle(x - half, top + mh - 2 * s, self.net_w, 3 * s)
+        cr.rectangle(x - 3 * s, top - 2 * s, 6 * s, 5 * s)
         cr.fill()
         # campo rival: zona prohibida para tu cursor
         cr.set_source_rgba(1, 0.4, 0.5, 0.05)
