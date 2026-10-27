@@ -641,17 +641,41 @@ class Volley(Match):
             self._drive(tx, random.uniform(16, 22) / self.lv["power"])
             self.say(tr("¡Remate!"), 0.8, (1, 0.5, 0.5), x=b.x, y=b.y - 50 * s, size=0.7)
         else:
-            # finta: toque suave por encima del bloqueo, cae cerca de la red
-            self._send(self.net_x - self.W * random.uniform(0.04, 0.1), self.net_top - self.H * 0.07)
+            self._feint(-1)
             self.say(tr("¡Finta!"), 0.9, (1, 0.8, 0.4), x=b.x, y=b.y - 50 * s, size=0.7)
 
+    def _feint(self, d):
+        """Finta: un globito suave por encima del bloqueo que cae en un hueco
+        del campo rival (d = -1 hacia tu campo, +1 hacia el de ellas)."""
+        b = self.ball
+        if d < 0:
+            tx = self._weak_spot(self.net_x - self.W * 0.3, self.net_x - self.W * 0.07)
+        else:
+            far = self.net_x + self.W * 0.3
+            tx = max((self.net_x + self.W * random.uniform(0.07, 0.3) for _ in range(8)),
+                     key=lambda x: min(abs(x - p.cx) for p in self.rivals)) if self.rivals else far
+        # sube claramente por encima de la cinta (y de las manos del bloqueo)
+        apex = min(b.y, self.net_top) - self.H * random.uniform(0.1, 0.16)
+        self._send(tx, max(b.r * 3, apex))
+
     # ── bloqueos en la red ────────────────────────────────────────────────
+    BLOCK_TOP = 1.0     # en el bloqueo, la cabeza sube a la cinta − 1 alto de mascota
+    HANDS = 0.4         # y los brazos estirados tapan otro 40 % por encima
+
+    def _block_rise(self, p):
+        return max(6.0, p.floor_top - (self.net_top - p.h * self.BLOCK_TOP))
+
     def _block_jump(self, p):
-        """Salto alto de bloqueo: las manos por encima de la cinta."""
+        """Salto alto de bloqueo: las manos bien por encima de la cinta."""
         gp = 1.3 * self.S
-        # el cuerpo tapa la franja justo por encima de la cinta
-        rise = max(6.0, p.floor_top - (self.net_top - p.h * 0.8))
-        p.jump(-math.sqrt(2 * gp * rise))
+        p.jump(-math.sqrt(2 * gp * self._block_rise(p)))
+
+    def _block_hands(self, p, b):
+        """¿El balón choca con quien bloquea (cuerpo + brazos estirados)?"""
+        if p.on_ground or abs(p.cx - self.net_x) > p.w * 1.2:
+            return False
+        return p.x - b.r <= b.x <= p.x + p.w + b.r \
+            and p.y - p.h * self.HANDS - b.r <= b.y <= p.y + p.h * 0.7
 
     def _soft_touch(self, b, direction):
         """El bloqueo roza el balón: sigue hacia el campo de quien bloquea,
@@ -664,30 +688,35 @@ class Volley(Match):
 
     def _rival_block(self, b):
         """La rival más cerca de la red va al bloqueo: se planta en la red
-        cuando el balón está alto cerca de ella en tu campo y salta a la vez
-        que tu ayudante (o contra un empujón fuerte hacia su campo)."""
+        cuando el balón está alto cerca de ella en tu campo, o cuando tu
+        ayudante va a rematar (3er toque de tu equipo), y salta calculando
+        cuándo llegará el remate a la red (o contra un empujón fuerte)."""
         if not self.rivals or getattr(self, "block_tried", False) or self.serving:
             return
+        h = self.helper
         near_net = b.x > self.net_x - self.W * 0.2 and b.y < self.net_top
         fast = b.vx > 2 * self.S and b.x > self.net_x - self.W * 0.14 and b.y < self.net_top + b.r
-        if not (near_net or fast):
+        coming = h is not None and self.touches == 2 and self.last_toucher == "you"
+        if not (near_net or fast or coming):
             return
         p = min(self.rivals, key=lambda r: abs(r.cx - self.net_x))
-        p.run_to(self.net_x + self.net_w + p.w * 0.5, 9 * self.S * p.k,
+        p.run_to(self.net_x + self.net_w + p.w * 0.5, 9 * self.S * self.lv["speed"] * p.k,
                  (self.net_x + self.net_w, self.W))
         p.face(self.net_x)
         gp = 1.3 * self.S
-        rise = max(6.0, p.floor_top - (self.net_top - p.h * 0.8))
+        rise = self._block_rise(p)
         t_p = math.sqrt(2 * rise / gp)                         # ticks hasta su punto alto
-        h = self.helper
         if p.on_ground:
-            if h is not None and not h.on_ground and abs(h.cx - self.net_x) < self.W * 0.15:
-                if max(0.0, -h.vy / gp) <= t_p:                # salta a la vez que tu ayudante
+            if h is not None and not h.on_ground and (coming or abs(h.cx - self.net_x) < self.W * 0.15):
+                # lee el remate: ticks hasta que tu ayudante pegue + vuelo hasta la red
+                t_hit = max(0.0, -h.vy / gp)
+                gap = max(0.0, self.net_x - h.cx)
+                travel = 15.0 * gap / max(1.0, gap + self.W * 0.25)
+                if t_hit + travel <= t_p:
                     self._block_jump(p)
             elif fast and (self.net_x - b.x) / max(1.0, b.vx) <= t_p:
                 self._block_jump(p)
-        reach = abs(p.cx - self.net_x) < p.w * 1.1 and p.y < self.net_top
-        if not p.on_ground and reach and p.touches(b, b.r * 1.3) and b.vx > 0:
+        if b.vx > 0 and self._block_hands(p, b):
             self.block_tried = True
             self.you_locked = False
             r = random.random()
@@ -735,7 +764,7 @@ class Volley(Match):
     # ── tu ayudante: recibe, arma y remata ────────────────────────────────
     def _helper(self, b):
         h = self.helper
-        sp = 7.0 * self.S * h.k
+        sp = 7.0 * self.S * self.lv["speed"] * h.k        # juega al nivel de las rivales
         bounds = (0, self.net_x - self.net_w)
         if self.serving:
             # durante un saque: ni se toca el propio ni se bloquea el rival
@@ -756,7 +785,7 @@ class Volley(Match):
             w = self.windup
             # salta para llegar arriba a la vez que la rematadora
             gp = 1.3 * self.S
-            rise = max(6.0, h.floor_top - (self.net_top - h.h * 0.8))
+            rise = self._block_rise(h)
             t_h = math.sqrt(2 * rise / gp)                     # ticks hasta su punto más alto
             timing = False
             if w is not None and not w["p"].on_ground:
@@ -765,15 +794,12 @@ class Volley(Match):
             near = abs(b.x - self.net_x) < self.W * 0.1 and b.y < self.net_top + b.r and b.vx < 0
             if h.on_ground and (timing or near) and abs(h.cx - spot) < h.w * 1.5:
                 self._block_jump(h)
-            reach = abs(h.cx - self.net_x) < h.w * 1.2 and h.y < self.net_top
-            if not h.on_ground and reach and h.cool == 0 and h.touches(b, b.r * 1.3):
+            if h.cool == 0 and b.vx < 0 and self._block_hands(h, b):
                 h.cool = 20
                 self.you_locked = False
                 r = random.random()
-                if r < 0.35:
-                    self.spike_live = False
-                    self._soft_touch(b, -1)      # lo toca y pasa suave a tu campo
-                elif r < 0.85:
+                full = self.lv["block"]           # mismo bloqueo que las rivales
+                if r < full:
                     b.x = self.net_x + self.net_w + b.r
                     b.vx = abs(b.vx) * 0.55 + 2 * self.S
                     b.vy = abs(b.vy) * 0.3 + 3 * self.S
@@ -782,37 +808,41 @@ class Volley(Match):
                     self.spike_live = False
                     self.say(tr("¡Bloqueo de tu ayudante!"), 1.0, (0.6, 0.9, 1),
                              x=h.cx, y=h.y - 30 * self.S, size=0.6)
+                elif r < full + 0.35:
+                    self.spike_live = False
+                    self._soft_touch(b, -1)      # lo toca y pasa suave a tu campo
             return
         if not mine:
             # balón en su campo: espera adelantada, lista para ir al bloqueo
             h.run_to(self.net_x - self.W * 0.16, sp * 0.8, bounds)
             h.face(b.x)
             return
-        # 3er toque con el balón alto cerca de la red: ¡remate! (nunca remata
-        # de primera ni de segunda: juega a 3 toques contigo)
-        near_net = self.net_x - self.W * 0.2 < b.x < self.net_x - b.r
-        if near_net and b.y < self.net_top and self.touches == 2 and self.last_toucher != "helper":
-            h.run_to(b.x + b.vx * 4, sp * 1.3, bounds)
+        # 3er toque (tú le diste el 2º) con el balón por encima de su cabeza:
+        # ¡remate! Nunca remata de primera ni de segunda.
+        attackable = self.touches == 2 and self.last_toucher == "you" \
+            and b.y < h.floor_top - h.h * 0.1 and b.x > self.W * 0.08
+        if attackable:
+            land = self._land_x()
+            # carrera de aproximación hacia donde baja el balón, pegada a la red
+            aim = min(land, self.net_x - self.net_w - h.w * 0.4)
+            h.run_to(aim, sp * 1.4, bounds)
             h.face(self.net_x)
             gp = 1.3 * self.S
             rise = max(4.0, h.floor_top - (b.y + b.r * 0.5))
             t = self._t_to_y(b.y + 1) if b.vy > 0 else None
-            if h.on_ground and abs(b.x - h.cx) < h.w * 1.1 and b.vy > -2 \
+            if h.on_ground and abs(b.x - h.cx) < h.w * 1.2 and b.vy > -2 \
                     and (t is None or t < math.sqrt(2 * rise / gp) * DT + 0.1):
-                h.jump(-math.sqrt(2 * gp * rise))
-            if h.cool == 0 and h.touches(b, b.r) and not h.on_ground:
+                h.jump(-math.sqrt(2 * gp * rise))     # salta lo que haga falta
+            if h.cool == 0 and not h.on_ground and h.touches(b, b.r * 1.1):
                 h.cool = 16
                 if self._touch("helper"):
-                    self.hard_hit = True
-                    self._drive(self._open_spot(), 17)
-                    self.say(tr("¡Remate de tu ayudante!"), 1.0, (0.6, 0.9, 1),
-                             x=h.cx, y=h.y - 30 * self.S, size=0.6)
+                    self._helper_attack(h)
             return
         # balón que baja en tu campo: juega a 3 toques contigo, sin tocar dos
         # veces seguidas (si el último toque fue suyo, te deja el balón a ti)
         if b.vy > 0 and self.last_toucher != "helper" and self.touches < 3 \
                 and abs(self._land_x() - h.cx) < self.W * 0.36:
-            if not self._try_dive(h, bounds, 0.85):
+            if not self._try_dive(h, bounds, self.lv["dive"]):
                 h.run_to(self._land_x(), sp, bounds)
             h.face(b.x)
             if h.cool == 0 and h.touches(b, b.r * (1.3 if h.diving else 0.9)):
@@ -834,11 +864,30 @@ class Volley(Match):
                     self._send(tx, self.net_top - self.H * 0.3, ty)
                     say(tr("¡Te la armo!"))
                 else:
-                    self._send(self._open_spot(), self.net_top - self.H * 0.2)
+                    # 3er toque desde abajo: lo pasa fuerte a un hueco
+                    self.hard_hit = True
+                    self._drive(self._open_spot(), random.uniform(18, 24) / self.lv["power"])
                     say(tr("¡Al otro lado!"))
             return
         h.run_to(self.W * 0.25, sp * 0.6, bounds)
         h.face(b.x)
+
+    def _helper_attack(self, h):
+        """Remate de tu ayudante, tan fuerte como el de las rivales. Lista: si
+        una rival sube a bloquear delante, a veces finta por encima."""
+        s = self.S
+        h.win._lean_to(-12 if h.win._facing_left else 12)
+        h.win._squash(1.15, 0.85)
+        blocker = any(not p.on_ground and abs(p.cx - self.net_x) < self.W * 0.12
+                      for p in self.rivals)
+        if blocker and chance(0.35):
+            self._feint(+1)
+            self.say(tr("¡Finta!"), 0.9, (0.6, 0.9, 1), x=h.cx, y=h.y - 40 * s, size=0.7)
+            return
+        self.hard_hit = True
+        self._drive(self._open_spot(), random.uniform(13, 18) / self.lv["power"])
+        self.say(tr("¡Remate de tu ayudante!"), 1.0, (0.6, 0.9, 1),
+                 x=h.cx, y=h.y - 30 * s, size=0.6)
 
     # ── dibujo ────────────────────────────────────────────────────────────
     def draw_field(self, cr):

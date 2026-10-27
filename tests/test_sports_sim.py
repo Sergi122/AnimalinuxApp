@@ -405,3 +405,18 @@ def test_volley_after_rival_block_your_next_touch_is_the_first():
     assert b.vx < 0 and m.touches == 0 and not m.you_locked
     m._touch("you")
     assert m.touches == 1
+
+
+def test_volley_feint_is_a_real_lob_into_the_court():
+    """La finta sube por encima de la cinta y cae dentro del campo, no pegada a la red."""
+    for d in (-1, +1):
+        m = _volley(rivals=2, helper=True)
+        b = m.ball
+        b.x = m.net_x - d * m.W * 0.05
+        b.y = m.net_top - m.H * 0.13
+        b.vx = b.vy = 0.0
+        m._feint(d)
+        land, _t = m._predict()
+        assert abs(land - m.net_x) > m.W * 0.06, (d, land - m.net_x)
+        assert (land - m.net_x) * d > 0                       # al campo correcto
+        assert b.vy < 0                                       # sube (globito)
