@@ -31,7 +31,10 @@ class RacketMatch(Match):
     FOOT = 18                # zona de golpe del saque (el resto lo golpea la lámina)
     TILT_MAX = 75.0          # inclinación máxima de la paleta (grados)
     TILT_STEP = 10.0         # grados por paso de la rueda del mouse
-    PADDLE_E = 0.55          # rebote de la pelota en la cara de la paleta
+    PADDLE_E = 0.3           # rebote de la pelota en la cara de la paleta
+    SWING_K = 0.5            # cuánto de la velocidad del mouse pasa a la pelota
+    LIFT = 0.3               # elevación al golpear (como al cepillar la pelota)
+    YOU_CAP = 0.75           # tope de tu golpe (fracción de MAX_BALL)
     PUSH_K = 0.9             # cuánto sale la pelota respecto a la velocidad del mouse
     VOLLEY_OK = False        # ¿se puede pegar antes del bote? (tenis sí, salvo el saque)
     SERVE_OWN_BOUNCE = False  # ping-pong: el saque bota primero en tu lado
@@ -527,6 +530,8 @@ class RacketMatch(Match):
         la atraviesa)."""
         if self.mouse is None or not self.ball_reachable(b):
             return False
+        if math.hypot(self.mvx, self.mvy) > 4 * self.SWING_REF * self.S:
+            return False        # el cursor SALTÓ (lo reubicó el sistema): no es un golpe
         r = self.you_racket_r()
         half_l, reach = r, b.r + self.blade_t(r) / 2
         th = math.radians(self.you_tilt)
@@ -545,20 +550,69 @@ class RacketMatch(Match):
                 break
         else:
             return False
-        side = 1.0 if (b.x - px) * nx + (b.y - py) * ny >= 0 else -1.0
+        # golpe en movimiento: sale hacia donde avanza la cara (aunque en este
+        # tick la lámina ya haya pasado el centro); quieta, según el lado
+        mv_n = self.mvx * nx + self.mvy * ny
+        if abs(mv_n) > 1.0 * self.S:
+            side = 1.0 if mv_n > 0 else -1.0
+        else:
+            side = 1.0 if (b.x - px) * nx + (b.y - py) * ny >= 0 else -1.0
         fx, fy = nx * side, ny * side
         b.x, b.y = px + fx * reach, py + fy * reach
-        # rebote contra una pared en movimiento (la cara de la paleta)
-        vn = (b.vx - self.mvx) * fx + (b.vy - self.mvy) * fy
-        if vn < 0:
-            b.vx -= (1 + self.PADDLE_E) * vn * fx * self.PUSH_K
-            b.vy -= (1 + self.PADDLE_E) * vn * fy * self.PUSH_K
-        cap = self.MAX_BALL * self.S
+        # rebote en la cara: la pelota devuelve parte de su velocidad y suma
+        # la del golpe (solo la componente hacia donde mira la cara)
+        vin = b.vx * fx + b.vy * fy
+        swing = max(0.0, self.mvx * fx + self.mvy * fy)
+        if vin >= 0 and swing <= 0:
+            return False                                # se alejan: no hay golpe
+        out = max(0.0, -vin) * self.PADDLE_E + swing * self.SWING_K
+        tx_, ty_ = b.vx - vin * fx, b.vy - vin * fy     # lo que no va contra la cara
+        b.vx = tx_ * 0.5 + fx * out
+        b.vy = ty_ * 0.5 + fy * out - swing * self.LIFT
+        cap = self.MAX_BALL * self.S * self.YOU_CAP
         sp = math.hypot(b.vx, b.vy)
         if sp > cap:
             b.vx, b.vy = b.vx * cap / sp, b.vy * cap / sp
+        if b.vx > 0.5 * self.S:
+            self._depth_by_swing(b, swing)
         b.x = min(max(b.x, b.r), self.W - b.r)
         return True
+
+    SWING_REF = 36.0         # golpe «a fondo» (px/tick a 1080p): cae junto a la línea
+
+    def _depth_by_swing(self, b, swing):
+        """El ángulo de salida lo da la cara de la paleta; la FUERZA del golpe
+        decide lo largo: suave cae cerca de la red, normal a media mesa y a
+        tope junto a la línea de fondo (más que eso se va larga). Si con ese
+        ángulo no pasa la red, va a la red (eso no se corrige)."""
+        q = swing / (self.SWING_REF * self.S)
+        half = self.x_hi - self.net_x
+        depth = 0.2 + 0.75 * min(q, 1.0) + max(0.0, q - 1.0) * 0.4
+        tx = self.net_x + half * (depth + random.gauss(0, 0.05))   # nadie es perfecto
+        ux, uy = b.vx, b.vy
+        n = math.hypot(ux, uy)
+        ux, uy = ux / n, uy / n
+        y1 = self.surf_y - b.r
+
+        def land_x(v):
+            # vuelo sin la red: dónde vuelve a la altura de la superficie
+            x, y, vx, vy = b.x, b.y, ux * v, uy * v
+            for _ in range(400):
+                vy += self.g
+                x += vx
+                y += vy
+                if vy > 0 and y >= y1:
+                    return x
+            return x
+        lo, hi = 1.0 * self.S, self.MAX_BALL * self.S
+        if land_x(hi) < tx:
+            v = hi                                      # ni a tope llega: lo más fuerte
+        else:
+            for _ in range(24):
+                mid = (lo + hi) / 2
+                lo, hi = (mid, hi) if land_x(mid) < tx else (lo, mid)
+            v = (lo + hi) / 2
+        b.vx, b.vy = ux * v, uy * v
 
     # ── IA (mascotas rivales y tu compañera) ──────────────────────────────
     def _racket_pos(self, p):
