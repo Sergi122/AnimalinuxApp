@@ -57,7 +57,6 @@ class CompanionWindow(Gtk.Window):
                      tr("Si lo dejas quieto, una se acerca a mirarlo; si lo mueves rápido cerca del suelo, lo persigue como un gato con un láser."))
         self._switch("pet_games", tr("🏃 Juegan entre ellas"),
                      tr("De vez en cuando se pillan o juegan a las escondidas detrás de una ventana."))
-        self._switch("follow_workspace", tr("🖥 Te siguen al cambiar de escritorio"))
         toys = Gtk.FlowBox()
         toys.set_selection_mode(Gtk.SelectionMode.NONE)
         toys.set_max_children_per_line(3)

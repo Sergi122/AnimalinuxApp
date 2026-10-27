@@ -66,10 +66,6 @@ def workspace_watch(callback):
     return None
 
 
-def workspace_anim_ms():
-    return 0
-
-
 def platforms_async(callback):
     """EnumWindows tarda <1 ms: se resuelve en el acto, en el hilo principal."""
     global _LAST_RECTS

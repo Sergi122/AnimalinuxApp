@@ -14,8 +14,6 @@ las órdenes que cada mascota sabe cumplir y el tick de esos estados nuevos:
   flee(x)            huir de otra mascota (jugando a pillarse)
   hide_at(x)         esconderse detrás de una ventana (escondidas)
   sleep_near(x)      ir a dormir al lado de otra mascota
-  ws_leave(dir, ms)  cambio de escritorio: se va con la pantalla vieja y
-                     llega con la nueva, por el borde contrario, a su sitio
 
 Todo usa SOLO las poses que el usuario dibujó. Si el pack trae poses con
 nombre propio (dance, tired, worried, surprised, stretch) se usan; si no, se
@@ -24,7 +22,6 @@ inventa cuadros.
 """
 import math
 import random
-import time
 
 from gi.repository import GLib
 
@@ -294,67 +291,6 @@ class CompanionMixin:
         self._speed = 0
         self._sleep_phase = 0
         self._set_pose(self._pose_or("sleep", "idle"))
-
-    # ───────────────────────── cambio de escritorio ────────────────────────
-    def ws_leave(self, direction, dur_ms):
-        """Cambio de escritorio: como si viviera en los dos, se va CON la
-        pantalla vieja (se desliza hacia el mismo lado y al ritmo de la
-        animación del escritorio) y llega CON la nueva desde el borde
-        contrario hasta su mismo sitio. direction = +1 si vas al siguiente
-        escritorio (la pantalla vieja se va a la izquierda y la nueva entra
-        por la derecha). Una ventana no puede salir del monitor: la parte
-        que quedaría fuera se desvanece."""
-        if self.mode != "life" or self._dragging or self._grabbing or self._state == "sport":
-            return False
-        anim = getattr(self, "_ws_anim", None)
-        if anim is not None:
-            GLib.source_remove(anim["id"])          # otro cambio a mitad: rehace desde su sitio
-            home = anim["home"]
-        else:
-            home = self._x
-            self.set_paused(True)
-        t0 = time.monotonic()
-        dur = max(0.12, dur_ms / 1000.0)
-        W, w = self._screen_w, self._cat_w
-        st = {"home": home, "gone": False}
-
-        def visible(ux):
-            return max(0.0, min(ux + w, W) - max(ux, 0.0)) / w
-
-        def step():
-            t = min(1.0, (time.monotonic() - t0) / dur)
-            e = 1.0 - (1.0 - t) ** 4                 # rápido al principio, como el escritorio
-            old = home - direction * W * e           # su copia en la pantalla vieja
-            if not st["gone"] and visible(old) > 0.0:
-                ux = old
-            else:
-                st["gone"] = True
-                ux = home + direction * W * (1.0 - e)   # su copia en la pantalla nueva
-            self._set_alpha(visible(ux))
-            self._set_position(min(max(ux, 0), W - w), self._y)
-            if t >= 1.0:
-                self._ws_anim = None
-                self._ws_back(home)
-                return False
-            return True
-        st["id"] = GLib.timeout_add(16, step)
-        self._ws_anim = st
-        return True
-
-    def _ws_back(self, home):
-        """Ya en su sitio del escritorio nuevo: sobre el suelo y a seguir."""
-        self._x = int(home)
-        self._y = self._floor_y
-        if self._state != "sleep":
-            self._land(self._y)
-        self._set_alpha(1.0)
-        self._set_position(self._x, self._y)
-        self.set_paused(False)
-
-    def _set_alpha(self, a):
-        setter = getattr(self, "set_opacity", None)
-        if setter is not None:
-            setter(max(0.0, min(1.0, a)))
 
     # ───────────────────────── tick ────────────────────────────────────────
     def _companion_pick(self):

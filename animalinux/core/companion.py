@@ -34,7 +34,7 @@ DEFAULTS = {
     "react_music": True, "react_cpu": True, "react_notify": True,
     "react_night": True, "react_battery": True,
     "night_start": 23, "night_end": 7,
-    "cursor_play": True, "pet_games": True, "follow_workspace": True,
+    "cursor_play": True, "pet_games": True,
     "pomodoro_work": 25, "pomodoro_break": 5, "pomodoro_long": 15,
     "pomodoro_pet": "",
     "remind_water": 0, "remind_stand": 0,      # minutos; 0 = apagado
@@ -93,7 +93,6 @@ class Companion:
         self.sys.start()
         self._play_id = GLib.timeout_add(PLAY_MS, self._play_tick)
         self._remind_id = GLib.timeout_add_seconds(60, self._remind_tick)
-        self.manager.on_workspace_change(self._on_workspace)
 
     def stop(self):
         self.sys.stop()
@@ -167,21 +166,6 @@ class Companion:
         if on != self.dnd:
             self.dnd = on
             self.manager.set_hidden_all(on)
-
-    # ── escritorios ───────────────────────────────────────────────────────
-    def _on_workspace(self, direction):
-        if not cfg("follow_workspace") or self.dnd:
-            return
-        # se van con la pantalla vieja y llegan con la nueva por el borde
-        # contrario hasta su sitio (al ritmo de la animación del escritorio)
-        try:
-            ms = backend.workspace_anim_ms()
-        except Exception:  # noqa: BLE001
-            ms = 350
-        if ms <= 0:
-            return              # sin animación: el escritorio cambia de golpe y ellas se quedan
-        for w in self.pets():
-            w.ws_leave(direction, ms)
 
     # ── juguetes ──────────────────────────────────────────────────────────
     def throw_toy(self, kind="ball"):
