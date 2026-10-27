@@ -23,8 +23,6 @@ class MascotManager:
         self.toys = {}             # id -> MascotWindow en modo "toy"
         self._toy_n = 0
         self.hidden = False        # modo no molestar: todo oculto
-        self.workspace = None      # escritorio activo ("hypr:3"...)
-        self._ws_cbs = []
         # Idea 5: plataformas = bordes superiores de las ventanas abiertas
         # (coords GLOBALES de Hyprland). Las mascotas se suben/caminan por ellas.
         # Se refresca en segundo plano para no bloquear el bucle GTK.
@@ -70,53 +68,6 @@ class MascotManager:
             if hasattr(win, "refresh_floor_gap"):
                 win.refresh_floor_gap()
 
-    def start_workspace_watch(self):
-        try:
-            self.workspace = backend.active_workspace()
-        except Exception:  # noqa: BLE001
-            self.workspace = None
-        try:
-            backend.workspace_watch(self._on_workspace)
-        except Exception:  # noqa: BLE001
-            pass
-
-    def on_workspace_change(self, cb):
-        """cb(dirección) — lo usa la compañía para que te «sigan»."""
-        self._ws_cbs.append(cb)
-
-    def _on_workspace(self, direction, key):
-        first = self.workspace is None
-        self.workspace = key
-        if first:
-            # ya conocemos el escritorio en que arrancaron: las sin vida que
-            # aún no tenían uno quedan fijadas a este
-            for win in self.mascots.values():
-                if not win.anim.get("workspace"):
-                    self._pin_here(win)
-        for win in self.mascots.values():
-            self._apply_workspace(win)
-        if direction:
-            for cb in self._ws_cbs:
-                cb(direction)
-
-    def _pin_here(self, win):
-        """Una mascota sin vida queda fijada al escritorio actual."""
-        if win.mode == "life" or self.workspace is None:
-            return
-        if win.anim.get("workspace") != self.workspace:
-            win.anim["workspace"] = self.workspace
-            self.library.update(win.anim["id"], workspace=self.workspace)
-
-    def _apply_workspace(self, win):
-        if self.hidden:
-            return
-        ws = win.anim.get("workspace")
-        show = (win.mode == "life" or ws is None or self.workspace is None
-                or ws == self.workspace)
-        if show != win.get_visible():
-            win.set_paused(not show)
-            win.set_visible(show)
-
     # ---------- ciclo de vida de las ventanas ----------
     def spawn(self, anim):
         if anim["id"] in self.mascots:
@@ -125,9 +76,9 @@ class MascotManager:
         win = MascotWindow(self.app, anim, frames_dir, on_moved=self.on_moved)
         self.mascots[anim["id"]] = win
         win.start()
-        if win.mode != "life" and not anim.get("workspace"):
-            self._pin_here(win)
-        self._apply_workspace(win)
+        if self.hidden:
+            win.set_paused(True)
+            win.set_visible(False)
         comp = getattr(self.app, "companion", None)
         if comp is not None:
             win.set_mood(comp.mood_now())
@@ -180,15 +131,9 @@ class MascotManager:
         for win in list(self.mascots.values()) + list(self.toys.values()):
             win.set_paused(hidden)
             win.set_visible(not hidden)
-        if not hidden:
-            for win in self.mascots.values():
-                self._apply_workspace(win)
 
     def on_moved(self, anim_id, x, y):
         self.library.update(anim_id, x=x, y=y)
-        win = self.mascots.get(anim_id)
-        if win is not None:
-            self._pin_here(win)       # la arrastraste aquí: ahora vive aquí
 
     def set_visible(self, anim_id, visible):
         if visible:
@@ -214,8 +159,6 @@ class MascotManager:
         win = self.mascots.get(anim_id)
         if win:
             win.set_mode(mode)
-            self._pin_here(win)
-            self._apply_workspace(win)
 
     def reload(self, anim_id):
         """Recrea la ventana para que cargue las nuevas poses."""

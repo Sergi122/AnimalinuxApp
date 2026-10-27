@@ -57,15 +57,6 @@ def stop_bridges():
     pass
 
 
-def active_workspace():
-    return None
-
-
-def workspace_watch(callback):
-    """Escritorios virtuales de Windows: sin API pública estable; no se sigue."""
-    return None
-
-
 def platforms_async(callback):
     """EnumWindows tarda <1 ms: se resuelve en el acto, en el hilo principal."""
     global _LAST_RECTS

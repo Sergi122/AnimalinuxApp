@@ -40,6 +40,11 @@ class Library:
                 data = json.loads(paths.LIBRARY_FILE.read_text())
                 self.config = data.get("config", self.config)
                 self.animations = data.get("animations", {})
+                # 0.7.0–0.8.1.4 fijaban las sin vida a un escritorio; ahora
+                # todas se ven en todos: se borra esa fijación vieja
+                pinned = [a for a in self.animations.values() if a.pop("workspace", None)]
+                if pinned:
+                    self.save()
             except (json.JSONDecodeError, OSError):
                 # archivo corrupto: empezamos limpio sin romper la app
                 self.animations = {}

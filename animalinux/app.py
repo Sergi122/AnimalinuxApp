@@ -93,8 +93,7 @@ class AnimaApp(Gtk.Application):
         self._prox_id = GLib.timeout_add(800, self.manager.check_proximity)
         # vigilar bordes de ventanas para que la mascota se suba/camine por ellos
         self.manager.start_platform_watch()
-        # sin vida = fija a su escritorio; con vida = te acompaña
-        self.manager.start_workspace_watch()
+        # KDE: si cambia la barra de tareas, mover el suelo
         self.manager.start_floor_watch()
         # compañía: reacciones al sistema, juguetes, juegos, Pomodoro...
         from .core.companion import Companion
