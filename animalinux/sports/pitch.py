@@ -5,7 +5,8 @@ recibe el mouse (empujar, hacer clic a tiempo, agarrar y lanzar).
 
 Wayland (Hyprland, Sway, KDE): superficie wlr-layer-shell en la capa OVERLAY
 anclada a los cuatro bordes. X11: ventana sin decorar del tamaño del monitor
-con los mismos hints EWMH que las mascotas. Las mascotas siguen siendo sus
+con los mismos hints EWMH que las mascotas. Windows: ventana sin decorar del
+tamaño del monitor, siempre encima y fuera de la barra de tareas (Win32). Las mascotas siguen siendo sus
 propias ventanas: la cancha solo pinta lo que no es mascota.
 """
 import gi
@@ -19,7 +20,7 @@ _CSS = False
 
 
 def supported():
-    return BACKEND in ("wayland", "x11")
+    return BACKEND in ("wayland", "x11", "win32")
 
 
 def _transparent(display):
@@ -66,6 +67,8 @@ class PitchWindow(Gtk.Window):
                 LS.set_margin(self, e, 0)
             LS.set_exclusive_zone(self, -1)
             LS.set_keyboard_mode(self, LS.KeyboardMode.ON_DEMAND)
+        elif BACKEND == "win32":
+            self.connect("map", lambda *_: GLib.idle_add(self._init_win32))
         else:
             from ..overlay import _x11_hints
             self.set_default_size(w, h + 1)
@@ -91,6 +94,15 @@ class PitchWindow(Gtk.Window):
         keys = Gtk.EventControllerKey()
         keys.connect("key-pressed", lambda _c, kv, _kc, _m: self.h["key"](Gdk.keyval_name(kv)) or False)
         self.add_controller(keys)
+
+    def _init_win32(self):
+        from ..backends.windows import win32
+        h = win32.hwnd_from_gtk(self)
+        if h is None:
+            return False
+        k = win32.system_scale()
+        win32.make_pitch_window(h, self.geo[0] * k, self.geo[1] * k)
+        return False
 
     def _move_x11(self):
         from ..overlay import _x11_hints

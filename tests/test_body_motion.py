@@ -57,3 +57,23 @@ def test_tired_droops_and_worried_shivers():
     worried = _stub("idle", _mood="worried")
     leans = {round(worried._body_motion()[2], 3) for _ in range(10)}
     assert len(leans) > 3
+
+
+def test_boredom_only_sulks_and_never_takes_mouse_or_keyboard(monkeypatch):
+    """15 min sin tocarla: se enfurruña un rato y sigue. Nada de agarrar el
+    ratón, bloquear el teclado ni quitarse sola del escritorio."""
+    from animalinux.overlay import live_animation as la
+    now = 10_000_000_000
+    monkeypatch.setattr(la.GLib, "get_monotonic_time", lambda: now)
+    poses = []
+    o = types.SimpleNamespace(
+        _dragging=False, _grabbing=False, _state="walk", _speed=3, _state_ttl=0,
+        _last_interaction=now - (la.BORED_SULK_S + 1) * 1_000_000,
+        _app=types.SimpleNamespace(library=types.SimpleNamespace(config={})),
+        _has_pose=lambda n: n == "angry", _set_pose=poses.append)
+    o._bored_sulk_s = types.MethodType(LiveAnimationMixin._bored_sulk_s, o)
+    LiveAnimationMixin._check_boredom(o)
+    assert o._state == "idle" and o._speed == 0 and poses == ["angry"]
+    assert o._grabbing is False and o._last_interaction == now     # vuelve a contar
+    for gone in ("_start_bored_grab", "_disable_self", "_grab_keyboard"):
+        assert not hasattr(LiveAnimationMixin, gone), gone

@@ -371,8 +371,6 @@ class MascotWindow(PoseLoaderMixin, ToyMixin, LiveAnimationMixin, Gtk.Window):
         self._retreat_from = None  # X de la otra mascota tras saludarse (idea 7)
         # berrinche por aburrimiento (idea 11)
         self._last_interaction = GLib.get_monotonic_time()
-        self._bored_phase = 0    # 0=normal 1=ya agarró 2=desactivada
-        self._bored_grab = False
         self._orig_scale = anim.get("scale", 1.0)
 
     # ---------- posición ----------
@@ -567,24 +565,6 @@ class MascotWindow(PoseLoaderMixin, ToyMixin, LiveAnimationMixin, Gtk.Window):
         if self.mode == "life" and self._state != "grab":
             self._wake()              # pasar el cursor por encima = atención
             self.trigger_greet()
-
-    def _grab_keyboard(self, on):
-        """Berrinche: bloquear/soltar el teclado. En X11 no existe el modo
-        "exclusive keyboard" de layer-shell; el equivalente es un grab de
-        teclado por Gdk.Seat (API portable de GDK4, no específica de X11)."""
-        try:
-            surf = self.get_surface()
-            if surf is None:
-                return
-            display = self.get_display() or Gdk.Display.get_default()
-            seat = display.get_default_seat()
-            if on:
-                seat.grab(surf, Gdk.SeatCapabilities.KEYBOARD, False,
-                           None, None, None, None)
-            else:
-                seat.ungrab()
-        except Exception:  # noqa: BLE001
-            pass
 
     def _on_click(self, gesture, n_press, x, y):
         if self.mode == "life":

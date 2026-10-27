@@ -40,12 +40,12 @@ GREET_COOLDOWN = 80         # ticks (~5 s) entre saludos por proximidad
 REF_HEIGHT = 150            # altura de referencia para escalar la física
 SLEEP_AFTER = 320           # ticks de quietud acumulada antes de dormirse (~19s)
 
-# Berrinche por aburrimiento (idea 11). Segundos REALES sin interacción del
-# usuario. Se pueden anular desde library.json (bored_grab_s / bored_grab_dur_s
-# / bored_disable_s) — útil para probar con valores cortos.
-BORED_GRAB_S = 15 * 60      # 15 min sin atención → agarra el ratón
-BORED_GRAB_DUR_S = 10       # el agarre dura 10 s
-BORED_DISABLE_S = 5 * 60    # 5 min más ignorada → se desactiva del panel
+# Aburrimiento: tras estos segundos REALES sin que la toques, se enfurruña un
+# ratito (cara de enfado, quieta) y sigue con lo suyo. NO te quita el mouse ni
+# el teclado ni se va sola (antes sí: era molesto con varias mascotas). Se
+# puede anular desde library.json (bored_sulk_s), útil para probar.
+BORED_SULK_S = 15 * 60
+BORED_SULK_TICKS = 70       # ~4 s enfurruñada
 
 
 class LiveAnimationMixin(CompanionMixin):
@@ -189,9 +189,6 @@ class LiveAnimationMixin(CompanionMixin):
     def _interaction_now(self):
         """Marca atención del USUARIO (resetea el reloj de aburrimiento)."""
         self._last_interaction = GLib.get_monotonic_time()
-        self._bored_phase = 0
-        if self._bored_grab:
-            self._end_bored_grab()
 
     def _wake(self):
         """El usuario la toca/arrastra/pasa por encima: cuenta como atención y
@@ -282,71 +279,26 @@ class LiveAnimationMixin(CompanionMixin):
         self._anger = max(0, self._anger - 1)
         return False
 
-    # ───────────────────── berrinche por aburrimiento (idea 11) ────────────
-    def _bored_cfg(self):
+    # ───────────────────── aburrimiento: se enfurruña un rato ───────────────
+    def _bored_sulk_s(self):
         try:
-            c = self._app.library.config
-            return (c.get("bored_grab_s", BORED_GRAB_S),
-                    c.get("bored_grab_dur_s", BORED_GRAB_DUR_S),
-                    c.get("bored_disable_s", BORED_DISABLE_S))
+            return self._app.library.config.get("bored_sulk_s", BORED_SULK_S)
         except Exception:  # noqa: BLE001
-            return (BORED_GRAB_S, BORED_GRAB_DUR_S, BORED_DISABLE_S)
+            return BORED_SULK_S
 
     def _check_boredom(self):
-        if self._dragging or self._grabbing or self._bored_grab:
+        if self._dragging or self._grabbing:
             return
-        grab_s, _dur, disable_s = self._bored_cfg()
         idle = (GLib.get_monotonic_time() - self._last_interaction) / 1_000_000.0
-        if self._bored_phase == 0 and idle >= grab_s:
-            self._bored_phase = 1
-            self._start_bored_grab()
-        elif self._bored_phase == 1 and idle >= grab_s + disable_s:
-            self._bored_phase = 2
-            self._disable_self()
-
-    def _start_bored_grab(self):
-        if not self._has_pose("grab"):
-            # sin la pose "grab" el usuario no quiere el berrinche de agarrar
-            # el ratón ni que se bloquee el teclado — la cuenta hacia "se
-            # desactiva sola" sigue igual (no depende de _bored_grab, ver
-            # _check_boredom), solo se salta el show.
-            if self._has_pose("angry"):
-                self._set_pose("angry")
+        if idle < self._bored_sulk_s() or self._state not in ("idle", "walk", "rest"):
             return
-        _g, dur, _d = self._bored_cfg()
-        self._bored_grab = True
-        # NO se agranda (escalar el bitmap se ve pixelado): el drama es el
-        # temblor frenético + agarrar el ratón con cara de enfado.
-        self._start_grab()
-        self._grab_ttl = max(1, int(dur * 1000 / BEHAVIOR_INTERVAL))   # ~10 s
-        self._grab_keyboard(True)      # además bloquea el teclado
+        # vuelve a contar desde ahora: un rato enfurruñada y a seguir
+        self._last_interaction = GLib.get_monotonic_time()
+        self._state = "idle"
+        self._state_ttl = BORED_SULK_TICKS
+        self._speed = 0
         if self._has_pose("angry"):
             self._set_pose("angry")
-
-    def _end_bored_grab(self):
-        self._bored_grab = False
-        self._grab_ttl = 0
-        self._grabbing = False
-        self._grab_keyboard(False)
-        self._paintable.set_squash(1.0, 1.0)
-        self._update_input_region()
-        self._state = "falling"
-        self._set_pose("fall" if self._has_pose("fall")
-                       else ("jump" if self._has_pose("jump") else "default"))
-
-    def _disable_self(self):
-        """Se rinde: se quita del escritorio y se desmarca en el panel."""
-        aid = self.anim.get("id")
-        app = self._app
-
-        def go():
-            try:
-                app.library.update(aid, on_desktop=False)
-                app.manager.set_visible(aid, False)
-            except Exception:  # noqa: BLE001
-                pass
-            return False
-        GLib.timeout_add(30, go)
 
     # ───────────────────────── ciclo de vida ───────────────────────────────
     def _enter_life(self):
@@ -377,8 +329,6 @@ class LiveAnimationMixin(CompanionMixin):
             self._set_behind_windows(False)
             self._hidden_layer = False
         self._state = "idle"
-        if self._bored_grab:
-            self._end_bored_grab()
         self._facing_left = False
         self._set_pose("default")
         self._squash(1.0, 1.0)
@@ -516,7 +466,7 @@ class LiveAnimationMixin(CompanionMixin):
         ("kiss") es un gesto para el usuario, no entre mascotas. Sin salto de
         reserva si "greet" está desactivada — dos mascotas saltando al
         cruzarse se ve como si se hubiesen bugueado."""
-        if (self._greet_cd > 0 or self._greet_ttl > 0 or self._bored_grab or
+        if (self._greet_cd > 0 or self._greet_ttl > 0 or
                 self._state in ("grab", "toss", "jump", "falling", "to_climb",
                                 "chase", "flee", "to_hide", "hidden", "count",
                                 "seek_sleep", "sleep")):
@@ -552,29 +502,19 @@ class LiveAnimationMixin(CompanionMixin):
             self._paintable.set_lean(7.0)        # dormita inclinada
             return True
 
-        # ── agarre del ratón (manual o por berrinche) ──────────────────────
+        # ── agarre del ratón (solo si la tocas 4 veces seguidas) ───────────
         if self._state == "grab":
-            if self._bored_grab:
-                # temblor frenético + pulso de squash (sin escalar → sin pixelar)
-                self._set_position(self._x + random.randint(-3, 3),
-                                   self._y + random.randint(-3, 3))
-                self._paintable.set_squash(1.0 + random.uniform(-0.06, 0.06),
-                                           1.0 + random.uniform(-0.06, 0.06))
-            else:
-                self._poll_grab_cursor()
+            self._poll_grab_cursor()
             self._grab_ttl -= 1
             if self._grab_ttl <= 0:
                 self._grab_ttl = 0
                 self._anger = 0
-                if self._bored_grab:
-                    self._end_bored_grab()
-                else:
-                    self._end_grab_restore()
-                    self._toss_vx = 0.0
-                    self._toss_vy = 0.0
-                    self._state = "falling"
-                    self._set_pose("fall" if self._has_pose("fall")
-                                   else ("jump" if self._has_pose("jump") else "default"))
+                self._end_grab_restore()
+                self._toss_vx = 0.0
+                self._toss_vy = 0.0
+                self._state = "falling"
+                self._set_pose("fall" if self._has_pose("fall")
+                               else ("jump" if self._has_pose("jump") else "default"))
             return True
 
         # ── estados de compañía (baile, perseguir, escondidas...) ──────────

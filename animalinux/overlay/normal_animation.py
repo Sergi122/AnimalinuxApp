@@ -378,8 +378,6 @@ class MascotWindow(PoseLoaderMixin, ToyMixin, LiveAnimationMixin, Gtk.Window):
         self._retreat_from = None  # X de la otra mascota tras saludarse (idea 7)
         # berrinche por aburrimiento (idea 11)
         self._last_interaction = GLib.get_monotonic_time()
-        self._bored_phase = 0    # 0=normal 1=ya agarró 2=desactivada
-        self._bored_grab = False
         self._orig_scale = anim.get("scale", 1.0)
 
 
@@ -616,15 +614,6 @@ class MascotWindow(PoseLoaderMixin, ToyMixin, LiveAnimationMixin, Gtk.Window):
         if self.mode == "life" and self._state != "grab":
             self._wake()              # pasar el cursor por encima = atención
             self.trigger_greet()
-
-    def _grab_keyboard(self, on):
-        """Berrinche: bloquear/soltar el teclado (capa exclusiva)."""
-        try:
-            mode = (LayerShell.KeyboardMode.EXCLUSIVE if on
-                    else LayerShell.KeyboardMode.NONE)
-            LayerShell.set_keyboard_mode(self, mode)
-        except Exception:  # noqa: BLE001
-            pass
 
     def _set_behind_windows(self, on):
         """Escondidas: la capa BOTTOM queda por detrás de las ventanas."""

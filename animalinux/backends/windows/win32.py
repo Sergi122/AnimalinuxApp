@@ -120,6 +120,21 @@ def make_overlay_window(hwnd):
                         SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED)
 
 
+def make_pitch_window(hwnd, x, y):
+    """La cancha de los deportes: encima de todo y fuera de la barra de
+    tareas, pero SÍ toma el foco (Esc para salir) y recibe el mouse en todo
+    el monitor. x, y = esquina del monitor en px físicos."""
+    ex = _get_long(hwnd, GWL_EXSTYLE)
+    ex = (ex | WS_EX_TOOLWINDOW | WS_EX_TOPMOST) & ~(WS_EX_APPWINDOW | WS_EX_NOACTIVATE)
+    _set_long(hwnd, GWL_EXSTYLE, ex)
+    user32.SetWindowPos(hwnd, HWND_TOPMOST, int(x), int(y), 0, 0,
+                        SWP_NOSIZE | SWP_FRAMECHANGED)
+    try:
+        user32.SetForegroundWindow(hwnd)
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def set_bottom(hwnd, bottom):
     """Escondidas: al fondo del orden Z (detrás de las ventanas) o de vuelta
     a siempre encima."""

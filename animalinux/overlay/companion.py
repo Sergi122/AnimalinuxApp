@@ -65,7 +65,7 @@ class CompanionMixin:
     def is_busy(self):
         """Ocupada con algo que no conviene interrumpir (arrastre, agarre,
         en el aire, escondida...)."""
-        return (self._dragging or self._grabbing or self._bored_grab or
+        return (self._dragging or self._grabbing or
                 self._state in ("grab", "jump", "toss", "falling", "to_climb",
                                 "to_hide", "hidden", "count"))
 
