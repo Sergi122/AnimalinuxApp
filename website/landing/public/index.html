@@ -40,7 +40,7 @@
       <h1 data-words>Mascotas <span class="grad">con vida</span> para tu escritorio Linux y Windows</h1>
       <p class="sub">Dibuja con el editor de píxeles o de pintura, comparte packs <code>.alpack</code> y deja que tu mascota camine, baile con tu música, juegue con una pelota, te sostenga el Pomodoro y hasta te juegue un partido. Con física real.</p>
       <div class="acts">
-        <a class="btn primary" id="dl-main" href="#instalar" data-win="https://github.com/Sergi122/AnimalinuxApp/releases/download/win-v0.8.3/AnimaWin-Setup-0.8.3.exe">Instalar ahora ↓</a>
+        <a class="btn primary" id="dl-main" href="#instalar" data-win="https://github.com/Sergi122/AnimalinuxApp/releases/download/win-v0.8.3.1/AnimaWin-Setup-0.8.3.1.exe">Instalar ahora ↓</a>
         <a class="btn" href="https://animalinux-community.web.app">🔍 Buscar animaciones</a>
         <a class="btn" href="https://github.com/Sergi122/AnimalinuxApp">GitHub</a>
       </div>
@@ -241,7 +241,7 @@
   <h2 class="rv">Listo en <span class="grad">un minuto</span>.</h2>
   <p class="lede rv" id="inst-lede">Elige tu sistema. <span id="os-hint"></span></p>
   <div class="dlrow rv">
-    <a class="dl card" id="dl-card-win" href="https://github.com/Sergi122/AnimalinuxApp/releases/download/win-v0.8.3/AnimaWin-Setup-0.8.3.exe">
+    <a class="dl card" id="dl-card-win" href="https://github.com/Sergi122/AnimalinuxApp/releases/download/win-v0.8.3.1/AnimaWin-Setup-0.8.3.1.exe">
       <img class="dli-img" src="assets/animawin.png" alt="Logo de AnimaWin"><div><b>AnimaWin · Windows 10 / 11</b><small>Instalador .exe · 71 MB · se actualiza solo</small></div><span class="go">⬇ Descargar</span>
     </a>
     <a class="dl card" id="dl-card-linux" href="#instalar" data-tab-go="arch">
@@ -260,9 +260,9 @@
     <div class="panel" id="tab-windows"><div class="winbox">
       <h3><img class="h3-logo" src="assets/animawin.png" alt=""> AnimaWin para Windows <small>(beta)</small></h3>
       <p>AnimaWin es AnimaLinux para Windows: los mismos editores y el mismo modo Vida. Un solo <code>.exe</code> con todo incluido (no necesitas instalar Python ni GTK), que se instala en tu usuario sin permisos de administrador.</p>
-      <a class="btn primary" href="https://github.com/Sergi122/AnimalinuxApp/releases/download/win-v0.8.3/AnimaWin-Setup-0.8.3.exe" id="dl-win">⬇ Descargar AnimaWin para Windows <small>(v0.8.3 · ~71 MB)</small></a>
+      <a class="btn primary" href="https://github.com/Sergi122/AnimalinuxApp/releases/download/win-v0.8.3.1/AnimaWin-Setup-0.8.3.1.exe" id="dl-win">⬇ Descargar AnimaWin para Windows <small>(v0.8.3.1 · ~71 MB)</small></a>
       <ol>
-        <li>Descarga y ejecuta <code>AnimaWin-Setup-0.8.3.exe</code>.</li>
+        <li>Descarga y ejecuta <code>AnimaWin-Setup-0.8.3.1.exe</code>.</li>
         <li>Si Windows muestra «SmartScreen», pulsa <b>Más información → Ejecutar de todos modos</b> (el instalador aún no está firmado).</li>
         <li>Se abre la ventana de configuración; la mascota queda en el escritorio y el icono en la bandeja.</li>
         <li><b>Se actualiza sola:</b> al abrir busca versiones nuevas; con un clic en «Actualizar ahora» (o «Buscar actualizaciones» en la bandeja) descarga el instalador, comprueba su huella SHA-256 y se reinstala y reinicia sin que hagas nada más.</li>
@@ -299,8 +299,16 @@
 <section id="cambios"><div class="wrap">
   <p class="eyebrow rv">Historial</p>
   <h2 class="rv">Cambios <span class="grad">recientes</span>.</h2>
-  <p class="lede rv">Versión actual: <strong>0.8.3</strong></p>
+  <p class="lede rv">Versión actual: <strong>0.8.3.1</strong></p>
   <div class="tl">
+    <div class="changelog-item rv">
+      <h3>v0.8.3.1 <small>Corrección: el golpe de ping-pong y tenis ya no se va fuera</small></h3>
+      <span class="date">27 de octubre de 2026</span>
+      <ul>
+        <li><strong>Golpe más controlable:</strong> el ángulo de la paleta decide la dirección y la fuerza de tu golpe decide qué tan lejos cae (suave cerca de la red, fuerte al fondo); solo un golpe exagerado se va largo. Rebote más suave en la paleta.</li>
+        <li>Si el sistema movía el cursor de golpe, contaba como un golpe brutal; y un golpe rápido a veces mandaba la pelota hacia atrás. Arreglado.</li>
+      </ul>
+    </div>
     <div class="changelog-item rv">
       <h3>v0.8.3 <small>Ping-pong y tenis</small></h3>
       <span class="date">27 de octubre de 2026</span>
