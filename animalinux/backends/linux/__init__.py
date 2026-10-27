@@ -216,6 +216,22 @@ def active_workspace():
         return None
 
 
+def workspace_anim_ms():
+    """Lo que dura la animación de cambio de escritorio (ms), para que las
+    mascotas se vayan a la vez que la pantalla. Hyprland: speed × 100 ms de
+    la animación «workspaces» (0 si está desactivada); otros: 350."""
+    from .hyprcursor import _json_request
+    anims = _json_request(b"j/animations")
+    if isinstance(anims, list):
+        flat = anims[0] if anims and isinstance(anims[0], list) else anims
+        for a in flat:
+            if isinstance(a, dict) and a.get("name") == "workspaces":
+                if not a.get("enabled", True):
+                    return 0
+                return int(float(a.get("speed", 5)) * 100)
+    return 350
+
+
 def workspace_watch(callback):
     """callback(dirección, clave) al cambiar de escritorio: dirección = ±1
     (hacia el siguiente/anterior), clave como en active_workspace().
@@ -224,6 +240,14 @@ def workspace_watch(callback):
     from gi.repository import GLib
     from . import hypr
     last = {"id": None}
+    # el escritorio actual desde el principio: así el PRIMER cambio ya sabe
+    # hacia qué lado va (si no, las mascotas no se movían esa vez)
+    cur = active_workspace()
+    if cur and cur.startswith("hypr:"):
+        try:
+            last["id"] = int(cur.split(":", 1)[1])
+        except ValueError:
+            pass
 
     def on_hypr(data):
         try:

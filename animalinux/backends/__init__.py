@@ -38,6 +38,8 @@ backend debe cumplir:
                                   de plataformas (escondidas detrás de ventanas)
     workspace_watch(callback)     callback(±1|0, clave) al cambiar de escritorio
     active_workspace()            clave del escritorio activo o None
+    workspace_anim_ms()           duración (ms) de la animación de cambio de
+                                  escritorio; 0 = sin animación
     warp_cursor(x, y)             mueve el cursor (False si el sistema no deja)
 
 Este módulo debe seguir siendo barato de importar: nada de GTK aquí.

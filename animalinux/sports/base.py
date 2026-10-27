@@ -68,7 +68,8 @@ class Ball:
         cr.scale(k, k)
         cr.translate(-iw / 2, -iw / 2)
         cr.set_source_surface(self.img, 0, 0)
-        cr.get_source().set_filter(cairo.FILTER_NEAREST)
+        # pixel art nítido; los balones dibujados en alta resolución, suaves
+        cr.get_source().set_filter(cairo.FILTER_NEAREST if iw <= 64 else cairo.FILTER_GOOD)
         cr.paint()
         cr.restore()
 

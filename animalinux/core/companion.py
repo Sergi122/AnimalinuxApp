@@ -172,12 +172,16 @@ class Companion:
     def _on_workspace(self, direction):
         if not cfg("follow_workspace") or self.dnd:
             return
-        cands = [w for w in self.pets() if w.is_awake() and not w.is_busy()]
-        random.shuffle(cands)
-        for i, w in enumerate(cands):
-            # se van y llegan de un salto, una detrás de otra
-            GLib.timeout_add(120 + i * 260,
-                             lambda w=w: (w.enter_from(-direction), False)[1])
+        # se van con la pantalla vieja y llegan con la nueva por el borde
+        # contrario hasta su sitio (al ritmo de la animación del escritorio)
+        try:
+            ms = backend.workspace_anim_ms()
+        except Exception:  # noqa: BLE001
+            ms = 350
+        if ms <= 0:
+            return              # sin animación: el escritorio cambia de golpe y ellas se quedan
+        for w in self.pets():
+            w.ws_leave(direction, ms)
 
     # ── juguetes ──────────────────────────────────────────────────────────
     def throw_toy(self, kind="ball"):

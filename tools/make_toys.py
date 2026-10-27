@@ -255,8 +255,71 @@ def _wilson(u, v, x, y):
     return None
 
 
+def volley_hd(size=128, ss=3, name="volley"):
+    """Balón de vóley estilo Molten (sin letras), en alta resolución y suave:
+    el patrón clásico de 18 paneles (cada cara de un cubo proyectado en la
+    esfera = 3 franjas, perpendiculares en caras vecinas) con la franja del
+    medio curvada en «S» y de color: rojo al frente y arriba, verde a los
+    lados; costuras finas, luz arriba a la izquierda y contorno oscuro."""
+    import numpy as np
+    n = size * ss
+    c = (n - 1) / 2.0
+    R = n / 2.0 - 2.5 * ss
+    yy, xx = np.mgrid[0:n, 0:n].astype(np.float64)
+    u, v = (xx - c) / R, (yy - c) / R
+    d2 = u * u + v * v
+    inside = d2 <= 1.0
+    z = np.sqrt(np.clip(1.0 - d2, 0, 1))
+    pts = np.stack([u, -v, z], axis=-1)                 # x derecha, y arriba, z hacia ti
+    # vista girada para que se vean tres caras, como en la foto
+    import math
+    ay, ax = math.radians(-12), math.radians(14)
+    ry = np.array([[math.cos(ay), 0, math.sin(ay)], [0, 1, 0], [-math.sin(ay), 0, math.cos(ay)]])
+    rx = np.array([[1, 0, 0], [0, math.cos(ax), -math.sin(ax)], [0, math.sin(ax), math.cos(ax)]])
+    P = pts @ (rx @ ry).T
+    X, Y, Z = P[..., 0], P[..., 1], P[..., 2]
+    aX, aY, aZ = np.abs(X), np.abs(Y), np.abs(Z)
+    face = np.where((aZ >= aX) & (aZ >= aY), 2, np.where(aX >= aY, 0, 1))
+    eps = 1e-9
+    # coordenadas en la cara (cíclicas: franjas perpendiculares entre vecinas)
+    s = np.where(face == 2, X / (aZ + eps), np.where(face == 0, Y / (aX + eps), Z / (aY + eps)))
+    t = np.where(face == 2, Y / (aZ + eps), np.where(face == 0, Z / (aX + eps), X / (aY + eps)))
+    sign = np.where(face == 2, np.sign(Z), np.where(face == 0, np.sign(X), np.sign(Y)))
+    sw = s + 0.34 * np.sin(np.pi * t) * sign            # la «S» de Molten
+    white = np.array([246, 245, 238.0])
+    red = np.array([206, 32, 44.0])
+    green = np.array([24, 142, 80.0])
+    colored = np.abs(sw) < 0.46
+    col_face = np.where(face[..., None] == 0, green, red)
+    base = np.where(colored[..., None], col_face, white)
+    # costuras: bordes de franja y de cara
+    seam = (np.abs(np.abs(sw) - 0.46) < 0.035) | (np.maximum(np.abs(s), np.abs(t)) > 0.975)
+    base = np.where(seam[..., None], base * 0.72, base)
+    # luz
+    L = np.array([-0.45, 0.55, 0.70])
+    L = L / np.linalg.norm(L)
+    ndl = np.clip(pts @ L, 0, 1)
+    shade = 0.5 + 0.55 * ndl
+    rim = np.clip((d2 - 0.75) / 0.25, 0, 1)
+    shade = shade * (1 - 0.25 * rim)
+    rgb = base * shade[..., None]
+    H = np.clip(pts @ (L + np.array([0, 0, 1.0])) / np.linalg.norm(L + np.array([0, 0, 1.0])), 0, 1)
+    rgb = rgb + 255 * 0.16 * (H ** 30)[..., None]
+    rgb = np.clip(rgb, 0, 255)
+    # contorno oscuro fino
+    ring = (d2 > 1.0) & (np.sqrt(d2) <= 1.0 + 2.2 * ss / R)
+    alpha = np.where(inside | ring, 255, 0)
+    rgb = np.where(ring[..., None], np.array([40, 30, 48.0]), rgb)
+    img = np.dstack([rgb, alpha]).astype(np.uint8)
+    im = Image.fromarray(img, "RGBA").resize((size, size), Image.LANCZOS)
+    d = OUT / name
+    d.mkdir(parents=True, exist_ok=True)
+    im.save(d / "frame_0000.png")
+    return im
+
+
 if __name__ == "__main__":
     _sphere(_champions, (246, 246, 242, 255), None, "soccer")
-    _sphere(_molten, (248, 247, 240, 255), None, "volley")
+    volley_hd()
     _sphere(_wilson, (214, 112, 46, 255), None, "basket")
     print("balones ok")
