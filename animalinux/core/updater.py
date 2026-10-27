@@ -48,7 +48,8 @@ MIN_GAP = 60   # solo evita martillar la API si se abre/cierra la ventana a ráf
 
 
 def _parse(v: str) -> tuple:
-    return tuple(int(x) for x in re.findall(r"\d+", v)[:3])
+    # todos los números: las correcciones usan un 4.º (0.8.1.1 > 0.8.1)
+    return tuple(int(x) for x in re.findall(r"\d+", v)[:4])
 
 
 def is_newer(candidate: str, current: str = __version__) -> bool:

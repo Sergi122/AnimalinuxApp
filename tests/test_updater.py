@@ -147,3 +147,6 @@ def test_apply_update_rejects_bad_version():
 def test_is_newer():
     assert updater.is_newer("0.6.0", "0.5.5") and not updater.is_newer("0.5.5", "0.5.5")
     assert updater.is_newer("0.10.0", "0.9.9") and not updater.is_newer("basura", "0.1.0")
+    # correcciones con 4.º número
+    assert updater.is_newer("0.8.1.1", "0.8.1") and updater.is_newer("0.8.2", "0.8.1.3")
+    assert not updater.is_newer("0.8.1", "0.8.1.1")

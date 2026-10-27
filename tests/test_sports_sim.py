@@ -384,3 +384,24 @@ def test_volley_your_reach_is_net_plus_one_pet():
     assert not m.mouse_push(b, 50)
     b.y = m.limit_y + 30
     assert m.mouse_push(b, 50)
+
+
+def test_volley_after_rival_block_your_next_touch_is_the_first():
+    """Si una rival te bloquea, tu equipo tiene 3 toques nuevos."""
+    m = _volley(rivals=1, helper=False)
+    m.state, m.serving, m.serve_air = "rally", None, None
+    m.touches, m.last_toucher, m.you_locked = 3, "you", True
+    p = m.rivals[0]
+    p.x = m.net_x + m.net_w + 2
+    p.y = m.net_top - p.h * 0.8            # en el aire, con las manos sobre la cinta
+    b = m.ball
+    b.x, b.y, b.vx, b.vy = p.x + p.w * 0.3, p.y + p.h * 0.3, 12.0, 0.0
+    base.random.random = lambda: 0.0       # bloqueo completo seguro
+    try:
+        m._rival_block(b)
+    finally:
+        import random as _r
+        base.random.random = _r.random
+    assert b.vx < 0 and m.touches == 0 and not m.you_locked
+    m._touch("you")
+    assert m.touches == 1

@@ -693,6 +693,11 @@ class Volley(Match):
             r = random.random()
             full = self.lv["block"]
             if r < full:
+                # el bloqueo rival te devuelve el balón: tu equipo empieza de
+                # nuevo con 3 toques (el siguiente es el PRIMERO)
+                self.touches = 0
+                self.last_toucher = None
+                self._pushing = False
                 b.x = self.net_x - self.net_w - b.r
                 b.vx = -abs(b.vx) * 0.55 - 2 * self.S
                 b.vy = abs(b.vy) * 0.3 + 3 * self.S
