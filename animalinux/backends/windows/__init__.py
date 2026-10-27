@@ -42,6 +42,17 @@ def window_rects():
     return list(_LAST_RECTS)
 
 
+def confine_cursor(rect):
+    """Encierra el cursor en rect = (x0, y0, x1, y1) en coordenadas globales
+    lógicas (GDK); None lo suelta. Lo usan los deportes: tu cursor no sale de
+    tu zona de la cancha."""
+    from . import win32
+    if rect is None:
+        return win32.clip_cursor(None)
+    k = win32.system_scale()
+    return win32.clip_cursor(tuple(v * k for v in rect))
+
+
 def warp_cursor(x, y):
     import ctypes
     from . import win32

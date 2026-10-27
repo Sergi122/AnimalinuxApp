@@ -143,6 +143,8 @@ class MatchWindow(Gtk.Window):
         bar.append(cancel)
         bar.append(self._go)
         box.append(bar)
+        self.set_default_widget(self._go)      # Enter = ¡Empezar!
+        self._go.grab_focus()
         self._update()
 
     # ── piezas ───────────────────────────────────────────────────────────

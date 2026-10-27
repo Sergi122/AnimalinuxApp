@@ -25,7 +25,10 @@ class MascotWindow(_base.MascotWindow):
     # la clase base llama a _set_position/_move_x11 dentro de su __init__:
     # estos valores deben existir ANTES de que corra
     _hwnd = None
-    _k = win32.system_scale()      # lógico (GDK) -> físico (Win32)
+
+    @property
+    def _k(self):                  # lógico (GDK) -> físico (Win32)
+        return win32.system_scale()
 
     def __init__(self, app, anim, frames_dir, on_moved):
         super().__init__(app, anim, frames_dir, on_moved)

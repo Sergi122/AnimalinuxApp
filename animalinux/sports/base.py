@@ -296,11 +296,31 @@ class Match:
             self.say(tr("Mientras dura el partido el mouse es tuyo para jugar · Esc para salir"),
                      4.5, (0.8, 0.85, 1), y=self.H * 0.42 + 40 * self.S, size=0.5)
         self.tick_id = Clock.get().every(TICK_MS, self._tick)
+        self._confine()
+
+    def _confine(self, on=True):
+        """Donde el sistema lo permite (Windows), el cursor queda ENCERRADO en
+        tu zona de la cancha; si no, _motion lo devuelve con warp_cursor."""
+        from ..backends import current as backend
+        fn = getattr(backend, "confine_cursor", None)
+        if fn is None:
+            return
+        try:
+            if not on:
+                fn(None)
+                return
+            lim = self.cursor_limit()
+            x1 = lim - 2 if lim is not None else self.W
+            fn((self.mon[0], self.mon[1] + self.limit_y + 2,
+                self.mon[0] + x1, self.mon[1] + self.H))
+        except Exception:  # noqa: BLE001
+            pass
 
     def stop(self):
         if self.tick_id:
             Clock.get().cancel(self.tick_id)
             self.tick_id = None
+        self._confine(False)
         if self.pitch is not None:
             self.pitch.destroy()
             self.pitch = None
@@ -406,6 +426,9 @@ class Match:
             import traceback
             traceback.print_exc()
         self.msgs = [m for m in self.msgs if m[1] > now]
+        self._ticks = getattr(self, "_ticks", 0) + 1
+        if self._ticks % 30 == 0:
+            self._confine()          # Windows suelta el cursor si cambia la ventana activa
         if self.mode == "time" and self.remaining() <= 0:
             self.finish()
         if self.pitch is not None:
@@ -439,6 +462,7 @@ class Match:
         if self.over:
             return
         self.over = True
+        self._confine(False)             # el cursor vuelve a ser libre ya
         y, p = self.score["you"], self.score["pets"]
         self.result = "abandon" if abandon else ("win" if y > p else "lose" if p > y else "draw")
         if not abandon:

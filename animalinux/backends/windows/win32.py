@@ -43,6 +43,7 @@ user32.SetWindowPos.argtypes = [HWND, HWND, ctypes.c_int, ctypes.c_int,
                                 ctypes.c_int, ctypes.c_int, wt.UINT]
 user32.SetWindowPos.restype = wt.BOOL
 user32.GetCursorPos.argtypes = [ctypes.POINTER(wt.POINT)]
+user32.ClipCursor.argtypes = [ctypes.POINTER(wt.RECT)]
 user32.GetCursorPos.restype = wt.BOOL
 user32.IsWindowVisible.argtypes = [HWND]
 user32.IsIconic.argtypes = [HWND]
@@ -75,12 +76,28 @@ _PID = os.getpid()
 
 # ── DPI ─────────────────────────────────────────────────────────────────────
 def system_scale() -> float:
-    """Escala de pantalla del sistema (1.0 = 96 ppp). GDK trabaja en píxeles
-    lógicos y Win32 en físicos: hay que convertir al hablar con Win32."""
+    """Píxeles físicos (Win32) por píxel lógico de GDK: hay que convertir al
+    hablar con Win32. NO es DPI/96: GTK4 usa una escala ENTERA (con Windows al
+    125 % sigue en 1 y trabaja en píxeles físicos), así que con DPI/96 = 1,25
+    las ventanas quedaban corridas un 25 % y el suelo detrás de la barra de
+    tareas. Se usa la escala del monitor que da GDK (se guarda la primera vez
+    que hay pantalla abierta)."""
+    global _SCALE
+    if _SCALE is not None:
+        return _SCALE
     try:
-        return max(1.0, user32.GetDpiForSystem() / 96.0)
-    except (AttributeError, OSError):
-        return 1.0
+        from gi.repository import Gdk
+        disp = Gdk.Display.get_default()
+        mons = disp.get_monitors() if disp is not None else None
+        if mons is not None and mons.get_n_items():
+            _SCALE = float(max(1, mons.get_item(0).get_scale_factor()))
+            return _SCALE
+    except Exception:  # noqa: BLE001
+        pass
+    return 1.0
+
+
+_SCALE = None
 
 
 # ── ventana GTK -> HWND ─────────────────────────────────────────────────────
@@ -157,6 +174,16 @@ def set_window_shape(hwnd, x, y, w, h):
     región tras SetWindowRgn."""
     rgn = gdi32.CreateRectRgn(int(x), int(y), int(x + w), int(y + h))
     user32.SetWindowRgn(hwnd, rgn, True)
+
+
+def clip_cursor(rect):
+    """Encierra el cursor en rect = (x0, y0, x1, y1) en px físicos; None lo
+    suelta. Windows lo suelta solo si se activa otra ventana: hay que volver
+    a aplicarlo de vez en cuando."""
+    if rect is None:
+        return bool(user32.ClipCursor(None))
+    r = wt.RECT(int(rect[0]), int(rect[1]), int(rect[2]), int(rect[3]))
+    return bool(user32.ClipCursor(ctypes.byref(r)))
 
 
 def cursor_pos():

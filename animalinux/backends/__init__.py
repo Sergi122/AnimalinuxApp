@@ -28,6 +28,9 @@ backend debe cumplir:
                                   la orden (la instancia única la resuelve D-Bus
                                   en Linux; en Windows, una ventana oculta)
     open_url(url) / open_folder(path)
+    confine_cursor(rect)          OPCIONAL: encierra el cursor en (x0, y0, x1, y1)
+                                  (None lo suelta); si no existe, los deportes
+                                  devuelven el cursor con warp_cursor
     system_language()             'es', 'en'... del sistema
     restart_app()                 cierra y vuelve a abrir (tras actualizar)
     SUBPROCESS_KW / PIP_EXTRA     kwargs para subprocess y flags de pip
