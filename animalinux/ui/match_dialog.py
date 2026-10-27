@@ -32,7 +32,7 @@ class MatchWindow(Gtk.Window):
         if parent is not None:
             self.set_transient_for(parent)
         self.app = app
-        self.set_default_size(560, 640)
+        self.set_default_size(680, 660)
         prov = Gtk.CssProvider()
         if hasattr(prov, "load_from_string"):
             prov.load_from_string(_CSS)
@@ -57,8 +57,10 @@ class MatchWindow(Gtk.Window):
         self._sport_btns = {}
         for key, emo, name, hint in (
                 ("football", "⚽", tr("Fútbol"), tr("Empujas el balón")),
-                ("volley", "🏐", tr("Vóley"), tr("Empujas + anillos")),
-                ("basket", "🏀", tr("Básquet"), tr("Agarras 3 s y tiras"))):
+                ("volley", "🏐", tr("Vóley"), tr("Empujas el balón")),
+                ("basket", "🏀", tr("Básquet"), tr("Agarras 3 s y tiras")),
+                ("pingpong", "🏓", tr("Ping-pong"), tr("Tu cursor es la paleta")),
+                ("tennis", "🎾", tr("Tenis"), tr("Tu cursor es la raqueta"))):
             b = Gtk.ToggleButton()
             b.add_css_class("match-card")
             v = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
@@ -107,7 +109,7 @@ class MatchWindow(Gtk.Window):
         box.append(gw.section_title(tr("Partido")))
         g = Gtk.Grid(column_spacing=12, row_spacing=8)
         g.attach(Gtk.Label(label=tr("Ganar"), xalign=0), 0, 0, 1, 1)
-        modes = [("points:10", tr("Llegar a 10 puntos")), ("time:5", tr("5 minutos")),
+        modes = [("points:10", self._points_label()), ("time:5", tr("5 minutos")),
                  ("time:10", tr("10 minutos"))]
         cur = (f"points:{comp_mod.cfg('sport_points')}" if comp_mod.cfg("sport_mode") == "points"
                else f"time:{comp_mod.cfg('sport_minutes')}")
@@ -216,15 +218,26 @@ class MatchWindow(Gtk.Window):
             if a:
                 self._teams_box.append(self._pet_row(a, state))
 
+    def _points_label(self):
+        return {"pingpong": tr("Un juego a 11 (2 de diferencia)"),
+                "tennis": tr("Un set a 6 juegos (tie-break en 6-6)")}.get(
+                    self._sport, tr("Llegar a 10 puntos"))
+
     def _pick_sport(self, key):
         self._sport = key
+        # «a puntos» significa otra cosa en ping-pong y tenis
+        sel = self._mode_dd.get_selected()
+        self._mode_dd.set_model(Gtk.StringList.new(
+            [self._points_label(), tr("5 minutos"), tr("10 minutos")]))
+        self._mode_dd.set_selected(sel)
         self._update()
 
     def _update(self):
         rivals = [k for k, t in self._team.items() if t == "rival"]
         mine = [k for k, t in self._team.items() if t == "mine"]
         role = {"football": tr("arquera"), "volley": tr("ayudante"),
-                "basket": tr("ayudante")}[self._sport]
+                "basket": tr("ayudante"), "pingpong": tr("compañera de dobles"),
+                "tennis": tr("compañera de dobles")}[self._sport]
         txt = tr("Rivales: {n} de {m}", n=len(rivals), m=MAX_RIVALS)
         txt += " · " + (tr("Tu equipo: tú + 1 {rol}", rol=role) if mine else tr("Tu equipo: solo tú"))
         self._count.set_text(txt)
@@ -233,6 +246,13 @@ class MatchWindow(Gtk.Window):
         self._msg.set_text("" if ok else (tr("Elige al menos una mascota rival.") if not rivals
                                           else tr("Como máximo 4 rivales.")))
         d = self._diffs[self._diff_dd.get_selected()]
+        if self._sport in ("pingpong", "tennis"):
+            self._diff_hint.get_first_child().set_text({
+                "easy": tr("Fácil: corren despacio y fallan seguido."),
+                "medium": tr("Medio: devuelven casi todo lo que alcanzan y a veces atacan."),
+                "hard": tr("Difícil: rápidas, atacan lejos de tu raqueta y casi no fallan."),
+            }[d])
+            return
         self._diff_hint.get_first_child().set_text({
             "easy": tr("Fácil: juegan despacio y arman la jugada completa ~3 de cada 10 veces."),
             "medium": tr("Medio: ~6 de cada 10 jugadas completas; atajan y taponan a veces."),

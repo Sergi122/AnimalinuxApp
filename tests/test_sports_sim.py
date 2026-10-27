@@ -396,12 +396,12 @@ def test_volley_after_rival_block_your_next_touch_is_the_first():
     p.y = m.net_top - p.h * 0.8            # en el aire, con las manos sobre la cinta
     b = m.ball
     b.x, b.y, b.vx, b.vy = p.x + p.w * 0.3, p.y + p.h * 0.3, 12.0, 0.0
+    orig = base.random.random
     base.random.random = lambda: 0.0       # bloqueo completo seguro
     try:
         m._rival_block(b)
     finally:
-        import random as _r
-        base.random.random = _r.random
+        base.random.random = orig          # (antes quedaba en 0 para los demás tests)
     assert b.vx < 0 and m.touches == 0 and not m.you_locked
     m._touch("you")
     assert m.touches == 1
@@ -420,3 +420,32 @@ def test_volley_feint_is_a_real_lob_into_the_court():
         assert abs(land - m.net_x) > m.W * 0.06, (d, land - m.net_x)
         assert (land - m.net_x) * d > 0                       # al campo correcto
         assert b.vy < 0                                       # sube (globito)
+
+
+def test_volley_rivals_rotate_the_serve_after_a_side_out():
+    m = _run(Volley, {"difficulty": "medium", "mode": "time", "minutes": 99}, 2,
+             lambda m, t: None, rivals=3, helper=False)
+    servers = []
+    for won_by in ("pets", "you", "pets", "you", "pets"):
+        m.server_you = won_by == "you"
+        m._serve()
+        if not m.server_you:
+            servers.append(m.server)
+    # cada vez que recuperan el saque saca otra (la que rota al fondo)
+    assert len(set(map(id, servers))) == 3
+
+
+def test_volley_feints_are_the_exception_and_never_twice_in_a_row():
+    m = _run(Volley, {"difficulty": "hard", "mode": "time", "minutes": 99}, 2,
+             lambda m, t: None, rivals=2, helper=True)
+    random.seed(7)
+    m.mouse = (m.net_x - m.W * 0.35, m.F - 100)      # tu cursor espera al fondo
+    kinds = []
+    for _ in range(400):
+        m.ball.x, m.ball.y = m._spike_point()
+        m.helper.y = m.helper.floor_top - 50            # tu ayudante bloqueando
+        m.helper.x = m.net_x - m.helper.w
+        m._do_spike(m.rivals[0])
+        kinds.append(m.last_feint)
+    assert sum(kinds) / len(kinds) < 0.3
+    assert not any(a and b for a, b in zip(kinds, kinds[1:]))

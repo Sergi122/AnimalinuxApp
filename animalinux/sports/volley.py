@@ -79,6 +79,11 @@ class Volley(Match):
         self._stroke_t0 = 0.0
         self.plan = []                  # pasos pendientes de las mascotas
         self.last_spike = False         # el último toque de ellas fue un remate
+        self.last_feint = False         # nunca dos fintas seguidas
+        self.helper_feint = False
+        self.rot = 0                    # rotación de las rivales (como en el vóley real)
+        self.last_serve_team = None
+        self.second_diver = None        # la que se tira junto a la que recibe
         self.free_ball = False
         self.windup = None              # remate en preparación (1,5 s para decidir)
         self.touches = 0                # toques de tu equipo en esta posesión
@@ -185,6 +190,21 @@ class Volley(Match):
         # desde tan abajo no pasa directo: bolea por encima de la red
         self._send(tx, min(b.y, self.net_top) - self.H * 0.1)
 
+    def _smash(self, tx, d, ticks):
+        """Remate: rápido y hacia abajo. Si la línea directa choca la red,
+        primero apunta más al fondo (d = -1 tu campo, +1 el de ellas) y solo
+        si no hay manera lo alarga como _drive."""
+        b = self.ball
+        lo, hi = b.r * 2, self.W - b.r * 2
+        for k in range(10):
+            x = min(hi, max(lo, tx + d * k * self.W * 0.04))
+            vx = (x - b.x) / ticks
+            vy = ((self.F - b.r) - b.y - 0.5 * self.g * ticks * ticks) / ticks
+            if self._clears(b.x, b.y, vx, vy):
+                b.vx, b.vy = vx, vy
+                return
+        self._drive(tx, ticks)
+
     # ── saques ────────────────────────────────────────────────────────────
     def _serve(self):
         b = self.ball
@@ -195,8 +215,10 @@ class Volley(Match):
         self.you_locked = False
         self._pushing = False
         self.plan = []
+        self.second_diver = None
         b.vx = b.vy = 0.0
         self.serve_at = self.st + 1.0
+        prev, self.last_serve_team = self.last_serve_team, "you" if self.server_you else "pets"
         if self.server_you:
             turn = self.next_server if self.helper else "you"
             if self.helper:
@@ -213,7 +235,11 @@ class Volley(Match):
             p.x = p.w * 0.3
             self.say(tr("Saca tu ayudante"), 1.6, (0.6, 0.9, 1), y=self.H * 0.22, size=0.6)
         else:
-            p = max(self.rivals, key=lambda r: r.x)
+            # recuperan el saque → rotan un puesto: saca la que pasa al fondo y
+            # cambia quién queda en la red para armar y rematar
+            if prev == "you":
+                self.rot += 1
+            p = self._order()[-1]
             p.x = self.W - p.w * 1.3
         self.state = "serve_pet"
         self.server = p
@@ -223,6 +249,13 @@ class Volley(Match):
         self.serve_kind = "jump" if chance(jump) else "normal"
         self.serve_phase = "hold"
         b.x, b.y = p.cx, p.y - b.r * 1.2
+
+    def _order(self):
+        """Rivales en su puesto actual: la 1.ª junto a la red, la última al
+        fondo (la que saca)."""
+        r = self.rivals
+        k = self.rot % len(r) if r else 0
+        return r[k:] + r[:k]
 
     def _serve_dir(self, p):
         return -1 if p.team == "pets" else 1         # hacia dónde saca
@@ -530,10 +563,10 @@ class Volley(Match):
             # se queda mirando: el balón cae
             self._move_pets_idle()
             return
+        used = getattr(self, "_last_actor", None)
+        cands = [p for p in self.rivals if p is not used] or self.rivals
         if self.actor is None or self.actor.cool > 0 and step != "spike":
             land = self._land_x()
-            used = getattr(self, "_last_actor", None)
-            cands = [p for p in self.rivals if p is not used] or self.rivals
             self.actor = min(cands, key=lambda p: abs(p.cx - land))
         p = self.actor
         sp = 7.0 * self.S * self.lv["speed"] * p.k
@@ -541,16 +574,25 @@ class Volley(Match):
         self.free_ball = False
         self.last_spike = False
         if step in ("receive", "return", "set"):
-            if not self._try_dive(p, bounds, self.lv["dive"]):
+            if self._try_dive(p, bounds, self.lv["dive"]):
+                self._dive_too(p, cands, bounds)
+            elif not p.diving:
                 p.run_to(self._land_x(), sp, bounds)
             p.face(b.x)
+            d2 = self.second_diver
             for o in self.rivals:
-                if o is not p:
+                if o is not p and o is not d2:
                     o.speed_now = 0.0
-            if b.vy > 0 and p.touches(b, b.r * (1.3 if p.diving else 0.8)):
-                if p.diving:
-                    self.say(tr("¡Plancha!"), 0.8, (1, 0.8, 0.5), x=p.cx, y=p.y - 30 * self.S, size=0.6)
-                self._pet_touch(p, step)
+            # cualquiera de las dos que se tiraron puede salvarlo
+            for q in (p, d2):
+                if q is None:
+                    continue
+                if b.vy > 0 and q.touches(b, b.r * (1.3 if q.diving else 0.8)):
+                    if q.diving:
+                        self.say(tr("¡Plancha!"), 0.8, (1, 0.8, 0.5), x=q.cx, y=q.y - 30 * self.S, size=0.6)
+                    self.second_diver = None
+                    self._pet_touch(q, step)
+                    break
         elif step == "spike":
             if self.windup is not None:
                 p = self.windup["p"]
@@ -630,15 +672,18 @@ class Volley(Match):
         h = self.helper
         blocking = h is not None and not h.on_ground and abs(h.cx - self.net_x) < self.W * 0.15
         deep = self.mouse is not None and self.mouse[0] < self.net_x - self.W * 0.3
-        feint = 0.1 + (0.35 * self.lv["skill"] if blocking else 0) + (0.2 * self.lv["skill"] if deep else 0)
-        kind = "feint" if chance(feint) else "power"
+        # la finta es la excepción (sorprende porque casi siempre rematan
+        # fuerte) y nunca dos seguidas
+        feint = 0.04 + (0.16 * self.lv["skill"] if blocking else 0) + (0.08 * self.lv["skill"] if deep else 0)
+        kind = "feint" if not self.last_feint and chance(feint) else "power"
+        self.last_feint = kind == "feint"
         self.last_spike = True
         self.spike_live = True          # remate en el aire (hasta que cruce o lo bloqueen)
         p.win._lean_to(12 if p.win._facing_left else -12)
         p.win._squash(1.15, 0.85)
         if kind == "power":
             tx = self._weak_spot(self.W * 0.06, self.net_x - self.W * 0.1)
-            self._drive(tx, random.uniform(16, 22) / self.lv["power"])
+            self._smash(tx, -1, random.uniform(12, 16) / self.lv["power"])
             self.say(tr("¡Remate!"), 0.8, (1, 0.5, 0.5), x=b.x, y=b.y - 50 * s, size=0.7)
         else:
             self._feint(-1)
@@ -751,10 +796,24 @@ class Volley(Match):
             return False
         return p.dive(land, ticks - 2, bounds)
 
+    def _dive_too(self, p, cands, bounds):
+        """Balón difícil: otra rival también se lanza en plancha (las dos van
+        a por él; la que llegue lo salva)."""
+        self.second_diver = None
+        others = [o for o in cands if o is not p and o.on_ground and not o.diving]
+        if not others or not chance(self.lv["dive"] * 0.75):
+            return
+        land, ticks = self._predict()
+        q = min(others, key=lambda o: abs(o.cx - land))
+        if abs(q.cx - land) > self.W * 0.3:
+            return
+        if q.dive(land, ticks - 2, bounds):
+            self.second_diver = q
+
     def _move_pets_idle(self, skip=None):
         """Sin balón en su campo: vuelven a su posición."""
         n = len(self.rivals)
-        for i, p in enumerate(self.rivals):
+        for i, p in enumerate(self._order()):
             if p is skip:
                 continue
             home = self.net_x + (i + 0.6) * (self.W / 2) / (n + 0.6)
@@ -880,12 +939,14 @@ class Volley(Match):
         h.win._squash(1.15, 0.85)
         blocker = any(not p.on_ground and abs(p.cx - self.net_x) < self.W * 0.12
                       for p in self.rivals)
-        if blocker and chance(0.35):
+        if blocker and not self.helper_feint and chance(0.12):
+            self.helper_feint = True
             self._feint(+1)
             self.say(tr("¡Finta!"), 0.9, (0.6, 0.9, 1), x=h.cx, y=h.y - 40 * s, size=0.7)
             return
+        self.helper_feint = False
         self.hard_hit = True
-        self._drive(self._open_spot(), random.uniform(13, 18) / self.lv["power"])
+        self._smash(self._open_spot(), +1, random.uniform(12, 16) / self.lv["power"])
         self.say(tr("¡Remate de tu ayudante!"), 1.0, (0.6, 0.9, 1),
                  x=h.cx, y=h.y - 30 * s, size=0.6)
 

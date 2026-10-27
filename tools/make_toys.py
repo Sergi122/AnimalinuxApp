@@ -318,8 +318,71 @@ def volley_hd(size=128, ss=3, name="volley"):
     return im
 
 
+def _hd_ball(name, size, color_fn, ss=3):
+    """Pelota lisa en alta resolución: color_fn(X, Y, Z) -> rgb (numpy) sobre
+    la esfera; luz arriba a la izquierda, brillo y contorno oscuro fino."""
+    import numpy as np
+    n = size * ss
+    c = (n - 1) / 2.0
+    R = n / 2.0 - 2.5 * ss
+    yy, xx = np.mgrid[0:n, 0:n].astype(np.float64)
+    u, v = (xx - c) / R, (yy - c) / R
+    d2 = u * u + v * v
+    inside = d2 <= 1.0
+    z = np.sqrt(np.clip(1.0 - d2, 0, 1))
+    pts = np.stack([u, -v, z], axis=-1)
+    base = color_fn(pts[..., 0], pts[..., 1], pts[..., 2])
+    L = np.array([-0.45, 0.55, 0.70])
+    L = L / np.linalg.norm(L)
+    ndl = np.clip(pts @ L, 0, 1)
+    shade = (0.5 + 0.55 * ndl) * (1 - 0.25 * np.clip((d2 - 0.75) / 0.25, 0, 1))
+    rgb = base * shade[..., None]
+    Hv = L + np.array([0, 0, 1.0])
+    H = np.clip(pts @ (Hv / np.linalg.norm(Hv)), 0, 1)
+    rgb = np.clip(rgb + 255 * 0.22 * (H ** 30)[..., None], 0, 255)
+    ring = (d2 > 1.0) & (np.sqrt(d2) <= 1.0 + 2.2 * ss / R)
+    alpha = np.where(inside | ring, 255, 0)
+    rgb = np.where(ring[..., None], np.array([40, 30, 48.0]), rgb)
+    img = np.dstack([rgb, alpha]).astype(np.uint8)
+    im = Image.fromarray(img, "RGBA").resize((size, size), Image.LANCZOS)
+    d = OUT / name
+    d.mkdir(parents=True, exist_ok=True)
+    im.save(d / "frame_0000.png")
+    return im
+
+
+def pingpong_hd(size=96):
+    """Pelota de ping-pong naranja (de las reglamentarias), lisa, sin letras."""
+    import numpy as np
+    return _hd_ball("pingpong", size,
+                    lambda X, Y, Z: np.broadcast_to(np.array([255, 138, 36.0]), X.shape + (3,)))
+
+
+def tennis_hd(size=96):
+    """Pelota de tenis amarillo fosforito con su costura blanca curva (la
+    «costura de pelota de tenis»: dos lóbulos que se enlazan)."""
+    import math
+    import numpy as np
+
+    def col(X, Y, Z):
+        # dos arcos enfrentados (la vista típica de la costura), algo girados
+        t = math.radians(28)
+        u = X * math.cos(t) - Y * math.sin(t)
+        v = X * math.sin(t) + Y * math.cos(t)
+        a1 = np.abs(np.hypot(u + 1.12, v) - 0.8) < 0.06
+        a2 = np.abs(np.hypot(u - 1.12, v) - 0.8) < 0.06
+        felt = np.array([214, 236, 52.0])
+        white = np.array([248, 250, 240.0])
+        out = np.where((a1 | a2)[..., None], white, felt)
+        noise = (np.sin(X * 91.0) * np.cos(Y * 77.0) * 6.0)[..., None]   # fieltro
+        return np.clip(out + noise, 0, 255)
+    return _hd_ball("tennis", size, col)
+
+
 if __name__ == "__main__":
     _sphere(_champions, (246, 246, 242, 255), None, "soccer")
+    pingpong_hd()
+    tennis_hd()
     volley_hd()
     _sphere(_wilson, (214, 112, 46, 255), None, "basket")
     print("balones ok")

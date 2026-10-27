@@ -85,6 +85,8 @@ def main():
                         (tr("⚽  Partido de fútbol"), ("--sport", "football")),
                         (tr("🏐  Partido de vóley"), ("--sport", "volley")),
                         (tr("🏀  Partido de básquet"), ("--sport", "basket")),
+                        (tr("🏓  Partido de ping-pong"), ("--sport", "pingpong")),
+                        (tr("🎾  Partido de tenis"), ("--sport", "tennis")),
                         (tr("🍅  Pomodoro (iniciar / detener)"), ("--pomodoro",)),
                         (tr("🔕  No molestar (activar / quitar)"), ("--dnd",))):
         it = Gtk.MenuItem(label=label)

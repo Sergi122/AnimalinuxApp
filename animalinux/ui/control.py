@@ -200,7 +200,7 @@ class ControlWindow(Gtk.ApplicationWindow):
                         lambda: open_url("https://animalinux.web.app/#cambios")))
         hb.append(ghost("heart", tr("Compañía: reacciones, juegos, Pomodoro y recordatorios"),
                         self._show_companion, label=tr("Compañía")))
-        hb.append(ghost("trophy", tr("Deportes: fútbol, vóley y básquet contra tus mascotas"),
+        hb.append(ghost("trophy", tr("Deportes: fútbol, vóley, básquet, ping-pong y tenis contra tus mascotas"),
                         lambda: self.app.show_match_menu(), label=tr("Deportes")))
         hb.append(ghost("help", t("help_tip"), lambda: self._show_tour(force=True)))
         hb.append(ghost("settings", t("settings_title"), self._show_settings_dialog))

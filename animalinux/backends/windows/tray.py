@@ -1,11 +1,14 @@
 """Bandeja del sistema en Windows (Shell_NotifyIcon) sin procesos ni librerías
-extra: una ventana oculta en el MISMO hilo; el bucle de mensajes lo bombea GDK.
+extra: una ventana oculta con SU PROPIO hilo y bucle de mensajes. El menú
+(TrackPopupMenu) es modal: si viviera en el hilo de GTK, mientras está abierto
+no avanzaría el bucle de GLib y las mascotas se quedarían congeladas.
 
 La misma ventana oculta sirve de buzón de instancia única: un segundo
 `animalinux --show` la localiza por su clase y le envía la orden con
 WM_COPYDATA (ver forward()).
 """
 import ctypes
+import threading
 from ctypes import wintypes as wt
 
 from . import APP_NAME, LOGO, win32
@@ -18,6 +21,7 @@ WM_USER = 0x0400
 WM_TRAY = WM_USER + 1
 WM_COPYDATA = 0x004A
 WM_COMMAND = 0x0111
+WM_CLOSE, WM_DESTROY = 0x0010, 0x0002
 WM_LBUTTONUP, WM_RBUTTONUP = 0x0202, 0x0205
 NIM_ADD, NIM_DELETE = 0, 2
 NIF_MESSAGE, NIF_ICON, NIF_TIP = 1, 2, 4
@@ -25,19 +29,20 @@ MF_STRING, MF_SEPARATOR = 0, 0x800
 TPM_RIGHTBUTTON, TPM_RETURNCMD, TPM_BOTTOMALIGN = 0x0002, 0x0100, 0x0020
 ID_SHOW, ID_QUIT, ID_UPDATE = 1, 2, 3
 ID_BALL, ID_YARN, ID_CLEAR, ID_POMO, ID_DND, ID_PLAY = 10, 11, 12, 13, 14, 15
-ID_FOOT, ID_VOLLEY, ID_BASKET = 16, 17, 18
+ID_FOOT, ID_VOLLEY, ID_BASKET, ID_PINGPONG, ID_TENNIS = 16, 17, 18, 19, 20
 # órdenes que otra instancia puede enviar por WM_COPYDATA (nada más se ejecuta)
 _ALLOWED_ARGS = {"--show", "--quit", "--daemon", "--update",
                  "--toy", "--pomodoro", "--dnd", "--play",
                  "ball", "yarn", "clear", "toggle", "on", "off", "tag", "hide",
-                 "--sport", "football", "volley", "basket"}
+                 "--sport", "football", "volley", "basket", "pingpong", "tennis"}
 MAX_COPYDATA = 256
 
 _MENU_ARGS = {ID_BALL: ("--toy", "ball"), ID_YARN: ("--toy", "yarn"),
               ID_CLEAR: ("--toy", "clear"), ID_POMO: ("--pomodoro",),
               ID_DND: ("--dnd",), ID_PLAY: ("--play",),
               ID_FOOT: ("--sport", "football"), ID_VOLLEY: ("--sport", "volley"),
-              ID_BASKET: ("--sport", "basket")}
+              ID_BASKET: ("--sport", "basket"), ID_PINGPONG: ("--sport", "pingpong"),
+              ID_TENNIS: ("--sport", "tennis")}
 
 WNDPROC = ctypes.WINFUNCTYPE(win32.LRESULT, wt.HWND, wt.UINT, wt.WPARAM, wt.LPARAM)
 
@@ -81,6 +86,11 @@ user32.LoadImageW.argtypes = [wt.HINSTANCE, wt.LPCWSTR, wt.UINT, ctypes.c_int,
                               ctypes.c_int, wt.UINT]
 user32.LoadIconW.restype = wt.HICON
 user32.LoadIconW.argtypes = [wt.HINSTANCE, ctypes.c_void_p]
+user32.GetMessageW.argtypes = [ctypes.POINTER(wt.MSG), wt.HWND, wt.UINT, wt.UINT]
+user32.TranslateMessage.argtypes = [ctypes.POINTER(wt.MSG)]
+user32.DispatchMessageW.argtypes = [ctypes.POINTER(wt.MSG)]
+user32.PostMessageW.argtypes = [wt.HWND, wt.UINT, wt.WPARAM, wt.LPARAM]
+user32.DestroyWindow.argtypes = [wt.HWND]
 shell32.Shell_NotifyIconW.argtypes = [wt.DWORD, ctypes.POINTER(NOTIFYICONDATAW)]
 
 
@@ -120,22 +130,39 @@ class Tray:
     def __init__(self, app):
         self._app = app
         self._proc = WNDPROC(self._wndproc)   # referencia viva: si el GC la suelta, crash
-        wc = WNDCLASSW()
-        wc.lpfnWndProc = self._proc
-        wc.hInstance = kernel32.GetModuleHandleW(None)
-        wc.lpszClassName = CLASS_NAME
-        user32.RegisterClassW(ctypes.byref(wc))
-        self._hwnd = user32.CreateWindowExW(0, CLASS_NAME, APP_NAME, 0, 0, 0, 0, 0,
-                                            None, None, wc.hInstance, None)
-        self._nid = NOTIFYICONDATAW()
-        self._nid.cbSize = ctypes.sizeof(NOTIFYICONDATAW)
-        self._nid.hWnd = self._hwnd
-        self._nid.uID = 1
-        self._nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP
-        self._nid.uCallbackMessage = WM_TRAY
-        self._nid.hIcon = _icon_handle()
-        self._nid.szTip = APP_NAME
-        shell32.Shell_NotifyIconW(NIM_ADD, ctypes.byref(self._nid))
+        self._hwnd = None
+        ready = threading.Event()
+        self._thread = threading.Thread(target=self._run, args=(ready,),
+                                        name="tray", daemon=True)
+        self._thread.start()
+        ready.wait(5)   # forward() de otra instancia ya encuentra la ventana
+
+    def _run(self, ready):
+        """Hilo de la bandeja: crea la ventana (sus mensajes llegan a ESTE
+        hilo) y bombea su bucle hasta WM_QUIT."""
+        try:
+            wc = WNDCLASSW()
+            wc.lpfnWndProc = self._proc
+            wc.hInstance = kernel32.GetModuleHandleW(None)
+            wc.lpszClassName = CLASS_NAME
+            user32.RegisterClassW(ctypes.byref(wc))
+            self._hwnd = user32.CreateWindowExW(0, CLASS_NAME, APP_NAME, 0, 0, 0, 0, 0,
+                                                None, None, wc.hInstance, None)
+            self._nid = NOTIFYICONDATAW()
+            self._nid.cbSize = ctypes.sizeof(NOTIFYICONDATAW)
+            self._nid.hWnd = self._hwnd
+            self._nid.uID = 1
+            self._nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP
+            self._nid.uCallbackMessage = WM_TRAY
+            self._nid.hIcon = _icon_handle()
+            self._nid.szTip = APP_NAME
+            shell32.Shell_NotifyIconW(NIM_ADD, ctypes.byref(self._nid))
+        finally:
+            ready.set()
+        msg = wt.MSG()
+        while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
+            user32.TranslateMessage(ctypes.byref(msg))
+            user32.DispatchMessageW(ctypes.byref(msg))
 
     # ---- mensajes ----
     def _wndproc(self, hwnd, msg, wparam, lparam):
@@ -156,6 +183,13 @@ class Tray:
                 if args:
                     self._dispatch(args)
                 return 1
+            if msg == WM_CLOSE:
+                shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(self._nid))
+                user32.DestroyWindow(hwnd)
+                return 0
+            if msg == WM_DESTROY:
+                user32.PostQuitMessage(0)
+                return 0
         except Exception:  # noqa: BLE001
             pass   # una excepción no puede cruzar el límite de ctypes
         return user32.DefWindowProcW(hwnd, msg, wparam, lparam)
@@ -177,6 +211,8 @@ class Tray:
         user32.AppendMenuW(m, MF_STRING, ID_FOOT, tr("⚽  Partido de fútbol"))
         user32.AppendMenuW(m, MF_STRING, ID_VOLLEY, tr("🏐  Partido de vóley"))
         user32.AppendMenuW(m, MF_STRING, ID_BASKET, tr("🏀  Partido de básquet"))
+        user32.AppendMenuW(m, MF_STRING, ID_PINGPONG, tr("🏓  Partido de ping-pong"))
+        user32.AppendMenuW(m, MF_STRING, ID_TENNIS, tr("🎾  Partido de tenis"))
         user32.AppendMenuW(m, MF_STRING, ID_POMO, tr("🍅  Pomodoro (iniciar / detener)"))
         user32.AppendMenuW(m, MF_STRING, ID_DND, tr("🔕  No molestar (activar / quitar)"))
         user32.AppendMenuW(m, MF_SEPARATOR, 0, None)
@@ -195,5 +231,7 @@ class Tray:
             self._dispatch(list(_MENU_ARGS[cmd]))
 
     def destroy(self):
-        shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(self._nid))
-        user32.DestroyWindow(self._hwnd)
+        # la ventana es del hilo de la bandeja: solo él puede destruirla
+        if self._hwnd:
+            user32.PostMessageW(self._hwnd, WM_CLOSE, 0, 0)
+            self._thread.join(2)

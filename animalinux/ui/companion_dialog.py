@@ -77,7 +77,7 @@ class CompanionWindow(Gtk.Window):
 
         # ── deportes ─────────────────────────────────────────────────────
         box.append(gw.section_title(tr("🏆 Deportes: las mascotas contra ti")))
-        box.append(gw.body(tr("⚽ Fútbol, 🏐 vóley y 🏀 básquet. Eliges equipos, tiempo o puntos y dificultad.")))
+        box.append(gw.body(tr("⚽ Fútbol, 🏐 vóley, 🏀 básquet, 🏓 ping-pong y 🎾 tenis. Eliges equipos, tiempo o puntos y dificultad.")))
         play = Gtk.Button(label=tr("🏆 Jugar un partido…"))
         play.add_css_class("suggested-action")
         play.add_css_class("pill")

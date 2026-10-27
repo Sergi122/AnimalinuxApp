@@ -1,5 +1,6 @@
 """
-Deportes contra las mascotas: ⚽ fútbol, 🏐 vóley y 🏀 básquet.
+Deportes contra las mascotas: ⚽ fútbol, 🏐 vóley, 🏀 básquet, 🏓 ping-pong y
+🎾 tenis.
 
 start(app, sport, opts) elige las mascotas (con vida, hasta 4 rivales y una
 ayudante opcional), abre la cancha y arranca el partido. opts:
@@ -16,6 +17,8 @@ SPORTS = {
     "football": ("⚽", "Fútbol"),
     "volley": ("🏐", "Vóley"),
     "basket": ("🏀", "Básquet"),
+    "pingpong": ("🏓", "Ping-pong"),
+    "tennis": ("🎾", "Tenis"),
 }
 MAX_RIVALS = 4
 
@@ -60,6 +63,10 @@ def start(app, sport, opts):
         from .volley import Volley as M
     elif sport == "basket":
         from .basket import Basket as M
+    elif sport == "pingpong":
+        from .pingpong import PingPong as M
+    elif sport == "tennis":
+        from .tennis import Tennis as M
     else:
         from .football import Football as M
     match = M(app, opts, rivals, helper)

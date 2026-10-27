@@ -61,17 +61,35 @@ class Ball:
             cr.fill()
             return
         iw = self.img.get_width()
+        img, filt = self.img, cairo.FILTER_NEAREST          # pixel art nítido
+        if iw > 64:
+            # los dibujados en alta resolución: se reducen UNA vez (suave) al
+            # tamaño en pantalla; reducirlos en cada cuadro cuesta caro
+            img, iw = self._scaled(), self._scaled().get_width()
+            filt = cairo.FILTER_BILINEAR
         k = 2 * self.r / iw
         cr.save()
         cr.translate(self.x, self.y)
         cr.rotate(math.radians(self.spin))
         cr.scale(k, k)
         cr.translate(-iw / 2, -iw / 2)
-        cr.set_source_surface(self.img, 0, 0)
-        # pixel art nítido; los balones dibujados en alta resolución, suaves
-        cr.get_source().set_filter(cairo.FILTER_NEAREST if iw <= 64 else cairo.FILTER_GOOD)
+        cr.set_source_surface(img, 0, 0)
+        cr.get_source().set_filter(filt)
         cr.paint()
         cr.restore()
+
+    def _scaled(self):
+        n = max(4, int(math.ceil(2 * self.r)) + 2)
+        if getattr(self, "_sc", None) is None or self._sc.get_width() != n:
+            iw = self.img.get_width()
+            sc = cairo.ImageSurface(cairo.FORMAT_ARGB32, n, n)
+            c = cairo.Context(sc)
+            c.scale(n / iw, n / iw)
+            c.set_source_surface(self.img, 0, 0)
+            c.get_source().set_filter(cairo.FILTER_BEST)
+            c.paint()
+            self._sc = sc
+        return self._sc
 
 
 class Player:
@@ -228,6 +246,7 @@ class Match:
     SPORT = ""
     BALL = "soccer"
     HOWTO = ""
+    HOWTO2 = None   # segunda línea opcional de «cómo se juega»
     FOOT = 14            # radio de tu «pie» (el cursor), en px a 1080p
     # ¿se puede tocar el balón cuando está por encima del límite de altura de
     # tu cursor? (en básquet y fútbol no: el cursor no llega y lo «bajaría»)
@@ -288,13 +307,15 @@ class Match:
                                  (self.mon[0], self.mon[1], self.W, self.H), {
                                      "draw": self.draw, "motion": self._motion,
                                      "press": self._press, "release": self._release,
-                                     "key": self._key})
+                                     "key": self._key, "scroll": self.on_scroll})
         self.pitch.present()
         # cómo se juega (4 s, sin pausar el partido)
         if self.HOWTO:
             self.say(tr(self.HOWTO), 4.5, (1, 1, 1), y=self.H * 0.42, size=0.62)
             self.say(tr("Mientras dura el partido el mouse es tuyo para jugar · Esc para salir"),
                      4.5, (0.8, 0.85, 1), y=self.H * 0.42 + 40 * self.S, size=0.5)
+            if self.HOWTO2:
+                self.say(tr(self.HOWTO2), 4.5, (1, 0.9, 0.6), y=self.H * 0.42 + 76 * self.S, size=0.5)
         self.tick_id = Clock.get().every(TICK_MS, self._tick)
         self._confine()
 
@@ -445,18 +466,24 @@ class Match:
         return self.minutes * 60 - (time.monotonic() - self.t0)
 
     def point(self, who, label, pause=1.6):
-        self.score[who] += self.points_for(who)
+        won = self.award(who)
         self.say(label, pause, (1, .85, .3) if who == "you" else (1, .45, .5))
         for p in self.rivals:
             (p.celebrate if who == "pets" else p.sulk)()
         if self.helper:
             (self.helper.celebrate if who == "you" else self.helper.sulk)()
         self.pause_until = time.monotonic() + pause
-        if self.mode == "points" and self.score[who] >= self.target:
+        if won:
             GLib.timeout_add(int(pause * 1000), lambda: (self.finish(), False)[1])
 
     def points_for(self, who):
         return 1
+
+    def award(self, who):
+        """Suma el punto; True si con él se gana el partido (los deportes con
+        su propio tanteo, como el tenis, lo cambian)."""
+        self.score[who] += self.points_for(who)
+        return self.mode == "points" and self.score[who] >= self.target
 
     def finish(self, abandon=False):
         if self.over:
@@ -547,6 +574,9 @@ class Match:
     def on_press(self, x, y):
         pass
 
+    def on_scroll(self, dy):
+        """Rueda del mouse (dy < 0 = hacia arriba)."""
+
     def on_release(self, x, y):
         pass
 
@@ -629,14 +659,18 @@ class Match:
         cr.stroke()
         self._text(cr, tr("TÚ"), x + 62 * s, y + 41 * s, 22 * s, (0.6, 0.85, 1), outline=False)
         self._text(cr, tr("MASCOTAS"), x + bw - 82 * s, y + 41 * s, 20 * s, (1, 0.7, 0.8), outline=False)
-        self._text(cr, f"{self.score['you']}  –  {self.score['pets']}",
-                   self.W / 2, y + 40 * s, 30 * s, (1, 1, 1), outline=False)
+        self._text(cr, self.board_score(), self.W / 2, y + 40 * s, 30 * s, (1, 1, 1), outline=False)
+        self._text(cr, self.board_sub(), self.W / 2, y + bh + 24 * s, 17 * s, (1, 1, 1), 0.9)
+
+    def board_score(self):
+        return f"{self.score['you']}  –  {self.score['pets']}"
+
+    def board_sub(self):
+        """Línea bajo el marcador: tiempo que queda o a cuántos puntos."""
         if self.mode == "time":
             r = max(0, int(self.remaining()))
-            sub = f"{r // 60:02d}:{r % 60:02d}"
-        else:
-            sub = tr("a {n} puntos", n=self.target)
-        self._text(cr, sub, self.W / 2, y + bh + 24 * s, 17 * s, (1, 1, 1), 0.9)
+            return f"{r // 60:02d}:{r % 60:02d}"
+        return tr("a {n} puntos", n=self.target)
 
     def _draw_exit(self, cr):
         x, y, w, h = self._exit_rect()
