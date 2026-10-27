@@ -6,8 +6,16 @@ ayudante) a la izquierda, hasta 4 mascotas a la derecha.
 Juegas EMPUJANDO el balón con el mouse (rebota con fuerza al tocarlo). Tu
 ayudante recibe, arma y remata sola. Máximo 3 toques por lado.
 
-Saque: tiene que pasar la red y no puede tocar la pared del fondo; si no,
-punto para el rival.
+Saque: tiene que pasar la red y, hasta que el rival lo toque, no puede
+tocar ninguna pared ni el techo; si no, punto para el rival. Las mascotas
+sacan de dos formas: saque normal (bombeado) y MEDIO SAQUE MATE (lanzan el
+balón, saltan y le pegan fuerte y plano). En tu equipo el saque va por
+turnos: uno tú, el siguiente tu ayudante.
+
+Tu cursor es un «pie» redondo e invisible. Un empujón es UN toque y luego no
+puedes volver a tocar el balón hasta que lo toque otra (no hay dobles toques).
+Tu ayudante juega a 3 toques: recibe y te la pasa, o te arma, y solo remata
+como tercer toque.
 
 Dificultad de las mascotas = cuántas veces arman la jugada completa
 (recepción → armado → remate): fácil ~3 de 10, medio ~6, difícil ~9.
@@ -21,6 +29,7 @@ from .base import TICK_MS, Match, ballistic, chance
 DT = TICK_MS / 1000.0
 WINDUP_S = 1.5          # lo que tarda el armado hasta el punto de remate
 MAX_BALL = 36.0
+SERVE_BALL = 24.0       # tope de velocidad de tu saque
 PUSH_BOUNCE = 1.5       # cuánto rebota el balón al tocarlo con el mouse
 
 
@@ -29,6 +38,8 @@ class Volley(Match):
     BALL = "volley"
     HOWTO = N_("Empuja el balón a su campo · tu saque debe pasar la red sin tocar el fondo")
     FOOT = 32
+    REACH_ABOVE_LIMIT = True     # en vóley se juega alto: sin cortar el alcance
+    STROKE_S = 0.25              # lo que dura como mucho un empujón (un toque)
 
     def setup(self):
         s = self.S
@@ -41,6 +52,13 @@ class Volley(Match):
         self.state = "serve_you"
         self.serving = None             # "you"/"pets" mientras el saque no cruza la red
         self.server_you = True
+        self.next_server = "you"        # en tu equipo: uno tú, el siguiente tu ayudante
+        self.server = None              # mascota que saca (rival o tu ayudante)
+        self.serve_kind = "normal"      # "normal" | "jump" (medio saque mate)
+        self.serve_phase = "hold"
+        self.serve_air = None           # equipo cuyo saque sigue sin tocar el rival
+        self.you_locked = False         # ya tocaste: esperas a que toque otra
+        self._stroke_t0 = 0.0
         self.plan = []                  # pasos pendientes de las mascotas
         self.last_spike = False         # el último toque de ellas fue un remate
         self.free_ball = False
@@ -150,21 +168,120 @@ class Volley(Match):
         self.touches = 0
         self.last_toucher = None
         self.serving = None
+        self.serve_air = None
+        self.you_locked = False
+        self._pushing = False
         self.plan = []
         b.vx = b.vy = 0.0
-        self.state = "serve_you" if self.server_you else "serve_pets"
+        self.serve_at = self.st + 1.0
         if self.server_you:
-            # tu saque: el balón flota al fondo de tu campo hasta que lo empujas
-            b.x, b.y = self.W * 0.12, self.F - self.H * 0.42
-            self.serve_at = self.st + 1.0
-            self.say(tr("Tu saque: empuja el balón con el mouse"), 2.0,
-                     (0.7, 1, 0.55), y=self.H * 0.22, size=0.6)
+            turn = self.next_server if self.helper else "you"
+            if self.helper:
+                self.next_server = "helper" if turn == "you" else "you"
+            if turn == "you":
+                # tu saque: el balón flota al fondo de tu campo hasta que lo empujas
+                self.state = "serve_you"
+                b.x, b.y = self.W * 0.12, self.F - self.H * 0.42
+                self.say(tr("Tu saque: empuja el balón con el mouse"), 2.0,
+                         (0.7, 1, 0.55), y=self.H * 0.22, size=0.6)
+                return
+            p = self.helper
+            p.x = p.w * 0.3
+            self.say(tr("Saca tu ayudante"), 1.6, (0.6, 0.9, 1), y=self.H * 0.22, size=0.6)
         else:
             p = max(self.rivals, key=lambda r: r.x)
             p.x = self.W - p.w * 1.3
-            self.actor = p
+        self.state = "serve_pet"
+        self.server = p
+        self.actor = p if p.team == "pets" else None
+        jump = {"easy": 0.25, "medium": 0.4, "hard": 0.55}[self._diff_name()] \
+            if p.team == "pets" else 0.45
+        self.serve_kind = "jump" if chance(jump) else "normal"
+        self.serve_phase = "hold"
+        b.x, b.y = p.cx, p.y - b.r * 1.2
+
+    def _serve_dir(self, p):
+        return -1 if p.team == "pets" else 1         # hacia dónde saca
+
+    def _serve_target(self, p):
+        if p.team == "pets":
+            return random.uniform(self.W * 0.08, self.net_x - self.W * 0.1)
+        return random.uniform(self.net_x + self.W * 0.1, self.W - self.W * 0.08)
+
+    def _serve_fault_p(self, p):
+        base = {"easy": 0.25, "medium": 0.1, "hard": 0.04}[self._diff_name()] \
+            if p.team == "pets" else 0.08
+        return base * (1.6 if self.serve_kind == "jump" else 1.0)
+
+    def _serve_hit(self, p):
+        """El golpe del saque (normal o medio saque mate)."""
+        b, s = self.ball, self.S
+        d = self._serve_dir(p)
+        if chance(self._serve_fault_p(p)):
+            # a la red
+            self._send(self.net_x - d * 4, self.net_top + 20 * s, self.net_top + 40 * s)
+        elif self.serve_kind == "jump":
+            self._drive(self._serve_target(p), random.uniform(20, 26) / self.diff["power"])
+            p.win._squash(1.15, 0.85)
+            self.say(tr("¡Medio saque mate!"), 0.9, (1, 0.6, 0.45) if p.team == "pets"
+                     else (0.6, 0.9, 1), x=p.cx, y=p.y - 40 * s, size=0.6)
+        else:
+            # bombeado, sin acercarse al techo
+            apex = max(b.r * 4, self.net_top - self.H * random.uniform(0.18, 0.3))
+            self._send(self._serve_target(p), apex)
+        self.state = "rally"
+        self.plan = []
+        self.last_spike = False
+        self.serving = p.team
+        self.serve_air = p.team
+        self.server = None
+        if p.team == "pets":
+            self.actor = p          # quien sacó no recibe su propio saque
+            self._last_actor = p
+
+    def _serve_pet(self, b):
+        """Saca una mascota: la rival (hacia tu campo) o tu ayudante."""
+        p = self.server
+        self._move_pets_idle(skip=p)
+        if p is not self.helper and self.helper:
+            self.helper.run_to(self.W * 0.25, 4 * self.S * self.helper.k,
+                               (0, self.net_x - self.net_w))
+            self.helper.face(b.x)
+        p.face(self.net_x)
+        if self.serve_phase == "hold":
             b.x, b.y = p.cx, p.y - b.r * 1.2
-            self.serve_at = self.st + 1.0
+            if self.st < self.serve_at:
+                return
+            if self.serve_kind == "normal":
+                p.jump(-9 * p.k)
+                self._serve_hit(p)
+                return
+            # medio saque mate: lanza el balón hacia arriba y un poco adelante
+            gp = 1.3 * self.S
+            self.serve_rise = min(p.h * 1.2, self.H * 0.25)
+            self.serve_hit_y = p.floor_top - self.serve_rise - b.r * 0.4
+            apex = max(b.r * 3, self.serve_hit_y - self.H * 0.12)
+            vy = -math.sqrt(2 * self.g * max(4.0, b.y - apex))
+            t = -vy / self.g + math.sqrt(2 * max(1.0, self.serve_hit_y - apex) / self.g)
+            b.vx, b.vy = self._serve_dir(p) * p.w * 0.6 / t, vy
+            self.serve_jump_vy = -math.sqrt(2 * gp * self.serve_rise)
+            self.serve_phase = "toss"
+            return
+        # el balón lanzado sube y baja; la mascota corre debajo y salta
+        b.vy += self.g
+        b.x += b.vx
+        b.y += b.vy
+        b.spin = (b.spin + 6) % 360
+        p.run_to(b.x + b.vx * 4, 4 * self.S * p.k,
+                 (self.net_x + self.net_w, self.W) if p.team == "pets" else (0, self.net_x - self.net_w))
+        gp = 1.3 * self.S
+        t_rise = -self.serve_jump_vy / gp                     # ticks hasta su punto alto
+        if b.vy > 0 and p.on_ground:
+            t = self._t_to_y(self.serve_hit_y)
+            if t is None or t / DT <= t_rise:
+                p.jump(self.serve_jump_vy)
+        if (not p.on_ground and p.touches(b, b.r * 1.2)) or b.y > self.serve_hit_y + p.h * 0.6:
+            self._serve_hit(p)
 
     # ── tick ──────────────────────────────────────────────────────────────
     def update(self, now):
@@ -180,35 +297,22 @@ class Volley(Match):
         if self.state == "serve_you":
             self._move_pets_idle()
             b.y += math.sin(self.st * 4) * 0.6         # flota esperando
-            if self.st >= self.serve_at and self.mouse_push(b, MAX_BALL * s, k=PUSH_BOUNCE):
+            # saque más suave que un remate: con un tirón normal no llega al
+            # techo (solo si lo empujas hacia arriba con mucha fuerza)
+            if self.st >= self.serve_at and self.mouse_push(b, SERVE_BALL * s, k=PUSH_BOUNCE):
                 self.last_spike = False
                 self.state = "rally"
-                self.serving = "you"
-                self._pushing = True            # este empujón ES el saque
-                self._last_contact = self.st
+                self.serving = self.serve_air = "you"
+                self._pushing = False           # este empujón ES el saque
             elif self.st >= self.serve_at + 8:
                 # 8 s sin sacar: saque flojo automático para no trabar el partido
                 self._send(self.net_x + self.W * 0.2, self.net_top - self.H * 0.2)
                 self.last_spike = False
                 self.state = "rally"
-                self.serving = "you"
+                self.serving = self.serve_air = "you"
             return
-        if self.state == "serve_pets":
-            p = self.actor
-            b.x, b.y = p.cx, p.y - b.r * 1.2
-            self._move_pets_idle(skip=p)
-            if self.st >= self.serve_at:
-                fault = {"easy": 0.25, "medium": 0.1, "hard": 0.04}[self._diff_name()]
-                if chance(fault):
-                    self._send(self.net_x + 4, self.net_top + 20 * s, self.net_top + 40 * s)
-                else:
-                    self._send(random.uniform(self.W * 0.08, self.net_x - self.W * 0.1),
-                               self.net_top - self.H * random.uniform(0.18, 0.3))
-                p.jump(-9 * p.k)
-                self.state = "rally"
-                self.plan = []
-                self.last_spike = False
-                self.serving = "pets"
+        if self.state == "serve_pet":
+            self._serve_pet(b)
             return
 
         # rally: física
@@ -228,11 +332,16 @@ class Volley(Match):
         if self.serving and (px - self.net_x) * (b.x - self.net_x) < 0 \
                 and b.y + b.r <= self.net_top + b.r:
             self.serving = None                     # el saque pasó la red: válido
-        if b.x - b.r < 0 or b.x + b.r > self.W:
-            back = "you" if b.x - b.r < 0 else "pets"
-            if self.serving == back:
-                # el saque tocó la pared del fondo: punto para el rival
-                self._fault(tr("¡Saque al fondo!"), now)
+        srv = self.serve_air or self.serving
+        if srv:
+            # hasta que el rival lo toque, el saque no puede tocar paredes ni techo
+            if b.x - b.r < 0 or b.x + b.r > self.W:
+                back = "you" if b.x - b.r < 0 else "pets"
+                self._fault(tr("¡Saque al fondo!") if back == srv
+                            else tr("¡El saque tocó la pared!"), now, loser=srv)
+                return
+            if b.y - b.r < 0:
+                self._fault(tr("¡El saque tocó el techo!"), now, loser=srv)
                 return
         if b.x - b.r < 0:
             b.x, b.vx = b.r, abs(b.vx) * 0.6
@@ -250,7 +359,7 @@ class Volley(Match):
                 self.point("you", tr("¡Punto!"))
                 self.server_you = True
             self.state = "dead"
-            self.serving = None
+            self.serving = self.serve_air = None
             self.serve_after = now + 1.7
             return
 
@@ -263,16 +372,11 @@ class Volley(Match):
             self.touches = 0
             self.last_toucher = None
             self._pushing = False
+            self.you_locked = False
             self.block_tried = False
             self._pets_side(b)
         if self.helper:
             self._helper(b)
-
-    def _diff_name(self):
-        for k, v in (("easy", 0.3), ("medium", 0.6), ("hard", 0.9)):
-            if abs(self.diff["skill"] - v) < 1e-6:
-                return k
-        return "medium"
 
     def _net(self, b):
         x0, x1 = self.net_x - self.net_w / 2, self.net_x + self.net_w / 2
@@ -293,19 +397,24 @@ class Volley(Match):
                     b.x, b.vx = x1 + b.r, abs(b.vx) * 0.3
 
     # ── tu lado: empujas el balón ─────────────────────────────────────────
-    def _fault(self, label, now):
+    def _fault(self, label, now, loser=None):
         """Falta de quien sacaba / tocaba: punto para el otro equipo."""
-        who = "pets" if (self.serving == "you" or self.ball.x < self.net_x) else "you"
+        if loser is None:
+            loser = "you" if (self.serving == "you" or self.ball.x < self.net_x) else "pets"
+        who = "pets" if loser == "you" else "you"
         self.point(who, label)
         self.server_you = who == "you"
         self.state = "dead"
-        self.serving = None
+        self.serving = self.serve_air = None
         self.serve_after = now + 1.7
 
     def _touch(self, who="you"):
         """Un toque de tu equipo (tú o tu ayudante). El cuarto es falta."""
         self.touches += 1
         self.last_toucher = who
+        self.serve_air = None                # el saque ya lo tocó el rival
+        if who != "you":
+            self.you_locked = False          # tocó otra: ya puedes volver a tocar
         if self.touches > 3:
             self.say(tr("¡Cuatro toques!"), 1.2, (1, 0.5, 0.5), y=self.H * 0.3)
             self.ball.vx = self.ball.vy = 0.0
@@ -314,20 +423,25 @@ class Volley(Match):
         return True
 
     def _your_side(self, b):
-        if self.serving == "you":
-            # el saque es UN toque: mientras va en el aire tu cursor no toca el
-            # balón (así no hay dobles toques sin querer al sacar)
+        if self.serving == "you" or self.you_locked:
+            # tu saque en el aire, o ya tocaste y falta que toque otra: tu cursor
+            # atraviesa el balón (así no hay dobles toques, ni sin querer)
             self._pushing = False
             return
         if self.mouse_push(b, MAX_BALL * self.S, k=PUSH_BOUNCE):
-            # un empujón continuo (aunque tiemble) cuenta como UN toque: el
-            # siguiente necesita 0,3 s sin tocar el balón
-            if not self._pushing and self.st - self._last_contact > 0.3:
+            if not self._pushing:
+                self._stroke_t0 = self.st              # empieza UN toque
                 self._touch("you")
             self._pushing = True
             self._last_contact = self.st
-        else:
-            self._pushing = False
+            if self.st - self._stroke_t0 > self.STROKE_S:
+                self._end_stroke()                     # no se lleva el balón pegado
+        elif self._pushing and self.st - self._last_contact > 2.5 * DT:
+            self._end_stroke()                         # se separó del balón: fin del toque
+
+    def _end_stroke(self):
+        self._pushing = False
+        self.you_locked = True
 
     def _open_spot(self):
         """Un hueco en el campo de las mascotas, lejos de ellas."""
@@ -424,6 +538,7 @@ class Volley(Match):
     def _pet_touch(self, p, step):
         b = self.ball
         self.plan.pop(0)
+        self.serve_air = None
         self._last_actor = p
         self.actor = None              # el próximo toque lo hace OTRA mascota
         p.cool = 6
@@ -526,6 +641,7 @@ class Volley(Match):
         reach = abs(p.cx - self.net_x) < p.w * 1.1 and p.y < self.net_top
         if not p.on_ground and reach and p.touches(b, b.r * 1.3) and b.vx > 0:
             self.block_tried = True
+            self.you_locked = False
             r = random.random()
             full = 0.2 + 0.4 * self.diff["skill"]
             if r < full:
@@ -599,6 +715,7 @@ class Volley(Match):
             reach = abs(h.cx - self.net_x) < h.w * 1.2 and h.y < self.net_top
             if not h.on_ground and reach and h.cool == 0 and h.touches(b, b.r * 1.3):
                 h.cool = 20
+                self.you_locked = False
                 r = random.random()
                 if r < 0.35:
                     self.spike_live = False
@@ -618,9 +735,10 @@ class Volley(Match):
             h.run_to(self.net_x - self.W * 0.16, sp * 0.8, bounds)
             h.face(b.x)
             return
-        # balón alto cerca de la red con toques disponibles: ¡remate!
+        # 3er toque con el balón alto cerca de la red: ¡remate! (nunca remata
+        # de primera ni de segunda: juega a 3 toques contigo)
         near_net = self.net_x - self.W * 0.2 < b.x < self.net_x - b.r
-        if near_net and b.y < self.net_top and self.touches < 3 and self.last_toucher != "helper":
+        if near_net and b.y < self.net_top and self.touches == 2 and self.last_toucher != "helper":
             h.run_to(b.x + b.vx * 4, sp * 1.3, bounds)
             h.face(self.net_x)
             gp = 1.3 * self.S
@@ -699,8 +817,11 @@ class Volley(Match):
         cr.fill()
 
     def draw_extra(self, cr):
-        if self.serving == "you" or self.state == "serve_you":
-            # pared del fondo: el saque no puede tocarla
+        if self.serve_air or self.serving or self.state in ("serve_you", "serve_pet"):
+            # durante el saque: paredes y techo prohibidos
+            t = 4 * self.S
             cr.set_source_rgba(1, 0.45, 0.5, 0.35)
-            cr.rectangle(0, 0, 4 * self.S, self.F)
+            cr.rectangle(0, 0, t, self.F)
+            cr.rectangle(self.W - t, 0, t, self.F)
+            cr.rectangle(0, 0, self.W, t)
             cr.fill()

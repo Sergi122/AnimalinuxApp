@@ -4,6 +4,8 @@
   - Tu arco a la izquierda, el de las mascotas a la derecha.
   - El mouse NO agarra el balón: solo lo empuja. Cuanto más rápido lo
     empujas, más rápido sale.
+  - Como en el básquet, tu cursor tiene un límite de altura (la línea
+    punteada): por encima de él no se puede tocar el balón.
   - 1 mascota: ataca y defiende. 2 a 4: una es arquera y el resto juega.
   - Opcional: una mascota tuya de arquera.
 """

@@ -228,6 +228,9 @@ class Match:
     BALL = "soccer"
     HOWTO = ""
     FOOT = 14            # radio de tu «pie» (el cursor), en px a 1080p
+    # ¿se puede tocar el balón cuando está por encima del límite de altura de
+    # tu cursor? (en básquet y fútbol no: el cursor no llega y lo «bajaría»)
+    REACH_ABOVE_LIMIT = False
 
     def __init__(self, app, opts, pets, helper_win):
         self.app = app
@@ -321,7 +324,7 @@ class Match:
 
     def _motion(self, x, y):
         lim = self.cursor_limit()
-        top = self.H * 0.5                  # tu cursor juega en la mitad de abajo
+        top = self.limit_y                  # tu cursor juega en la mitad de abajo
         out = False
         if lim is not None and x > lim:
             x, out = lim - 4, True          # no pasa al campo rival
@@ -336,6 +339,15 @@ class Match:
                 pass
             GLib.timeout_add(30, self._unwarp)
         self.mouse = (x, y)
+
+    @property
+    def limit_y(self):
+        """Límite de altura de tu cursor (no sube de aquí)."""
+        return self.H * 0.5
+
+    def ball_reachable(self, b):
+        """Por encima del límite de altura no se interactúa con el balón."""
+        return self.REACH_ABOVE_LIMIT or b.y >= self.limit_y
 
     def _unwarp(self):
         self._warping = False
@@ -399,6 +411,12 @@ class Match:
             self.pitch.redraw()
         return True
 
+    def _diff_name(self):
+        for k, v in (("easy", 0.3), ("medium", 0.6), ("hard", 0.9)):
+            if abs(self.diff["skill"] - v) < 1e-6:
+                return k
+        return "medium"
+
     def remaining(self):
         return self.minutes * 60 - (time.monotonic() - self.t0)
 
@@ -439,18 +457,44 @@ class Match:
         self.msgs.append((text, time.monotonic() + secs, color, x, y, size))
 
     def mouse_push(self, b, cap, k=1.15):
-        """El cursor es un «pie» redondo: empuja el balón, nunca lo agarra.
-        Cuanto más rápido lo empujas, más rápido sale."""
+        """El cursor es un «pie» redondo (invisible): empuja el balón, nunca
+        lo agarra. Cuanto más rápido lo empujas, más rápido sale.
+
+        El choque es de un círculo que BARRE el camino del cursor en este tick
+        (de la posición anterior a la actual): un movimiento rápido no
+        atraviesa el balón sin tocarlo."""
         if self.mouse is None or b.held or time.monotonic() < getattr(self, "no_push_until", 0):
             return False
-        mx, my = self.mouse
+        if not self.ball_reachable(b):
+            return False
         foot = self.FOOT * self.S
+        reach = b.r + foot
+        ex, ey = self.mouse
+        sx, sy = ex - self.mvx, ey - self.mvy
+        # primer punto del recorrido del pie que entra en contacto con el balón
+        segx, segy = ex - sx, ey - sy
+        seg2 = segx * segx + segy * segy
+        mx, my = ex, ey
+        hit = math.hypot(b.x - ex, b.y - ey) < reach
+        if seg2 > 1e-6:
+            fx, fy = sx - b.x, sy - b.y
+            bq = fx * segx + fy * segy
+            c = fx * fx + fy * fy - reach * reach
+            disc = bq * bq - seg2 * c
+            if c < 0:
+                mx, my, hit = sx, sy, True          # ya lo tocaba al empezar el tick
+            elif disc >= 0:
+                t = (-bq - math.sqrt(disc)) / seg2
+                if 0.0 <= t <= 1.0:
+                    mx, my, hit = sx + segx * t, sy + segy * t, True
         dx, dy = b.x - mx, b.y - my
         d = math.hypot(dx, dy)
-        if d >= b.r + foot or d == 0:
+        if not hit:
             return False
+        if d < 1e-6:
+            dx, dy, d = 0.0, -1.0, 1.0            # justo en el centro: sale hacia arriba
         nx, ny = dx / d, dy / d
-        b.x, b.y = mx + nx * (b.r + foot), my + ny * (b.r + foot)
+        b.x, b.y = mx + nx * reach, my + ny * reach
         rel = (self.mvx * nx + self.mvy * ny) - (b.vx * nx + b.vy * ny)
         if rel > 0:
             b.vx += nx * rel * k
@@ -495,6 +539,8 @@ class Match:
         cr.rectangle(0, self.F - 3, self.W, 3)
         cr.fill()
         self.draw_field(cr)
+        if not self.REACH_ABOVE_LIMIT:
+            self._draw_limit(cr)
         self.ball.draw(cr)
         self.draw_extra(cr)
         self._draw_board(cr)
@@ -508,6 +554,18 @@ class Match:
 
     def draw_extra(self, cr):
         pass
+
+    def _draw_limit(self, cr):
+        """Línea punteada suave: el límite de altura de tu cursor."""
+        cr.set_dash([10 * self.S, 10 * self.S])
+        # borde oscuro + línea clara: se ve sobre fondos claros y oscuros
+        for rgba, w in (((0, 0, 0, 0.14), 4), ((1, 1, 1, 0.22), 2)):
+            cr.set_source_rgba(*rgba)
+            cr.set_line_width(max(w * 0.75, w * self.S))
+            cr.move_to(0, self.limit_y)
+            cr.line_to(self.W, self.limit_y)
+            cr.stroke()
+        cr.set_dash([])
 
     def _text(self, cr, text, x, y, px, color=(1, 1, 1), alpha=1.0, outline=True):
         cr.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
