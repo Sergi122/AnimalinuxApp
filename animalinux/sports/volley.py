@@ -17,8 +17,14 @@ puedes volver a tocar el balón hasta que lo toque otra (no hay dobles toques).
 Tu ayudante juega a 3 toques: recibe y te la pasa, o te arma, y solo remata
 como tercer toque.
 
-Dificultad de las mascotas = cuántas veces arman la jugada completa
-(recepción → armado → remate): fácil ~3 de 10, medio ~6, difícil ~9.
+Tu cursor llega hasta un poco por encima de la red (la red + el alto de una
+mascota, línea punteada): más arriba no tocas el balón. Las mascotas saltan
+lo que haga falta para rematar.
+
+Dificultad de las mascotas (LEVELS): cuántas veces arman la jugada completa
+(recepción → armado → remate), velocidad, fuerza, bloqueo y planchas. Además
+apuntan lejos de tu cursor y de tu ayudante y, si tu ayudante sube a
+bloquear, a veces la engañan con una finta.
 """
 import math
 import random
@@ -30,6 +36,17 @@ DT = TICK_MS / 1000.0
 WINDUP_S = 1.5          # lo que tarda el armado hasta el punto de remate
 MAX_BALL = 36.0
 SERVE_BALL = 24.0       # tope de velocidad de tu saque
+
+# por dificultad: prob. de armar la jugada completa, velocidad, fuerza del
+# remate, prob. de bloqueo completo, de que salga la plancha y de sacar a la red
+LEVELS = {
+    "easy":   {"skill": 0.45, "speed": 0.85, "power": 0.9,  "block": 0.35, "dive": 0.5,
+               "fault": 0.15},
+    "medium": {"skill": 0.8,  "speed": 1.05, "power": 1.12, "block": 0.55, "dive": 0.8,
+               "fault": 0.06},
+    "hard":   {"skill": 0.97, "speed": 1.25, "power": 1.3,  "block": 0.7,  "dive": 0.95,
+               "fault": 0.02},
+}
 PUSH_BOUNCE = 1.5       # cuánto rebota el balón al tocarlo con el mouse
 
 
@@ -38,12 +55,13 @@ class Volley(Match):
     BALL = "volley"
     HOWTO = N_("Empuja el balón a su campo · tu saque debe pasar la red sin tocar el fondo")
     FOOT = 32
-    REACH_ABOVE_LIMIT = True     # en vóley se juega alto: sin cortar el alcance
+    REACH_ABOVE_LIMIT = False    # sobre tu límite (red + una mascota) no tocas el balón
     STROKE_S = 0.25              # lo que dura como mucho un empujón (un toque)
 
     def setup(self):
         s = self.S
         self.g = 0.42 * s
+        self.lv = LEVELS[self._diff_name()]
         self.net_x = self.W / 2
         self.net_w = max(5, 7 * s)         # red fina (también su choque)
         self.net_top = self.F - min(self.H * 0.5, max(2.3 * self.avg_h, self.H * 0.3))
@@ -81,6 +99,11 @@ class Volley(Match):
 
     def cursor_limit(self):
         return self.net_x - self.net_w / 2 - 2
+
+    @property
+    def limit_y(self):
+        """Tu altura máxima: la red más el alto de una mascota."""
+        return max(self.H * 0.15, self.net_top - self.avg_h)
 
     # ── utilidades ────────────────────────────────────────────────────────
     def _t_to_y(self, y):
@@ -181,7 +204,8 @@ class Volley(Match):
             if turn == "you":
                 # tu saque: el balón flota al fondo de tu campo hasta que lo empujas
                 self.state = "serve_you"
-                b.x, b.y = self.W * 0.12, self.F - self.H * 0.42
+                b.x = self.W * 0.12
+                b.y = max(self.F - self.H * 0.42, self.limit_y + b.r + 40 * self.S)
                 self.say(tr("Tu saque: empuja el balón con el mouse"), 2.0,
                          (0.7, 1, 0.55), y=self.H * 0.22, size=0.6)
                 return
@@ -205,12 +229,11 @@ class Volley(Match):
 
     def _serve_target(self, p):
         if p.team == "pets":
-            return random.uniform(self.W * 0.08, self.net_x - self.W * 0.1)
+            return self._weak_spot(self.W * 0.08, self.net_x - self.W * 0.1)
         return random.uniform(self.net_x + self.W * 0.1, self.W - self.W * 0.08)
 
     def _serve_fault_p(self, p):
-        base = {"easy": 0.25, "medium": 0.1, "hard": 0.04}[self._diff_name()] \
-            if p.team == "pets" else 0.08
+        base = self.lv["fault"] if p.team == "pets" else 0.08
         return base * (1.6 if self.serve_kind == "jump" else 1.0)
 
     def _serve_hit(self, p):
@@ -221,7 +244,7 @@ class Volley(Match):
             # a la red
             self._send(self.net_x - d * 4, self.net_top + 20 * s, self.net_top + 40 * s)
         elif self.serve_kind == "jump":
-            self._drive(self._serve_target(p), random.uniform(20, 26) / self.diff["power"])
+            self._drive(self._serve_target(p), random.uniform(20, 26) / self.lv["power"])
             p.win._squash(1.15, 0.85)
             self.say(tr("¡Medio saque mate!"), 0.9, (1, 0.6, 0.45) if p.team == "pets"
                      else (0.6, 0.9, 1), x=p.cx, y=p.y - 40 * s, size=0.6)
@@ -453,6 +476,26 @@ class Volley(Match):
                 best, bx = d, x
         return bx
 
+    def _weak_spot(self, lo, hi):
+        """Hueco en TU campo, lejos de tu cursor y de tu ayudante (las
+        mascotas listas apuntan ahí; las torpes, al azar)."""
+        if not chance(self.lv["skill"]):
+            return random.uniform(lo, hi)
+        xs = []
+        if self.mouse is not None:
+            xs.append(self.mouse[0])
+        if self.helper is not None:
+            xs.append(self.helper.cx)
+        if not xs:
+            return random.uniform(lo, hi)
+        best, bx = -1, (lo + hi) / 2
+        for _ in range(14):
+            x = random.uniform(lo, hi)
+            d = min(abs(x - o) for o in xs)
+            if d > best:
+                best, bx = d, x
+        return bx
+
     # ── lado de las mascotas ──────────────────────────────────────────────
     def _pets_side(self, b):
         if self.serving == "pets":
@@ -461,7 +504,7 @@ class Volley(Match):
         if not self.plan:
             if b.vy <= 0 and self.actor is None:
                 return          # aún subiendo (rebote en pared): esperar a que baje
-            skill = self.diff["skill"]
+            skill = self.lv["skill"]
             if getattr(self, "free_ball", False):
                 skill = min(1.0, skill + 0.2)
             elif getattr(self, "hard_hit", False):
@@ -493,12 +536,12 @@ class Volley(Match):
             cands = [p for p in self.rivals if p is not used] or self.rivals
             self.actor = min(cands, key=lambda p: abs(p.cx - land))
         p = self.actor
-        sp = 7.0 * self.S * self.diff["speed"] * p.k
+        sp = 7.0 * self.S * self.lv["speed"] * p.k
         bounds = (self.net_x + self.net_w, self.W)
         self.free_ball = False
         self.last_spike = False
         if step in ("receive", "return", "set"):
-            if not self._try_dive(p, bounds, 0.15 + 0.8 * self.diff["skill"]):
+            if not self._try_dive(p, bounds, self.lv["dive"]):
                 p.run_to(self._land_x(), sp, bounds)
             p.face(b.x)
             for o in self.rivals:
@@ -549,7 +592,7 @@ class Volley(Match):
         elif step == "set":
             self._set_for_spike(p)
         elif step == "return":
-            self._send(random.uniform(self.W * 0.08, self.net_x - self.W * 0.1),
+            self._send(self._weak_spot(self.W * 0.08, self.net_x - self.W * 0.1),
                        self.net_top - self.H * random.uniform(0.15, 0.28))
         elif step == "spike":
             self._do_spike(p)
@@ -575,22 +618,27 @@ class Volley(Match):
         b.vx, b.vy = vx, vy
         others = [r for r in self.rivals if r is not setter] or self.rivals
         spiker = min(others, key=lambda r: abs(r.cx - tx))
-        kind = "feint" if chance(0.1) else "power"     # casi siempre remate fuerte
-        self.windup = {"until": self.st + t * DT, "p": spiker, "block_q": None, "kind": kind}
+        # casi siempre remate fuerte; la finta se decide al pegar (_do_spike)
+        self.windup = {"until": self.st + t * DT, "p": spiker, "block_q": None, "kind": "power"}
         self.actor = spiker
 
     def _do_spike(self, p):
-        w = self.windup or {"kind": "power"}
         self.windup = None
-        kind = w["kind"]
-        b, s, d = self.ball, self.S, self.diff
+        b, s = self.ball, self.S
+        # finta lista: si tu ayudante subió a bloquear, o tu cursor espera al
+        # fondo, a veces la deja caer suave justo detrás de la red
+        h = self.helper
+        blocking = h is not None and not h.on_ground and abs(h.cx - self.net_x) < self.W * 0.15
+        deep = self.mouse is not None and self.mouse[0] < self.net_x - self.W * 0.3
+        feint = 0.1 + (0.35 * self.lv["skill"] if blocking else 0) + (0.2 * self.lv["skill"] if deep else 0)
+        kind = "feint" if chance(feint) else "power"
         self.last_spike = True
         self.spike_live = True          # remate en el aire (hasta que cruce o lo bloqueen)
         p.win._lean_to(12 if p.win._facing_left else -12)
         p.win._squash(1.15, 0.85)
         if kind == "power":
-            tx = random.uniform(self.W * 0.06, self.net_x - self.W * 0.1)
-            self._drive(tx, random.uniform(16, 22) / d["power"])
+            tx = self._weak_spot(self.W * 0.06, self.net_x - self.W * 0.1)
+            self._drive(tx, random.uniform(16, 22) / self.lv["power"])
             self.say(tr("¡Remate!"), 0.8, (1, 0.5, 0.5), x=b.x, y=b.y - 50 * s, size=0.7)
         else:
             # finta: toque suave por encima del bloqueo, cae cerca de la red
@@ -643,7 +691,7 @@ class Volley(Match):
             self.block_tried = True
             self.you_locked = False
             r = random.random()
-            full = 0.2 + 0.4 * self.diff["skill"]
+            full = self.lv["block"]
             if r < full:
                 b.x = self.net_x - self.net_w - b.r
                 b.vx = -abs(b.vx) * 0.55 - 2 * self.S

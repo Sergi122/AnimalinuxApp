@@ -558,12 +558,13 @@ class Match:
     def _draw_limit(self, cr):
         """Línea punteada suave: el límite de altura de tu cursor."""
         cr.set_dash([10 * self.S, 10 * self.S])
+        x1 = self.cursor_limit() or self.W          # solo donde anda tu cursor
         # borde oscuro + línea clara: se ve sobre fondos claros y oscuros
         for rgba, w in (((0, 0, 0, 0.14), 4), ((1, 1, 1, 0.22), 2)):
             cr.set_source_rgba(*rgba)
             cr.set_line_width(max(w * 0.75, w * self.S))
             cr.move_to(0, self.limit_y)
-            cr.line_to(self.W, self.limit_y)
+            cr.line_to(x1, self.limit_y)
             cr.stroke()
         cr.set_dash([])
 

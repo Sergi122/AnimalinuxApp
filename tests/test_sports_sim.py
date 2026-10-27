@@ -371,3 +371,16 @@ def test_basket_you_can_pass_to_the_helper():
         if m.owner is not None:
             break
     assert m.owner is h
+
+
+def test_volley_your_reach_is_net_plus_one_pet():
+    """Tu cursor toca el balón solo hasta la red + el alto de una mascota."""
+    m = _volley(rivals=1, helper=False)
+    m.state, m.serving, m.serve_air = "rally", None, None
+    assert abs(m.limit_y - (m.net_top - m.avg_h)) < 1e-6
+    b = m.ball
+    b.x, b.y, b.vx, b.vy = m.W * 0.3, m.limit_y - 40, 0.0, 0.0
+    m.mouse, m.mvx, m.mvy = (b.x, m.limit_y + 2), 0.0, -40.0
+    assert not m.mouse_push(b, 50)
+    b.y = m.limit_y + 30
+    assert m.mouse_push(b, 50)
