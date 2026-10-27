@@ -32,6 +32,7 @@ POLL_S = 3
 HOT_ON, HOT_OFF = 85.0, 60.0         # histéresis de «CPU al rojo»
 HOT_SAMPLES = 3                       # ~9 s seguidos por encima
 LOW_BAT, LOW_BAT_OFF = 20, 25
+SHARE_MIN_S = 2.5                     # compartir de verdad, no una captura suelta
 
 
 def _in_night(hour, start, end):
@@ -59,6 +60,7 @@ class SystemMonitor:
         self._timer = 0
         self._share_hypr = False
         self._share_poll = 0
+        self._share_check = 0
 
     # ── ciclo de vida ─────────────────────────────────────────────────────
     def start(self):
@@ -77,6 +79,9 @@ class SystemMonitor:
         if self._timer:
             GLib.source_remove(self._timer)
             self._timer = 0
+        if self._share_check:
+            GLib.source_remove(self._share_check)
+            self._share_check = 0
         if self._bus is not None:
             for sid in self._subs:
                 self._bus.signal_unsubscribe(sid)
@@ -307,8 +312,25 @@ class SystemMonitor:
         hypr.events().on("screencast", self._on_hypr_screencast)
 
     def _on_hypr_screencast(self, data):
-        self._share_hypr = data.split(",", 1)[0].strip() == "1"
-        self._set(sharing=self._share_hypr or _sharing_now())
+        """Hyprland también avisa «screencast» por cada CAPTURA de pantalla
+        (grim, la herramienta de capturas…), que dura menos de medio segundo:
+        solo cuenta como compartir si sigue activo SHARE_MIN_S después (si
+        no, las mascotas parpadeaban y no salían en tus capturas)."""
+        on = data.split(",", 1)[0].strip() == "1"
+        if self._share_check:
+            GLib.source_remove(self._share_check)
+            self._share_check = 0
+        if on:
+            self._share_check = GLib.timeout_add(int(SHARE_MIN_S * 1000), self._share_confirm)
+            return False
+        self._share_hypr = False
+        self._set(sharing=_sharing_now())
+        return False
+
+    def _share_confirm(self):
+        self._share_check = 0
+        self._share_hypr = True
+        self._set(sharing=True)
         return False
 
 

@@ -38,7 +38,9 @@ REPO = "Sergi122/AnimalinuxApp"
 _TAGS_URL = f"https://api.github.com/repos/{REPO}/tags?per_page=30"
 _TARBALL_URL = f"https://github.com/{REPO}/archive/refs/tags/v{{v}}.tar.gz"
 _RELEASES_URL = f"https://api.github.com/repos/{REPO}/releases?per_page=30"
-_WIN_TAG_RE = re.compile(r"^win-v(\d+\.\d+\.\d+)$")
+# versiones de 3 números (funciones) o 4 (correcciones: 0.8.1.1)
+_VER = r"\d+(?:\.\d+){2,3}"
+_WIN_TAG_RE = re.compile(r"^win-v(" + _VER + r")$")
 _SHA_RE = re.compile(r"SHA-256:\s*`?([0-9a-fA-F]{64})`?")
 _WIN_ASSET = "AnimaWin-Setup-{v}.exe"
 _ALLOWED_HOSTS = ("github.com", "githubusercontent.com")   # y sus subdominios
@@ -83,7 +85,7 @@ def check_latest() -> str | None:
             return max(versions, key=_parse) if versions else None
         tags = json.loads(_get(_TAGS_URL))
         versions = [t["name"].lstrip("v") for t in tags
-                    if re.fullmatch(r"v\d+\.\d+\.\d+", t.get("name", ""))]
+                    if re.fullmatch(r"v" + _VER, t.get("name", ""))]
         return max(versions, key=_parse) if versions else None
     except Exception:  # noqa: BLE001 — sin red no es un error
         return None
@@ -140,7 +142,7 @@ def _run(cmd, cwd, log):
 def apply_update(version: str, log=lambda _m: None) -> None:
     """Descarga e instala `version`. Lanza RuntimeError si algo falla.
     Bloqueante: llamar desde un hilo."""
-    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+    if not re.fullmatch(_VER, version):
         raise RuntimeError(tr("versión inválida: {version}", version=version))
     if _WIN:
         return _apply_windows(version, log)

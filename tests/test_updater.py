@@ -150,3 +150,14 @@ def test_is_newer():
     # correcciones con 4.º número
     assert updater.is_newer("0.8.1.1", "0.8.1") and updater.is_newer("0.8.2", "0.8.1.3")
     assert not updater.is_newer("0.8.1", "0.8.1.1")
+
+
+def test_four_number_versions_are_seen_and_accepted(monkeypatch):
+    """Las correcciones (0.8.1.5) se detectan y se pueden instalar."""
+    monkeypatch.setattr(updater, "_WIN", False)
+    tags = [{"name": "v0.8.1"}, {"name": "v0.8.1.5"}, {"name": "v0.8.1.10"}, {"name": "win-v0.9.0"}]
+    monkeypatch.setattr(updater, "_get", lambda *a, **k: json.dumps(tags).encode())
+    assert updater.check_latest() == "0.8.1.10"
+    for bad in ("0.8.1.5.1", "0.8", "0.8.1.5; rm -rf ~"):
+        with pytest.raises(RuntimeError):
+            updater.apply_update(bad)
