@@ -50,8 +50,11 @@ async function loadGallery() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    document.getElementById("gallery").innerHTML =
-      `<p class="loading-msg" style="color:var(--red)">Error cargando galería: ${error.message}</p>`;
+    const p = document.createElement("p");
+    p.className = "loading-msg";
+    p.style.color = "var(--red)";
+    p.textContent = `Error cargando galería: ${error.message}`;   // nunca innerHTML con datos
+    document.getElementById("gallery").replaceChildren(p);
     return;
   }
 
