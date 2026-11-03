@@ -417,11 +417,16 @@ class Match:
             return True
         return False
 
+    def _top(self):
+        """Alto tapado arriba por la barra del escritorio (GNOME baja la
+        ventana de la cancha bajo su barra superior; ver PitchWindow.dy)."""
+        return self.pitch.dy if self.pitch is not None else 0
+
     def _exit_rect(self):
         """Botón «Terminar partido»: arriba al centro, bajo el marcador."""
         s = self.S
         w, h = 200 * s, 34 * s
-        return (self.W / 2 - w / 2, 14 * s + 64 * s + 34 * s, w, h)
+        return (self.W / 2 - w / 2, self._top() + 14 * s + 64 * s + 34 * s, w, h)
 
     def _exit_hit(self, x, y):
         ex, ey, ew, eh = self._exit_rect()
@@ -650,7 +655,7 @@ class Match:
     def _draw_board(self, cr):
         s = self.S
         bw, bh = 420 * s, 64 * s
-        x, y = self.W / 2 - bw / 2, 14 * s
+        x, y = self.W / 2 - bw / 2, self._top() + 14 * s
         self._round_rect(cr, x, y, bw, bh, 12 * s)
         cr.set_source_rgba(0.09, 0.08, 0.15, 0.86)
         cr.fill_preserve()

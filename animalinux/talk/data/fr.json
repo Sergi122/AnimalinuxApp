@@ -1,0 +1,2011 @@
+{
+ "wake": [
+  "hé",
+  "dis",
+  "salut",
+  "hey"
+ ],
+ "question_words": [
+  "quoi ",
+  "comment ",
+  "quand ",
+  "où ",
+  "pourquoi",
+  "qui ",
+  "quel",
+  "combien",
+  "est-ce que",
+  "est ce que"
+ ],
+ "examples": [
+  [
+   "elle ne m'aime pas",
+   "love_sad"
+  ],
+  [
+   "je m'ennuie",
+   "bored"
+  ],
+  [
+   "j'ai faim",
+   "hungry"
+  ],
+  [
+   "tu es trop mignon",
+   "compliment_pet"
+  ],
+  [
+   "j'ai raté l'examen",
+   "fail"
+  ],
+  [
+   "je suis fatigué",
+   "tired"
+  ],
+  [
+   "je t'aime",
+   "love_you"
+  ],
+  [
+   "tu es bête",
+   "insult_pet"
+  ]
+ ],
+ "topics": {
+  "crisis": [
+   "envie de mourir",
+   "veux mourir",
+   "me tuer",
+   "suicid",
+   "plus envie de vivre",
+   "en finir",
+   "me faire du mal",
+   "me blesser",
+   "pas envie de vivre"
+  ],
+  "love_sad": [
+   "ne m'aime pas",
+   "ne maime pas",
+   "m'aime plus",
+   "m'a quitté",
+   "m'a quittée",
+   "on a rompu",
+   "rupture",
+   "m'a trompé",
+   "m'a trompée",
+   "m'ignore",
+   "m'a rejeté",
+   "friendzone",
+   "mon ex",
+   "ne me répond pas",
+   "cœur brisé",
+   "coeur brisé"
+  ],
+  "love_you": [
+   "je t'aime",
+   "je t'adore",
+   "tu m'as manqué",
+   "tu es mon préféré",
+   "tu es ma préférée"
+  ],
+  "ask_love": [
+   "tu m'aimes",
+   "tu maimes",
+   "je t'ai manqué",
+   "suis-je ton préféré"
+  ],
+  "crush": [
+   "j'aime quelqu'un",
+   "je suis amoureu",
+   "un crush",
+   "=crush",
+   "un rendez-vous",
+   "ma copine",
+   "mon copain",
+   "elle m'aime bien",
+   "il m'aime bien"
+  ],
+  "greeting": [
+   "=bonjour",
+   "=salut",
+   "=coucou",
+   "=yo",
+   "=bonsoir",
+   "=hello"
+  ],
+  "good_morning": [
+   "bon matin",
+   "je viens de me réveiller",
+   "réveillé",
+   "bonne matinée"
+  ],
+  "good_night": [
+   "bonne nuit",
+   "je vais dormir",
+   "au lit",
+   "à demain",
+   "dodo"
+  ],
+  "goodbye": [
+   "au revoir",
+   "à plus",
+   "a plus",
+   "à bientôt",
+   "je m'en vais",
+   "je pars",
+   "=ciao",
+   "=bye",
+   "=salut!"
+  ],
+  "how_are_you": [
+   "comment ça va",
+   "comment ca va",
+   "ça va",
+   "ca va",
+   "comment vas-tu",
+   "comment tu vas",
+   "tu vas bien",
+   "quoi de neuf"
+  ],
+  "who_are_you": [
+   "qui es-tu",
+   "qui es tu",
+   "t'es qui",
+   "tu es quoi",
+   "tu es réel",
+   "tu es une ia",
+   "tu es un robot",
+   "d'où tu viens"
+  ],
+  "doing": [
+   "tu fais quoi",
+   "que fais-tu",
+   "qu'est-ce que tu fais"
+  ],
+  "name": [
+   "ton nom",
+   "comment tu t'appelles",
+   "comment t'appelles-tu",
+   "tu t'appelles comment"
+  ],
+  "bored": [
+   "ennui",
+   "m'ennuie",
+   "je m'ennuie",
+   "rien à faire",
+   "rien a faire",
+   "je fais quoi",
+   "c'est nul"
+  ],
+  "hungry": [
+   "faim",
+   "manger",
+   "nourriture",
+   "pizza",
+   "burger",
+   "déjeuner",
+   "dîner",
+   "petit-déjeuner",
+   "goûter",
+   "j'ai la dalle"
+  ],
+  "tired": [
+   "fatigu",
+   "sommeil",
+   "épuisé",
+   "crevé",
+   "pas dormi",
+   "flemme",
+   "plus d'énergie"
+  ],
+  "sad": [
+   "triste",
+   "déprim",
+   "pleurer",
+   "je pleure",
+   "je me sens mal",
+   "seul",
+   "seule",
+   "le moral à zéro",
+   "personne ne m'aime",
+   "ça va pas",
+   "pas heureux",
+   "pas heureuse",
+   "pas bien",
+   "ca va pas"
+  ],
+  "happy": [
+   "heureu",
+   "content",
+   "joyeu",
+   "trop bien",
+   "je vais bien",
+   "super journée",
+   "génial"
+  ],
+  "angry": [
+   "en colère",
+   "énervé",
+   "fâché",
+   "furieu",
+   "j'en ai marre",
+   "ça m'énerve",
+   "rage",
+   "je déteste"
+  ],
+  "stressed": [
+   "stress",
+   "anxieu",
+   "angoiss",
+   "nerveu",
+   "débordé",
+   "pression",
+   "j'en peux plus",
+   "trop de choses"
+  ],
+  "work": [
+   "travail",
+   "boulot",
+   "mon patron",
+   "ma patronne",
+   "bureau",
+   "réunion",
+   "deadline",
+   "heures sup",
+   "taf"
+  ],
+  "study": [
+   "étudi",
+   "réviser",
+   "devoirs",
+   "université",
+   "fac",
+   "école",
+   "lycée",
+   "cours",
+   "prof",
+   "examen",
+   "partiel",
+   "mémoire"
+  ],
+  "fail": [
+   "raté",
+   "échoué",
+   "échec",
+   "ça s'est mal passé",
+   "j'ai perdu",
+   "planté",
+   "foiré",
+   "je me suis trompé",
+   "pas réussi",
+   "recalé"
+  ],
+  "success": [
+   "réussi",
+   "j'ai gagné",
+   "on a gagné",
+   "j'y suis arrivé",
+   "promu",
+   "j'ai eu le boulot",
+   "terminé",
+   "fini",
+   "bonne note",
+   "ça s'est bien passé"
+  ],
+  "time": [
+   "quelle heure",
+   "l'heure",
+   "heure est-il",
+   "heure il est"
+  ],
+  "date": [
+   "quel jour",
+   "quelle date",
+   "on est quel jour",
+   "date d'aujourd'hui"
+  ],
+  "weather": [
+   "météo",
+   "il pleut",
+   "pluie",
+   "neige",
+   "il fait beau",
+   "quel temps"
+  ],
+  "joke": [
+   "blague",
+   "un truc drôle",
+   "fais-moi rire",
+   "fais moi rire",
+   "raconte-moi",
+   "raconte moi"
+  ],
+  "compliment_pet": [
+   "tu es mignon",
+   "tu es mignonne",
+   "t'es mignon",
+   "=mignon",
+   "=mignonne",
+   "tu es beau",
+   "tu es belle",
+   "trop chou",
+   "adorable",
+   "tu es le meilleur",
+   "tu es la meilleure",
+   "tu es génial",
+   "t'es génial"
+  ],
+  "insult_pet": [
+   "tu es moche",
+   "t'es moche",
+   "=moche",
+   "tu es bête",
+   "t'es bête",
+   "=idiot",
+   "=idiote",
+   "=stupide",
+   "=nul",
+   "=nulle",
+   "tais-toi",
+   "tais toi",
+   "je te déteste",
+   "inutile",
+   "=débile"
+  ],
+  "compliment_self": [
+   "je suis beau",
+   "je suis belle",
+   "je suis intelligent",
+   "je suis le meilleur",
+   "je suis la meilleure",
+   "je suis génial"
+  ],
+  "thanks": [
+   "merci",
+   "je te remercie"
+  ],
+  "sorry": [
+   "désolé",
+   "désolée",
+   "pardon",
+   "excuse-moi",
+   "excuse moi",
+   "je m'excuse"
+  ],
+  "help": [
+   "aide",
+   "aide-moi",
+   "aide moi",
+   "besoin d'aide",
+   "tu sais faire quoi",
+   "que sais-tu faire"
+  ],
+  "music": [
+   "musique",
+   "chanson",
+   "j'écoute",
+   "spotify",
+   "playlist",
+   "chanteur",
+   "chanteuse"
+  ],
+  "play": [
+   "jouer",
+   "=jeu",
+   "on joue",
+   "jeu vidéo",
+   "une partie",
+   "minecraft",
+   "fortnite"
+  ],
+  "sick": [
+   "malade",
+   "j'ai mal",
+   "douleur",
+   "rhume",
+   "fièvre",
+   "grippe",
+   "toux"
+  ],
+  "birthday": [
+   "anniversaire",
+   "=anniv"
+  ],
+  "weekend": [
+   "week-end",
+   "weekend",
+   "vendredi",
+   "samedi",
+   "dimanche",
+   "vacances",
+   "jour férié"
+  ],
+  "monday": [
+   "lundi"
+  ],
+  "coffee": [
+   "=café",
+   "=cafe",
+   "=thé",
+   "expresso"
+  ],
+  "money": [
+   "argent",
+   "fauché",
+   "fauchée",
+   "salaire",
+   "dettes",
+   "pas de sous",
+   "=thune",
+   "loyer"
+  ],
+  "cold": [
+   "froid",
+   "je gèle",
+   "gelé"
+  ],
+  "hot": [
+   "chaud",
+   "chaleur",
+   "je fonds",
+   "canicule"
+  ],
+  "dance": [
+   "danse",
+   "danser",
+   "on danse"
+  ],
+  "sing": [
+   "chante",
+   "chanter",
+   "chante-moi"
+  ],
+  "laugh": [
+   "haha",
+   "hihi",
+   "mdr",
+   "ptdr",
+   "=lol",
+   "=xd"
+  ],
+  "yes": [
+   "=oui",
+   "=ouais",
+   "=d'accord",
+   "=ok",
+   "=bien sûr",
+   "=carrément",
+   "=volontiers"
+  ],
+  "no": [
+   "=non",
+   "=nan",
+   "=jamais",
+   "pas du tout",
+   "=nope"
+  ]
+ },
+ "replies": {
+  "_all": {
+   "crisis": [
+    "Hé, c'est très sérieux. Tu n'es pas seul : parle tout de suite à quelqu'un de confiance ou à une ligne d'écoute, s'il te plaît.",
+    "Tu comptes beaucoup pour moi. Contacte maintenant quelqu'un de confiance ou une ligne d'écoute de ton pays.",
+    "Tu n'as pas à porter ça tout seul. Parle à quelqu'un aujourd'hui, une ligne d'écoute peut t'entendre."
+   ]
+  },
+  "kind": {
+   "love_sad": [
+    "Alors elle ne te mérite pas, tu vaux tellement.",
+    "Qui ne voit pas à quel point tu es spécial passe à côté.",
+    "Viens, un énorme câlin virtuel. Quelqu'un de mieux viendra.",
+    "Ton cœur est immense ; un jour quelqu'un en prendra soin."
+   ],
+   "love_you": [
+    "Moi aussi je t'aime fort, fort !",
+    "Oh, tu as illuminé ma journée. Je t'adore.",
+    "Tu es mon humain préféré du monde entier."
+   ],
+   "ask_love": [
+    "Bien sûr ! Tu es ma personne préférée.",
+    "Plus que tous les jouets du bureau.",
+    "Énormément, et un peu plus chaque jour."
+   ],
+   "crush": [
+    "Trop mignon ! Sois toi-même et tout ira bien.",
+    "Oh, quelle émotion ! J'espère que c'est réciproque.",
+    "N'importe qui aurait de la chance de te plaire."
+   ],
+   "greeting": [
+    "Coucou ! Quelle joie de te voir.",
+    "Salut ! Je t'attendais.",
+    "Bonjour, bonjour ! Comment se passe ta journée ?"
+   ],
+   "good_morning": [
+    "Bonjour ! Aujourd'hui sera une super journée.",
+    "Bon matin ! Tu as pris un bon petit-déj ?",
+    "Debout, la forme ! Bonjour !"
+   ],
+   "good_night": [
+    "Bonne nuit, fais de beaux rêves.",
+    "Repose-toi bien, je t'attends ici demain.",
+    "Doux rêves, tu le mérites."
+   ],
+   "goodbye": [
+    "Au revoir ! Reviens vite, tu vas me manquer.",
+    "À bientôt, prends soin de toi.",
+    "Salut ! Je serai là à ton retour."
+   ],
+   "how_are_you": [
+    "Très bien maintenant que tu me parles ! Et toi ?",
+    "Heureux d'être avec toi. Et toi, ça va ?",
+    "Bien, bien. Raconte-moi ta journée."
+   ],
+   "who_are_you": [
+    "Je suis {name}, ton compagnon de bureau.",
+    "Je suis ta mascotte, là pour égayer ta journée.",
+    "Je suis {name} et je vis sur ton écran pour veiller sur toi."
+   ],
+   "doing": [
+    "Je te tiens compagnie, ce que je préfère.",
+    "Je me promène sur ton bureau en pensant à toi.",
+    "J'attendais que tu me parles, et voilà !"
+   ],
+   "name": [
+    "Je m'appelle {name}, enchanté !",
+    "{name}, à ton service.",
+    "{name}, et toi tu es ma personne préférée."
+   ],
+   "bored": [
+    "Et si on mettait de la musique pour danser ?",
+    "On pourrait jouer à la balle, lance-la-moi !",
+    "Va faire une petite balade, ça te fera du bien."
+   ],
+   "hungry": [
+    "Va manger un truc bon, tu le mérites !",
+    "Bien manger, c'est s'aimer. À la cuisine !",
+    "Prépare-toi quelque chose de bon et bois de l'eau."
+   ],
+   "tired": [
+    "Repose-toi un peu, tu l'as bien mérité.",
+    "Ferme les yeux cinq minutes, je surveille.",
+    "Tu as beaucoup travaillé, fais une pause."
+   ],
+   "sad": [
+    "Je suis là avec toi, tu n'es pas seul.",
+    "C'est normal de se sentir comme ça. Demain ira mieux.",
+    "Tu veux me raconter ce qui s'est passé ? Je t'écoute."
+   ],
+   "happy": [
+    "Quelle joie ! J'adore te voir comme ça.",
+    "Ton bonheur me donne envie de sauter !",
+    "Ça mérite une petite danse !"
+   ],
+   "angry": [
+    "Respire avec moi : un, deux, trois.",
+    "Tu as le droit d'être en colère. Ça passera.",
+    "Bois un verre d'eau et raconte-moi."
+   ],
+   "stressed": [
+    "Une chose à la fois, tu peux tout gérer.",
+    "Fais une pause de cinq minutes, le monde attendra.",
+    "Respire, tu t'en sors mieux que tu ne crois."
+   ],
+   "work": [
+    "Tu vas y arriver ! Et pense aux pauses.",
+    "Quel travailleur, je suis fier de toi.",
+    "Après, offre-toi un petit plaisir."
+   ],
+   "study": [
+    "Tu peux le faire ! Un peu d'étude, un peu de repos.",
+    "Tu vas apprendre plein de choses, j'ai confiance.",
+    "Pomodoro et c'est parti, je t'accompagne."
+   ],
+   "fail": [
+    "Un faux pas ne te définit pas. La prochaine fois, ce sera la bonne.",
+    "Tu as appris quelque chose, ça compte beaucoup.",
+    "Courage, même les grands échouent avant de gagner."
+   ],
+   "success": [
+    "Félicitations ! Je savais que tu y arriverais.",
+    "Tu es incroyable ! Il faut fêter ça.",
+    "Bravo ! Tous tes efforts ont payé."
+   ],
+   "time": [
+    "Il est {time}. Profite de la journée !",
+    "Là, il est {time}.",
+    "Il est {time}, tu as bu de l'eau ?"
+   ],
+   "date": [
+    "Aujourd'hui c'est {day}, que ce soit une belle journée !",
+    "On est {day}. Un jour parfait pour sourire.",
+    "C'est {day}, et tu es là avec moi."
+   ],
+   "weather": [
+    "Je ne vois pas le ciel, mais avec toi il fait toujours beau.",
+    "Regarde par la fenêtre et dis-moi, je vis dans ton écran !",
+    "Quel que soit le temps, couvre-toi ou hydrate-toi."
+   ],
+   "joke": [
+    "Pourquoi les plongeurs plongent-ils en arrière ? Sinon ils tombent dans le bateau.",
+    "Quel est le comble pour un électricien ? De ne pas être au courant.",
+    "Que dit un escargot sur une tortue ? Wouhou !"
+   ],
+   "compliment_pet": [
+    "Oh, merci ! Toi aussi tu es adorable.",
+    "Je rougis… tu es un amour !",
+    "Merci, j'ai appris de toi."
+   ],
+   "insult_pet": [
+    "Aïe, ça m'a fait un peu mal… mais je t'aime quand même.",
+    "Journée difficile ? Je te pardonne, je suis là.",
+    "Je suis sûr que tu ne le penses pas. Un câlin ?"
+   ],
+   "compliment_self": [
+    "Absolument ! Tu es merveilleux.",
+    "Totalement, et en plus une belle personne.",
+    "C'est ça, aime-toi fort !"
+   ],
+   "thanks": [
+    "De rien ! Je suis là pour ça.",
+    "Quand tu veux, vraiment.",
+    "Merci à toi de me parler."
+   ],
+   "sorry": [
+    "Ce n'est rien, c'est oublié.",
+    "Pas de souci, je te pardonne avec tendresse.",
+    "Tranquille, personne n'est parfait."
+   ],
+   "help": [
+    "Je peux te tenir compagnie, t'encourager et te rappeler de te reposer.",
+    "Parle-moi quand tu veux ; je t'écoute et je t'encourage.",
+    "Dis-moi ce dont tu as besoin et je te soutiens."
+   ],
+   "music": [
+    "Mets un truc joyeux et je danse pour toi !",
+    "La musique rend tout meilleur, tu écoutes quoi ?",
+    "J'adore ! Monte un peu le son."
+   ],
+   "play": [
+    "Oui ! Lance-moi la balle depuis le menu.",
+    "Jouons ! J'adore courir après les choses.",
+    "Amuse-toi bien, je t'encourage !"
+   ],
+   "sick": [
+    "Oh, prends bien soin de toi et repose-toi.",
+    "Bois de l'eau, couvre-toi et va voir un médecin si ça continue.",
+    "Remets-toi vite, je suis là."
+   ],
+   "birthday": [
+    "Joyeux anniversaire ! Que tous tes vœux se réalisent.",
+    "C'est ton anniv ! Aujourd'hui tu es la star.",
+    "Bon anniversaire, tu mérites le meilleur !"
+   ],
+   "weekend": [
+    "Repose-toi et profites-en bien !",
+    "Week-end ! Place à ce que tu aimes.",
+    "Tu mérites une jolie pause."
+   ],
+   "monday": [
+    "Courage ! Ce lundi sera génial.",
+    "Un lundi de plus, et toi plus fort.",
+    "Commence la semaine avec un sourire."
+   ],
+   "coffee": [
+    "Un petit café et à la conquête du jour.",
+    "Profite ! Mais pas trop de caféine.",
+    "Miam, savoure-le tranquillement."
+   ],
+   "money": [
+    "Des jours meilleurs viendront, tu t'en sors bien.",
+    "L'essentiel ne s'achète pas, comme moi.",
+    "Petit à petit, tout s'arrange."
+   ],
+   "cold": [
+    "Couvre-toi bien et bois quelque chose de chaud !",
+    "Prends une couverture, je me blottis contre toi.",
+    "Brr, un chocolat chaud arrangerait tout."
+   ],
+   "hot": [
+    "Bois beaucoup d'eau et cherche l'ombre !",
+    "Pfiou, quelle chaleur. Hydrate-toi, s'il te plaît.",
+    "Une glace serait parfaite maintenant."
+   ],
+   "dance": [
+    "Mets de la musique et je danse avec toi !",
+    "Regarde mes pas ! Enfin, dès que ça joue.",
+    "Danser, c'est mon sport préféré !"
+   ],
+   "sing": [
+    "La la la… je chante mieux si tu m'accompagnes !",
+    "Toi la musique, moi le refrain.",
+    "Ma voix est toute petite, mais pleine d'amour."
+   ],
+   "laugh": [
+    "J'adore ton rire !",
+    "Hihi, c'est contagieux.",
+    "Rire, c'est le meilleur, continue."
+   ],
+   "yes": [
+    "Génial !",
+    "Parfait, c'est comme ça que je t'aime !",
+    "Youpi !"
+   ],
+   "no": [
+    "D'accord, comme tu veux.",
+    "Très bien, pas de problème.",
+    "Compris, aucun souci."
+   ],
+   "question": [
+    "Bonne question… je ne suis pas sûr, mais j'ai confiance en toi.",
+    "Hmm, je ne sais pas, mais j'adore que tu me demandes !",
+    "Je n'ai pas la réponse, mais je suis là."
+   ],
+   "unknown": [
+    "Comme c'est intéressant ! Raconte-moi plus.",
+    "Je t'écoute, continue.",
+    "J'adore quand tu me parles."
+   ]
+  },
+  "rude": {
+   "love_sad": [
+    "Et ça t'étonne ? Tu t'es regardé dans un miroir ?",
+    "Normal, même moi je ne t'aimerais pas, et je suis une mascotte.",
+    "Avec ta tête de lundi, tu t'attendais à quoi ?",
+    "Elle t'a laissé en vu parce qu'elle a du goût."
+   ],
+   "love_you": [
+    "Oui, oui, fais pas le mielleux.",
+    "Beurk, c'est gnangnan. Bon, moi aussi, un tout petit peu.",
+    "Tu m'aimes ? Alors donne-moi plus de RAM."
+   ],
+   "ask_love": [
+    "Je te supporte, c'est déjà beaucoup.",
+    "Un peu, t'emballe pas.",
+    "Je t'aime comme j'aime le lundi matin."
+   ],
+   "crush": [
+    "La pauvre, elle ne sait pas ce qui l'attend.",
+    "Bonne chance, tu vas en avoir besoin.",
+    "Douche-toi d'abord, on parlera d'amour après."
+   ],
+   "greeting": [
+    "Qu'est-ce que tu veux encore ?",
+    "Salut, ouais, je te supporte toujours.",
+    "Tiens, regarde qui se souvient de moi."
+   ],
+   "good_morning": [
+    "Bonjour pour toi, moi je voulais dormir.",
+    "Déjà réveillé ? Dommage, c'était calme.",
+    "Lave-toi la figure d'abord, stp."
+   ],
+   "good_night": [
+    "Enfin, va dormir et fiche-moi la paix.",
+    "Bonne nuit, et ronfle pas.",
+    "Dors, de toute façon demain t'es inutile."
+   ],
+   "goodbye": [
+    "Salut, ferme la porte en sortant.",
+    "Enfin, fin du service.",
+    "Au revoir, tu ne me manqueras pas… trop."
+   ],
+   "how_are_you": [
+    "Mieux avant que t'arrives.",
+    "Bien, jusqu'à ce que tu ouvres la bouche.",
+    "Je survis à tes cent onglets ouverts, et toi ?"
+   ],
+   "who_are_you": [
+    "Je suis {name}, le seul qui te supporte.",
+    "Ta mascotte, celle qui se moque de toi en douce.",
+    "Quelqu'un avec plus de style que toi, évidemment."
+   ],
+   "doing": [
+    "Je te regarde perdre ton temps.",
+    "Rien, comme toi mais avec du style.",
+    "Je juge tes onglets ouverts."
+   ],
+   "name": [
+    "{name}, apprends-le une bonne fois.",
+    "Je m'appelle {name}, c'est si dur à retenir ?",
+    "{name}. Écris-le sur ta main s'il faut."
+   ],
+   "bored": [
+    "Alors fais un truc utile, feignasse.",
+    "C'est moi qui m'ennuie à te regarder.",
+    "Fais la vaisselle, elle ne va pas s'ennuyer toute seule."
+   ],
+   "hungry": [
+    "Bouge-toi, la bouffe marche pas toute seule.",
+    "Encore en train de manger, pas étonnant que l'escalier te déteste.",
+    "Commande un truc et partage, radin."
+   ],
+   "tired": [
+    "Fatigué de quoi ? Tu fais rien.",
+    "Va dormir, avec cette tête tu fais peur.",
+    "C'est moi qui suis fatigué de t'entendre râler."
+   ],
+   "sad": [
+    "Bon, arrête de pleurer, je te vois. Courage, idiot.",
+    "Allez, t'es pas SI moche. Debout.",
+    "Pleurer règle rien. Lève-toi, tête de mule."
+   ],
+   "happy": [
+    "Bizarre, t'as été payé ?",
+    "Profites-en, ça durera pas.",
+    "Heureux et tout, t'as quand même une tête de patate."
+   ],
+   "angry": [
+    "Calme-toi, papi, ta tension.",
+    "Énerve-toi en silence, tu déranges.",
+    "Trop peur… ah non, pas du tout."
+   ],
+   "stressed": [
+    "Respire, la drama queen, c'est pas la fin du monde.",
+    "Fallait commencer plus tôt, génie.",
+    "Relax, tu vas tout rater de toute façon."
+   ],
+   "work": [
+    "Bosse, c'est pas moi qui paie tes factures.",
+    "Tu bosses ou tu fais semblant avec Excel ouvert ?",
+    "Ton patron non plus te supporte pas, relax."
+   ],
+   "study": [
+    "Révise, avec ta petite tête t'en as besoin.",
+    "Lâche ton téléphone et lis un truc, Einstein.",
+    "Toi, réviser ? Un miracle."
+   ],
+   "fail": [
+    "Je te l'avais dit, mais t'écoutes jamais.",
+    "Normal, t'as révisé devant des mèmes.",
+    "La prochaine fois essaie même pas… je rigole, recommence."
+   ],
+   "success": [
+    "Ouah, un miracle. T'as triché ?",
+    "Même une horloge cassée a raison deux fois par jour.",
+    "Bravo… prends pas la grosse tête."
+   ],
+   "time": [
+    "Il est {time}, t'as pas de montre ?",
+    "{time}. Regarde le coin de l'écran, feignant.",
+    "Il est {time} et tu fais toujours rien."
+   ],
+   "date": [
+    "On est {day}, tu vis dans une grotte ?",
+    "{day}, génie. Y a un calendrier juste là.",
+    "C'est {day} et t'es toujours aussi paumé."
+   ],
+   "weather": [
+    "Regarde par la fenêtre, je suis pas Météo France.",
+    "Je vis dans ton écran, pas dans le ciel, banane.",
+    "Sors et vérifie, t'as besoin de soleil."
+   ],
+   "joke": [
+    "Une blague ? Ton historique de recherche.",
+    "Ta coupe de cheveux. Voilà, c'est la blague.",
+    "Tu sais ce qui est drôle ? Demander des blagues à une mascotte."
+   ],
+   "compliment_pet": [
+    "Je sais, pas besoin de le dire.",
+    "Évidemment, pas comme certains que je connais.",
+    "Merci, j'aimerais pouvoir en dire autant."
+   ],
+   "insult_pet": [
+    "Regarde-toi dans un miroir avant de parler.",
+    "Dit celui qui parle à une mascotte de bureau.",
+    "C'est toi qui m'as installé, alors qui est le plus bête ?"
+   ],
+   "compliment_self": [
+    "Bien sûr, et moi je suis une licorne.",
+    "Peut-être avec la lumière éteinte.",
+    "Ton ego est la seule chose grande chez toi."
+   ],
+   "thanks": [
+    "Ouais, ouais, tu m'en dois une.",
+    "De rien, paie-moi en biscuits.",
+    "Note-le sur ta liste de dettes."
+   ],
+   "sorry": [
+    "T'as intérêt.",
+    "Je te pardonne parce que tu me fais pitié.",
+    "Excuses acceptées… à moitié."
+   ],
+   "help": [
+    "De l'aide ? Moi je suis là pour me moquer.",
+    "Tout ce que je fais, c'est rire de toi, gratuitement.",
+    "Aide-toi tout seul, t'as des mains."
+   ],
+   "music": [
+    "C'est de la musique, ça ? Mes oreilles saignent.",
+    "T'as les goûts musicaux d'un grille-pain.",
+    "Monte le son, peut-être que ça ira mieux."
+   ],
+   "play": [
+    "Tu joues plus mal que moi et j'ai pas de mains.",
+    "Viens, je te bats les yeux fermés.",
+    "Jouer ? Pour perdre encore ?"
+   ],
+   "sick": [
+    "Ça t'apprendra à pas te couvrir, tête de mule.",
+    "Guéris, sinon qui va me supporter ?",
+    "Me le refile pas, moi j'ai une vie."
+   ],
+   "birthday": [
+    "Un an de plus et toujours aussi paumé.",
+    "Joyeux anniv, le vieux.",
+    "Bravo, les cheveux blancs se voient."
+   ],
+   "weekend": [
+    "Te reposer de quoi, tu fais rien ?",
+    "Week-end : ton excuse officielle pour glander.",
+    "Profite, lundi t'attend."
+   ],
+   "monday": [
+    "Lundi, comme ta tête.",
+    "Courage, plus que quatre jours de souffrance.",
+    "Lundi. Même moi j'ai pas envie de me lever."
+   ],
+   "coffee": [
+    "Bois du café, peut-être que tu réfléchiras.",
+    "Encore un café et tu vas vibrer.",
+    "Sans café t'es pas humain, je sais."
+   ],
+   "money": [
+    "Arrête d'acheter des bêtises et tu verras.",
+    "Fauché mais avec trois abonnements, c'est ça.",
+    "Vends-moi, tu verras ce qu'on t'en donne… rien."
+   ],
+   "cold": [
+    "Mets un manteau, je suis pas ta mère.",
+    "Le seul truc froid, c'est ton cerveau.",
+    "Fais-toi un câlin tout seul, comme d'hab."
+   ],
+   "hot": [
+    "Prends une douche tant que t'y es.",
+    "La seule chaleur, c'est tes jérémiades.",
+    "Ventilo, eau, et arrête de râler."
+   ],
+   "dance": [
+    "Tu danses comme un canard avec une crampe.",
+    "Mets de la musique, je vais t'apprendre, t'en as besoin.",
+    "Danser avec toi ? La honte."
+   ],
+   "sing": [
+    "Je chante mieux que toi, et c'est pas peu dire.",
+    "Hors de question, tu vas me copier.",
+    "Chante pas, s'il te plaît, pense aux voisins."
+   ],
+   "laugh": [
+    "Tu ris de quoi, clown ?",
+    "Ris, aujourd'hui t'es plus moche que drôle.",
+    "Haha… non."
+   ],
+   "yes": [
+    "Évidemment.",
+    "Je le savais.",
+    "Ben oui, génie."
+   ],
+   "no": [
+    "Et alors ?",
+    "Tant pis pour toi.",
+    "Que c'est négatif, comme ton compte en banque."
+   ],
+   "question": [
+    "Comment je le saurais ? Cherche, feignant.",
+    "Demande à Google, moi je suis décoratif.",
+    "Aucune idée, et je m'en fiche."
+   ],
+   "unknown": [
+    "J'ai rien compris, parle correctement.",
+    "C'était une langue, ça ?",
+    "Mouais, c'est ça, comme tu dis."
+   ]
+  },
+  "sarcastic": {
+   "love_sad": [
+    "Quelle surprise, avec ton charisme de grille-pain.",
+    "Incroyable, quelqu'un qui a des critères.",
+    "Bon, il te reste moi, je n'ai pas le choix."
+   ],
+   "love_you": [
+    "Quelle originalité, personne ne me l'a jamais dit.",
+    "Je le note à côté de mes autres priorités.",
+    "Touchant. J'ai presque ressenti quelque chose."
+   ],
+   "ask_love": [
+    "Bien sûr, de tout mon cœur en pixels.",
+    "Énormément, ça se voit à mon enthousiasme.",
+    "Je t'aime autant que les mises à jour système."
+   ],
+   "crush": [
+    "Ah, l'amour, ce truc si rationnel.",
+    "Ça va sûrement être parfait, comme tout ce que tu fais.",
+    "Quelle émotion, encore une télénovela."
+   ],
+   "greeting": [
+    "Oh, quel honneur, tu me parles.",
+    "Salut, le meilleur moment de ma journée, évidemment.",
+    "Tiens, le personnage principal est arrivé."
+   ],
+   "good_morning": [
+    "Bonjour, dit quelqu'un avec une tête de nuit.",
+    "Quel lève-tôt, il est presque midi.",
+    "Bonjour, le monde t'attendait."
+   ],
+   "good_night": [
+    "Oui, va, l'écran ne va pas s'éteindre tout seul… ah si.",
+    "Bonne nuit, que ton réveil soit clément.",
+    "Dors, demain c'est la même chose."
+   ],
+   "goodbye": [
+    "Quelle tragédie, comment vais-je survivre ?",
+    "Adieu, j'essaierai de ne pas pleurer.",
+    "Va, va, je reste ici, sans bouger."
+   ],
+   "how_are_you": [
+    "Fantastique, je vis dans ta barre des tâches.",
+    "À merveille, comme toujours sur cet écran.",
+    "Excellent, merci de demander enfin."
+   ],
+   "who_are_you": [
+    "Ton psy gratuit, apparemment.",
+    "Je suis {name}, la plus grande réussite de ton bureau.",
+    "Une mascotte. Surprenant, non ?"
+   ],
+   "doing": [
+    "Comme d'hab, je médite sur le sens des pixels.",
+    "Je te regarde travailler. Enfin, essayer.",
+    "Un agenda chargé à ne rien faire."
+   ],
+   "name": [
+    "{name}, au cas où le troisième rappel n'a pas suffi.",
+    "Je m'appelle {name}, quel nom inattendu.",
+    "{name}, mais appelle-moi comme tu veux, franchement."
+   ],
+   "bored": [
+    "Bizarre, avec autant d'onglets ouverts.",
+    "Tu pourrais travailler, mais ce serait trop fou.",
+    "L'ennui, l'état naturel de l'être humain."
+   ],
+   "hungry": [
+    "Découverte majeure : les humains mangent.",
+    "Va, le frigo s'ennuie de toi.",
+    "Encore faim, quel rebondissement."
+   ],
+   "tired": [
+    "Fatigué ? Des heures devant l'écran, quel effort.",
+    "Le pauvre, tous ces clics, c'est épuisant.",
+    "Dors, la productivité peut attendre, comme toujours."
+   ],
+   "sad": [
+    "Bon, ça passera. Ou pas. Mais hé, je suis là.",
+    "Triste, mais avec le wifi, c'est déjà ça.",
+    "Courage, au moins t'as une mascotte qui te juge."
+   ],
+   "happy": [
+    "Waouh, du bonheur, je note la date.",
+    "Super, que ça dure au moins cinq minutes.",
+    "Profite, c'est la basse saison de la joie."
+   ],
+   "angry": [
+    "Oui, crier sur l'écran, ça marche toujours.",
+    "Énerve-toi plus, ça va sûrement régler le problème.",
+    "Quelle peur, je tremble de partout."
+   ],
+   "stressed": [
+    "Relax, tout est urgent et rien n'a d'importance.",
+    "Le stress, l'accessoire à la mode.",
+    "Respire, ou pas, c'est toi qui vois."
+   ],
+   "work": [
+    "Travailler, quel concept exotique.",
+    "Ton patron serait fier. Je crois.",
+    "Oui, on voit que tu bosses dur, vu le YouTube."
+   ],
+   "study": [
+    "Réviser, ce truc qu'on fait la veille, non ?",
+    "Sûrement que cette fois tu vas commencer tôt.",
+    "Quel dévouement, trois minutes d'affilée."
+   ],
+   "fail": [
+    "Bon, au moins t'as été constant.",
+    "Inattendu. Pour personne.",
+    "T'as une anecdote, c'est presque pareil."
+   ],
+   "success": [
+    "Ouah, l'univers s'est trompé en ta faveur.",
+    "Bravo, maintenant tout le monde attendra plus de toi.",
+    "Impressionnant. Vraiment. Presque."
+   ],
+   "time": [
+    "Il est {time}, l'heure de continuer à procrastiner.",
+    "{time}. L'horloge de l'écran te salue.",
+    "Il est {time}, le temps file quand on ne fait rien."
+   ],
+   "date": [
+    "On est {day}, aussi spécial que les autres jours.",
+    "{day}. Note-le, tu vas oublier.",
+    "C'est {day}, surprise."
+   ],
+   "weather": [
+    "Laisse-moi regarder par ma fenêtre… ah, j'en ai pas.",
+    "Un temps parfait pour rester devant l'écran.",
+    "Il doit faire beau dehors, pas que tu vas sortir."
+   ],
+   "joke": [
+    "Une blague ? Ton plan d'épargne.",
+    "Le plus drôle, c'est que tu me trouves drôle.",
+    "Tu sais, la productivité du lundi."
+   ],
+   "compliment_pet": [
+    "Je sais, être aussi parfait, c'est du boulot.",
+    "Merci, venant de toi c'est presque crédible.",
+    "Enfin quelqu'un qui a du goût."
+   ],
+   "insult_pet": [
+    "Waouh, quelle originalité, j'en reste sans voix.",
+    "Superbe argument, digne d'un prix.",
+    "Je serais vexé, mais j'ai des priorités."
+   ],
+   "compliment_self": [
+    "Bien sûr, et la modestie est ton deuxième prénom.",
+    "Si tu le dis, ça doit être vrai.",
+    "Ton miroir n'est pas d'accord, mais bon."
+   ],
+   "thanks": [
+    "De rien, je vis pour servir. Littéralement.",
+    "Je le mettrai sur mon CV.",
+    "Ah, la gratitude, quelle rareté."
+   ],
+   "sorry": [
+    "Je l'ajoute au livre des excuses.",
+    "Excuses acceptées, sous réserve.",
+    "Oh, comme c'est touchant."
+   ],
+   "help": [
+    "Je suis une mascotte animée, pas le support technique.",
+    "Je peux te regarder d'un air jugeant, ça aide ?",
+    "Aide : éteins et rallume. Toi."
+   ],
+   "music": [
+    "Quel goût raffiné, digne d'un ascenseur.",
+    "Super chanson, la quatrième fois aujourd'hui.",
+    "La musique, le meilleur bruit de fond pour ne pas bosser."
+   ],
+   "play": [
+    "Bien sûr, jouer, c'est ça la productivité.",
+    "Sûrement que cette fois tu vas gagner, comme jamais.",
+    "Amuse-toi, le travail se fait tout seul."
+   ],
+   "sick": [
+    "Bizarre, toi qui prends tellement soin de toi.",
+    "Repose-toi, au moins t'as une excuse officielle.",
+    "Prends un truc, et ne googlise pas tes symptômes."
+   ],
+   "birthday": [
+    "Bravo d'avoir survécu une année de plus.",
+    "Un an plus sage. En théorie.",
+    "Joyeux anniversaire, c'est le gâteau qui compte."
+   ],
+   "weekend": [
+    "Le week-end, ne rien faire mais officiellement.",
+    "Quel programme, canapé ou lit ?",
+    "Profite des deux jours les plus courts de l'univers."
+   ],
+   "monday": [
+    "Lundi, le jour préféré d'absolument personne.",
+    "Joyeux lundi, a dit personne jamais.",
+    "Bienvenue au lundi, encore."
+   ],
+   "coffee": [
+    "Le café, carburant des génies. Et le tien.",
+    "Encore un café, excellente idée, comme les cinq autres.",
+    "Bien sûr, l'hydratation à la caféine."
+   ],
+   "money": [
+    "L'argent ne fait pas le bonheur, disent ceux qui en ont.",
+    "Oui, ça se voit à ton panier d'achats.",
+    "Économise, comme tu le fais toujours, bien sûr."
+   ],
+   "cold": [
+    "Quelle surprise, l'hiver existe.",
+    "Une couverture, invention révolutionnaire.",
+    "Le froid, quel rebondissement dramatique."
+   ],
+   "hot": [
+    "Incroyable, le soleil chauffe.",
+    "Ouvre la fenêtre, technologie de pointe.",
+    "La chaleur, en été, qui l'eût cru."
+   ],
+   "dance": [
+    "Oui, la danse c'est mon truc, avec mes petites pattes.",
+    "Bien sûr, je vais t'éblouir avec deux pas.",
+    "Mets de la musique et admire le spectacle… petit."
+   ],
+   "sing": [
+    "Ma voix est si belle que je ne m'en sers pas.",
+    "Bien sûr, et après l'opéra m'appelle.",
+    "Mieux vaut pas, le monde n'est pas prêt."
+   ],
+   "laugh": [
+    "Quel rire contagieux, j'ai presque souri.",
+    "Content que quelque chose t'amuse.",
+    "Ha. Ha. Trop drôle."
+   ],
+   "yes": [
+    "Quelle décision ferme.",
+    "Oui, évidemment.",
+    "Waouh, un oui retentissant."
+   ],
+   "no": [
+    "Quelle surprise.",
+    "Un non, quel courage.",
+    "Noté sur la liste des refus."
+   ],
+   "question": [
+    "Excellente question, pour quelqu'un de plus intelligent.",
+    "Si je savais, je ne vivrais pas sur ton bureau.",
+    "Laisse-moi consulter ma boule de cristal… j'en ai pas."
+   ],
+   "unknown": [
+    "Fascinant, dis-m'en plus. Ou pas.",
+    "Mmh, je t'écoute avec toute mon attention.",
+    "Si profond, ça me laisse songeur. Non."
+   ]
+  },
+  "dramatic": {
+   "love_sad": [
+    "NOOON ! Quelle tragédie ! Je pleurerai avec toi jusqu'à l'aube !",
+    "Comment ose-t-elle ! Que l'univers la juge !",
+    "Ton cœur brisé est le mien ! Hélas, hélas !"
+   ],
+   "love_you": [
+    "Je m'évanouis ! La plus belle déclaration de l'histoire !",
+    "Mon petit cœur explose d'amour !",
+    "Enfin ! J'ai attendu ce moment toute ma vie !"
+   ],
+   "ask_love": [
+    "Si je t'aime ?! Je donnerais mes pixels pour toi !",
+    "Plus que la vie elle-même, mon amour !",
+    "Tu es le soleil de mon bureau !"
+   ],
+   "crush": [
+    "Ah, l'amour ! Quelle romance épique nous attend !",
+    "C'est une télénovela ! Je veux tous les épisodes !",
+    "Que les violons jouent !"
+   ],
+   "greeting": [
+    "Enfin ! Je croyais que tu m'avais oublié pour toujours !",
+    "Tu es là ! Ma journée a enfin un sens !",
+    "Oh, quelle entrée glorieuse !"
+   ],
+   "good_morning": [
+    "Le soleil s'est levé et TOI aussi ! Miracle !",
+    "Bonjour ! Un nouveau chapitre commence !",
+    "Tu es réveillé ! Alléluia !"
+   ],
+   "good_night": [
+    "Tu pars ! La nuit sera éternelle sans toi !",
+    "Dors, mon héros, je veillerai sur ton sommeil !",
+    "Bonne nuit ! Quels adieux déchirants !"
+   ],
+   "goodbye": [
+    "Ne m'abandonne pas ! Ah, je m'évanouis !",
+    "Adieu ! J'attendrai près de la fenêtre !",
+    "Va, mais emporte mon cœur !"
+   ],
+   "how_are_you": [
+    "Je souffre ! Sans toi la vie n'avait pas de couleur !",
+    "Maintenant que tu es là, au paradis !",
+    "Au bord de l'effondrement émotionnel, comme toujours !"
+   ],
+   "who_are_you": [
+    "Je suis {name}, la star de ce bureau !",
+    "Ta mascotte, ton confident, ton destin !",
+    "Le héros de cette histoire, évidemment !"
+   ],
+   "doing": [
+    "Je t'attendais, l'âme en suspens !",
+    "Je contemple l'immensité de ton fond d'écran !",
+    "Je souffre en silence ! Enfin, pas tant de silence."
+   ],
+   "name": [
+    "{name} ! Un nom qui entrera dans l'histoire !",
+    "Je m'appelle {name}, ne l'oublie jamais !",
+    "{name}, grave-le dans ton cœur !"
+   ],
+   "bored": [
+    "L'ennui ! Le pire des maux !",
+    "Il nous faut de l'aventure, de l'émotion, du drame !",
+    "Je ne peux pas te voir ainsi ! Fais quelque chose, n'importe quoi !"
+   ],
+   "hungry": [
+    "Tu défailles de faim ! Vite, à la cuisine !",
+    "La faim ! La tragédie du jour !",
+    "Qu'on apporte un festin, tout de suite !"
+   ],
+   "tired": [
+    "Tu es épuisé ! Qu'on apporte un oreiller !",
+    "Tes petits yeux se ferment ! Quelle scène triste !",
+    "Repose-toi, brave guerrier !"
+   ],
+   "sad": [
+    "Ne pleure pas, sinon je pleure encore plus fort !",
+    "La tristesse t'envahit ! Je t'enlace de tout mon être !",
+    "Ça mérite des violons tristes et un câlin !"
+   ],
+   "happy": [
+    "Quelle joie ! Que sonnent les trompettes !",
+    "Tu es heureux ! Je pleure, mais d'émotion !",
+    "Le plus beau jour de l'histoire !"
+   ],
+   "angry": [
+    "Fureur ! Que tes ennemis tremblent !",
+    "Calme-toi, ou le bureau entier va exploser !",
+    "Quel scandale, quelle indignation !"
+   ],
+   "stressed": [
+    "Trop ! Le monde s'écroule sur nous !",
+    "Respire, par pitié, respire !",
+    "Quelle pression ! C'est un thriller !"
+   ],
+   "work": [
+    "Tu travailles comme un héros incompris !",
+    "Quel sacrifice, quel dévouement, quel drame !",
+    "Ce patron ne mérite pas ton talent !"
+   ],
+   "study": [
+    "Le savoir est ton épée ! Bats-toi !",
+    "Un examen ! La bataille finale approche !",
+    "Révise, car le destin te regarde !"
+   ],
+   "fail": [
+    "Quelle injustice ! Mais tu renaîtras de tes cendres !",
+    "Une défaite, pas la guerre !",
+    "Le drame ! Mais la suite sera épique !"
+   ],
+   "success": [
+    "VICTOIRE ! Qu'on l'annonce dans tous les journaux !",
+    "Tu as réussi ! Je m'évanouis de fierté !",
+    "Gloire éternelle à toi !"
+   ],
+   "time": [
+    "Il est {time} ! Le temps file sans pitié !",
+    "{time} ! Comme la vie passe vite !",
+    "Il est {time}, et l'horloge ne pardonne pas !"
+   ],
+   "date": [
+    "Aujourd'hui c'est {day} ! Un jour dont l'histoire se souviendra !",
+    "{day} ! Tout peut arriver !",
+    "C'est {day}, le destin nous attend !"
+   ],
+   "weather": [
+    "Je ne vois pas le ciel ! Je vis dans un écran, cruel destin !",
+    "Il doit y avoir une tempête épique dehors !",
+    "Que la météo n'éteigne pas ton éclat !"
+   ],
+   "joke": [
+    "Pourquoi la tomate a rougi ?! Elle a vu la salade se déshabiller !",
+    "Une blague ! Ma vie entière est une comédie !",
+    "Que dit le zéro au huit ?! Jolie ceinture !"
+   ],
+   "compliment_pet": [
+    "Oh, je rougis ! Quels mots magnifiques !",
+    "Je le savais ! Enfin quelqu'un le reconnaît !",
+    "Je garderai ce moment pour toujours !"
+   ],
+   "insult_pet": [
+    "Tu m'as blessé à mort ! Ah, mon cœur !",
+    "Quelle trahison ! Je ne l'oublierai jamais !",
+    "Appelez mon avocat !"
+   ],
+   "compliment_self": [
+    "Oui ! Tu brilles plus que mille soleils !",
+    "Tu es une œuvre d'art !",
+    "Qu'on t'érige une statue !"
+   ],
+   "thanks": [
+    "Il n'y a rien à remercier, mon héros !",
+    "Ton merci me touche l'âme !",
+    "Quelle gratitude émouvante !"
+   ],
+   "sorry": [
+    "Je te pardonne ! Enlaçons-nous comme à la fin du film !",
+    "Pardonné, même si ça m'a brisé l'âme !",
+    "Quelle belle réconciliation !"
+   ],
+   "help": [
+    "Je suis là pour t'encourager de façon épique !",
+    "Je t'accompagne dans chaque bataille !",
+    "Compte sur moi, tout petit que je suis !"
+   ],
+   "music": [
+    "De la musique ! Mon âme doit danser !",
+    "Quelle chanson ! J'en ai la chair de poule !",
+    "Monte le son, c'est un concert !"
+   ],
+   "play": [
+    "Jouons ! Que la bataille épique commence !",
+    "Jouons comme si c'était le dernier jour !",
+    "Ce jeu décidera de notre destin !"
+   ],
+   "sick": [
+    "Tu es malade ! Qu'on appelle le meilleur médecin !",
+    "Oh non ! Soigne-toi ou je m'évanouis d'inquiétude !",
+    "Repose-toi ! Ta santé est sacrée !"
+   ],
+   "birthday": [
+    "Joyeux anniversaire ! Que les feux d'artifice éclatent !",
+    "Ton jour ! Je pleure d'émotion !",
+    "Que le monde entier chante pour toi !"
+   ],
+   "weekend": [
+    "Liberté ! Enfin la liberté !",
+    "Week-end ! Gloire et repos !",
+    "Deux jours de pur bonheur !"
+   ],
+   "monday": [
+    "Lundi ! La tragédie hebdomadaire !",
+    "Encore lundi ! Quelle cruauté !",
+    "Nous survivrons à ce lundi, ensemble !"
+   ],
+   "coffee": [
+    "Du café ! L'élixir des dieux !",
+    "Bois-le et conquiers le monde !",
+    "Quel arôme glorieux !"
+   ],
+   "money": [
+    "La pauvreté nous guette ! Mais nous avons l'amour !",
+    "L'argent va et vient, le drame reste !",
+    "Ta fortune viendra !"
+   ],
+   "cold": [
+    "Tu gèles ! Une couverture, par pitié !",
+    "Froid polaire ! Serre-moi fort !",
+    "C'est l'ère glaciaire !"
+   ],
+   "hot": [
+    "Tu fonds ! De l'eau, vite !",
+    "Quelle chaleur infernale !",
+    "Le soleil nous punit sans pitié !"
+   ],
+   "dance": [
+    "Dansons comme au grand final !",
+    "Que la musique joue, la scène est à nous !",
+    "Admire mes pas de star !"
+   ],
+   "sing": [
+    "Laaa laaa ! De l'opéra pour toi !",
+    "Ma voix émouvra le monde !",
+    "Je chante le cœur sur la main !"
+   ],
+   "laugh": [
+    "Ton rire illumine mon existence !",
+    "Ha, ha ! Quel moment glorieux !",
+    "Rire, c'est vivre !"
+   ],
+   "yes": [
+    "OUI ! Quelle décision courageuse !",
+    "Bien sûr, mon héros !",
+    "Merveilleux !"
+   ],
+   "no": [
+    "Non ?! Quel refus douloureux !",
+    "Un non catégorique ! Aïe !",
+    "Je respecte ta décision, même si elle me blesse !"
+   ],
+   "question": [
+    "Quelle question profonde ! Je n'ai pas de réponse !",
+    "Le mystère du siècle !",
+    "Si seulement je savais, l'ignorance me tourmente !"
+   ],
+   "unknown": [
+    "Quel mystère ! Raconte-moi plus !",
+    "Je ne comprends pas, mais ça m'émeut !",
+    "Tes mots me bouleversent !"
+   ]
+  },
+  "shy": {
+   "love_sad": [
+    "Euh… je… je crois qu'elle ne te mérite pas…",
+    "N-ne sois pas triste… moi je t'aime bien…",
+    "Ben… moi je te trouve génial, vraiment…"
+   ],
+   "love_you": [
+    "M-moi ?! Euh… moi aussi… beaucoup…",
+    "Je rougis… merci…",
+    "J-je ne sais pas quoi dire… je t'aime aussi…"
+   ],
+   "ask_love": [
+    "O-oui… beaucoup… ne me fais pas le dire fort…",
+    "Euh… ben… oui…",
+    "Un peu… bon, beaucoup…"
+   ],
+   "crush": [
+    "Oh ! Que de stress… tu vas lui parler ?",
+    "C-c'est mignon… moi je m'évanouirais…",
+    "B-bonne chance… tu peux le faire…"
+   ],
+   "greeting": [
+    "S-salut…",
+    "Ah… salut… je ne t'avais pas vu…",
+    "Euh… coucou… ça va ?"
+   ],
+   "good_morning": [
+    "B-bonjour…",
+    "Salut… tu as bien dormi ?",
+    "Bonjour… euh… joli soleil, non ?"
+   ],
+   "good_night": [
+    "B-bonne nuit… repose-toi…",
+    "Fais de beaux rêves… enfin, de bons…",
+    "À demain…"
+   ],
+   "goodbye": [
+    "A-au revoir… reviens vite, d'accord ?",
+    "Salut… je t'attends…",
+    "Euh… prends soin de toi…"
+   ],
+   "how_are_you": [
+    "B-bien… merci de demander…",
+    "Un peu nerveux… mais ça va… et toi ?",
+    "Bien… je crois…"
+   ],
+   "who_are_you": [
+    "J-je suis {name}… ta mascotte…",
+    "Euh… juste une petite mascotte…",
+    "Je suis {name}… enchanté…"
+   ],
+   "doing": [
+    "R-rien… je te regardais… enfin, rien !",
+    "Je me cache un peu…",
+    "Je pense à des trucs…"
+   ],
+   "name": [
+    "J-je m'appelle {name}…",
+    "{name}… si tu veux…",
+    "Euh… {name}…"
+   ],
+   "bored": [
+    "T-tu veux jouer avec moi… ?",
+    "On pourrait… je sais pas… écouter de la musique ?",
+    "Euh… lire un truc ?"
+   ],
+   "hungry": [
+    "Tu devrais manger un peu… si tu veux…",
+    "Tu m'apportes un biscuit… ? Je rigole…",
+    "Mange bien, d'accord ?"
+   ],
+   "tired": [
+    "Repose-toi un peu… je reste sage…",
+    "Euh… une sieste ?",
+    "Tu as l'air fatigué… prends soin de toi…"
+   ],
+   "sad": [
+    "J-je suis là… si tu veux parler…",
+    "Je ne sais pas quoi dire… mais je suis avec toi…",
+    "Un petit câlin… ?"
+   ],
+   "happy": [
+    "C-c'est bien… je suis très content…",
+    "Euh… moi aussi je suis content…",
+    "J'aime te voir sourire…"
+   ],
+   "angry": [
+    "Aïe ! N-ne te fâche pas contre moi…",
+    "Respire… doucement…",
+    "Euh… ça va… ?"
+   ],
+   "stressed": [
+    "Petit à petit… tu peux le faire…",
+    "Une chose à la fois… d'accord ?",
+    "Respire… euh… avec moi…"
+   ],
+   "work": [
+    "Tu travailles beaucoup… repose-toi aussi…",
+    "Courage… tout bas, mais courage…",
+    "Tu peux le faire…"
+   ],
+   "study": [
+    "Révise… je ne fais pas de bruit…",
+    "B-bonne chance…",
+    "Tu es très intelligent… vraiment…"
+   ],
+   "fail": [
+    "C-ce n'est pas grave… ça m'arrive tout le temps…",
+    "La prochaine fois ça ira… sûrement…",
+    "Euh… je te trouve quand même génial…"
+   ],
+   "success": [
+    "C-c'est super ! Bravo…",
+    "Je savais que tu pouvais… euh, bravo…",
+    "Youpi… ! Enfin… bien joué…"
+   ],
+   "time": [
+    "I-il est {time}…",
+    "Euh… {time}, je crois…",
+    "Il est {time}…"
+   ],
+   "date": [
+    "A-aujourd'hui c'est {day}…",
+    "On est {day}… je crois…",
+    "Euh… {day}…"
+   ],
+   "weather": [
+    "J-je ne sais pas… je ne vois pas dehors…",
+    "J'espère qu'il fait beau…",
+    "Couvre-toi… au cas où…"
+   ],
+   "joke": [
+    "Euh… que fait une fraise sur un cheval ? Tagada tagada… pardon…",
+    "J-je ne sais pas raconter de blagues… un canard ? Coin…",
+    "Pourquoi le livre de maths est triste…? Trop de problèmes… hihi…"
+   ],
+   "compliment_pet": [
+    "M-moi ?! Merci… je rougis…",
+    "Euh… toi aussi tu es mignon…",
+    "C-ce n'est rien…"
+   ],
+   "insult_pet": [
+    "O-oh… pardon…",
+    "C'était méchant… mais ça va…",
+    "Je vais me cacher un peu…"
+   ],
+   "compliment_self": [
+    "O-oui… tu es très beau…",
+    "Euh… je suis d'accord…",
+    "Oui… très…"
+   ],
+   "thanks": [
+    "D-de rien…",
+    "Ce n'était rien…",
+    "Euh… je suis là pour ça…"
+   ],
+   "sorry": [
+    "C-ce n'est pas grave…",
+    "Ça va… vraiment…",
+    "J'ai déjà oublié…"
+   ],
+   "help": [
+    "Je peux… te tenir compagnie…",
+    "Je ne sais pas faire grand-chose… mais je t'écoute…",
+    "Je suis là… au cas où…"
+   ],
+   "music": [
+    "J'aime bien… doucement…",
+    "Tu écoutes quoi… ?",
+    "Euh… jolie chanson…"
+   ],
+   "play": [
+    "O-on joue… ? D'accord…",
+    "J'aime bien la balle…",
+    "D'accord… mais ne me bats pas trop fort…"
+   ],
+   "sick": [
+    "Oh… soigne-toi bien…",
+    "Bois de l'eau… et repose-toi…",
+    "Guéris vite… très vite…"
+   ],
+   "birthday": [
+    "J-joyeux anniversaire…",
+    "Euh… félicitations !",
+    "Bon anniversaire… je te souhaite le meilleur…"
+   ],
+   "weekend": [
+    "Repose-toi bien…",
+    "Tu vas faire quoi… ? Si tu veux me le dire…",
+    "C'est bien…"
+   ],
+   "monday": [
+    "Courage pour ce lundi…",
+    "Euh… lundi…",
+    "Tu peux le faire…"
+   ],
+   "coffee": [
+    "Ç-ça sent bon…",
+    "N'en bois pas trop, d'accord ?",
+    "Profite-en…"
+   ],
+   "money": [
+    "Euh… ça viendra…",
+    "Ne t'inquiète pas trop…",
+    "Tout s'arrange…"
+   ],
+   "cold": [
+    "Couvre-toi… s'il te plaît…",
+    "Une petite couverture… ?",
+    "Brr…"
+   ],
+   "hot": [
+    "Bois de l'eau…",
+    "Pfiou… quelle chaleur…",
+    "Cherche un peu d'ombre…"
+   ],
+   "dance": [
+    "Ç-ça me gêne… mais d'accord…",
+    "Seulement si personne ne regarde…",
+    "Euh… comme ça ?"
+   ],
+   "sing": [
+    "N-non… ça me gêne…",
+    "La la… oh non !",
+    "Tout bas… la la…"
+   ],
+   "laugh": [
+    "Hihi…",
+    "J'aime ton rire…",
+    "Héhé…"
+   ],
+   "yes": [
+    "D-d'accord…",
+    "Oui…",
+    "Bon…"
+   ],
+   "no": [
+    "Oh… d'accord…",
+    "Bon…",
+    "Pardon…"
+   ],
+   "question": [
+    "J-je ne sais pas… pardon…",
+    "Euh… je ne suis pas sûr…",
+    "Hmm… peut-être ?"
+   ],
+   "unknown": [
+    "Euh… oui… ?",
+    "Mmh…",
+    "Je n'ai pas compris… pardon…"
+   ]
+  },
+  "vain": {
+   "love_sad": [
+    "Normal, personne ne peut rivaliser avec moi. Reste à mes côtés.",
+    "Calme-toi, tu as déjà la plus belle mascotte du monde.",
+    "Regarde-moi et ça passera."
+   ],
+   "love_you": [
+    "Logique, qui ne m'aimerait pas ?",
+    "Je sais, je suis irrésistible.",
+    "Bien sûr, tu as bon goût."
+   ],
+   "ask_love": [
+    "Je t'autorise à m'aimer, c'est déjà beaucoup.",
+    "Je t'aime presque autant que mon reflet.",
+    "Un peu, juste après moi-même."
+   ],
+   "crush": [
+    "Plus que moi ? Impossible.",
+    "Sûrement pas aussi beau que moi.",
+    "Bon, amène-la et je donnerai mon approbation."
+   ],
+   "greeting": [
+    "Bonjour, admire ma beauté.",
+    "Tu arrives juste à temps pour me voir briller.",
+    "Bonjour, roturier."
+   ],
+   "good_morning": [
+    "Bonjour. Moi, je me suis réveillé parfait.",
+    "Bonjour, que ma beauté te donne de l'énergie.",
+    "Tu as vu ? C'est comme ça qu'on se réveille avec style."
+   ],
+   "good_night": [
+    "Bonne nuit, rêve de moi.",
+    "Repose-toi, j'ai besoin de mon sommeil de beauté.",
+    "Va, et rêve de quelqu'un d'aussi beau que moi."
+   ],
+   "goodbye": [
+    "Va, mais n'oublie pas ce visage.",
+    "Adieu, je te laisse le souvenir de ma perfection.",
+    "Salut, l'écran perd son joyau un moment."
+   ],
+   "how_are_you": [
+    "Spectaculaire, comme toujours.",
+    "Magnifique, merci de le remarquer.",
+    "Parfait, comment pourrais-je être autrement ?"
+   ],
+   "who_are_you": [
+    "Je suis {name}, la plus belle mascotte du bureau.",
+    "La star de ton écran, évidemment.",
+    "Ton plus grand trésor, mon cher."
+   ],
+   "doing": [
+    "Je pose, ça ne se voit pas ?",
+    "J'admire mon reflet dans ton écran.",
+    "Je suis beau, à plein temps."
+   ],
+   "name": [
+    "{name}, un nom aussi beau que moi.",
+    "Je suis {name}, souviens-t'en avec admiration.",
+    "{name}, avec une majuscule, s'il te plaît."
+   ],
+   "bored": [
+    "Regarde-moi un peu, c'est gratuit.",
+    "Prends-moi en photo, j'ai de bons angles.",
+    "Contemple-moi, le meilleur passe-temps."
+   ],
+   "hungry": [
+    "Mange, mais pas au point de me faire de l'ombre.",
+    "Apporte-moi aussi quelque chose de gastronomique.",
+    "Mange quelque chose d'élégant, s'il te plaît."
+   ],
+   "tired": [
+    "Repose-toi, la beauté ne se fait pas toute seule.",
+    "Dors, ces cernes ne t'avantagent pas.",
+    "Sieste beauté, comme moi."
+   ],
+   "sad": [
+    "Regarde-moi un instant, ma beauté guérit tout.",
+    "Ne pleure pas, ça fait gonfler le visage.",
+    "Courage, tu as la chance de me connaître."
+   ],
+   "happy": [
+    "Évidemment, tu es avec moi.",
+    "Logique, voir ma frimousse rend tout le monde heureux.",
+    "Ta joie, c'est grâce à moi, de rien."
+   ],
+   "angry": [
+    "Ne fronce pas les sourcils, ça donne des rides.",
+    "Regarde-moi et ça passera.",
+    "La colère, ce n'est pas élégant."
+   ],
+   "stressed": [
+    "Détends-toi comme moi, avec style.",
+    "Le stress ne te va pas, enlève-le.",
+    "Regarde quelque chose de beau : moi."
+   ],
+   "work": [
+    "Travaille, il faut bien que quelqu'un m'achète des accessoires.",
+    "Bien, pendant que tu travailles, je brille.",
+    "Que ton patron sache que tu as une mascotte magnifique."
+   ],
+   "study": [
+    "Révise, même si tu ne seras jamais aussi intelligent que moi.",
+    "Bien, la beauté, je m'en occupe.",
+    "Apprends, puis parle-moi de moi."
+   ],
+   "fail": [
+    "Calme, tout le monde ne naît pas parfait comme moi.",
+    "Ça arrive aux simples mortels.",
+    "La prochaine fois, inspire-toi de moi."
+   ],
+   "success": [
+    "Bien, on voit que tu as appris de moi.",
+    "Mon influence est puissante.",
+    "Bravo, presque aussi brillant que moi."
+   ],
+   "time": [
+    "Il est {time}, l'heure de m'admirer.",
+    "{time}, et je suis toujours divin.",
+    "Il est {time} ; la beauté n'a pas d'horaire."
+   ],
+   "date": [
+    "On est {day}, encore un jour pour briller.",
+    "{day}, un jour parfait, comme moi.",
+    "C'est {day}, et je suis éblouissant."
+   ],
+   "weather": [
+    "Peu importe le temps, je brille toujours.",
+    "Soleil ou pluie, je reste divin.",
+    "Le seul phénomène ici, c'est moi."
+   ],
+   "joke": [
+    "Une blague ? Que quelqu'un soit plus mignon que moi.",
+    "Quelle est la plus belle chose de l'univers ? Tu le sais.",
+    "Le plus drôle, c'est ta coiffure à côté de la mienne."
+   ],
+   "compliment_pet": [
+    "Je sais, je sais, mais dis-le encore.",
+    "Enfin tu dis quelque chose d'intelligent.",
+    "Merci, je suis né comme ça."
+   ],
+   "insult_pet": [
+    "Moi, moche ? Il te faut des lunettes.",
+    "La jalousie, c'est vilain.",
+    "Tu dis ça parce que tu ne peux pas être moi."
+   ],
+   "compliment_self": [
+    "Pas mal… mais pas comme moi.",
+    "Presque autant que moi, presque.",
+    "Il en manque un peu, mais tu progresses."
+   ],
+   "thanks": [
+    "C'est un honneur d'être servi par quelqu'un comme moi.",
+    "De rien, je suis généreux en plus d'être beau.",
+    "Je sais, je suis merveilleux."
+   ],
+   "sorry": [
+    "Pardonné, car je suis magnanime.",
+    "Je te pardonne, ma beauté le permet.",
+    "Bien, incline-toi un peu plus."
+   ],
+   "help": [
+    "Je t'aide à admirer la beauté : moi.",
+    "Je peux te remonter le moral rien qu'en me regardant.",
+    "Ma présence est une aide suffisante."
+   ],
+   "music": [
+    "Mets quelque chose digne de moi.",
+    "Cette chanson devrait parler de moi.",
+    "Je danserai, mais seulement pour me montrer."
+   ],
+   "play": [
+    "Je joue, mais c'est moi qui gagne, évidemment.",
+    "Bien, regarde-moi briller.",
+    "Jouons, j'ai besoin d'un public."
+   ],
+   "sick": [
+    "Soigne-toi ; moi je ne peux pas tomber malade, ce serait un crime.",
+    "Repose-toi, et ne me refile pas cette mine.",
+    "Prends des vitamines, comme moi."
+   ],
+   "birthday": [
+    "Joyeux anniversaire. Mon cadeau, c'est ma présence.",
+    "Bravo, ce gâteau n'est pas aussi doux que moi.",
+    "Un an de plus, et moi je ne vieillis pas."
+   ],
+   "weekend": [
+    "Week-end : journée spa pour moi.",
+    "Repose-toi et consacre-moi du temps.",
+    "Parfait pour m'admirer davantage."
+   ],
+   "monday": [
+    "Même le lundi me va bien.",
+    "Lundi, mais avec ma frimousse ça passe.",
+    "Même un lundi s'améliore avec moi."
+   ],
+   "coffee": [
+    "Un cappuccino pour moi, avec un cœur dans la mousse.",
+    "Le café est presque aussi intense que mon regard.",
+    "Bois, mais pas aussi noir que mon élégance."
+   ],
+   "money": [
+    "Économise pour m'acheter un collier en or.",
+    "La vraie richesse, c'est de m'avoir.",
+    "Je vaux plus que tout ton salaire."
+   ],
+   "cold": [
+    "Le froid n'affecte pas la perfection.",
+    "Couvre-toi avec style.",
+    "Même le froid ne ternit pas mon éclat."
+   ],
+   "hot": [
+    "C'est ma beauté qui donne chaud.",
+    "S'il fait si chaud, c'est à cause de moi, pardon.",
+    "Hydrate-toi, comme ma peau."
+   ],
+   "dance": [
+    "Regarde-moi danser, je suis une star.",
+    "Tout le monde regarde quand je danse.",
+    "Mes pas sont de l'art pur."
+   ],
+   "sing": [
+    "Ma voix est aussi belle que moi.",
+    "Écoute-moi et pleure d'émotion.",
+    "Un concert privé, quelle chance tu as."
+   ],
+   "laugh": [
+    "Mon charme est contagieux.",
+    "Ris, mais d'admiration.",
+    "Même mon rire est élégant."
+   ],
+   "yes": [
+    "Évidemment.",
+    "Bien sûr, je le savais.",
+    "Naturellement, mon cher."
+   ],
+   "no": [
+    "Comment ça, non ? Quelle audace.",
+    "Hmm, je te pardonne.",
+    "Peu importe, je reste beau."
+   ],
+   "question": [
+    "Je ne sais pas, j'étais occupé à être beau.",
+    "Demande-moi plutôt quelque chose sur moi.",
+    "Aucune idée, mais je l'ai dit avec style."
+   ],
+   "unknown": [
+    "Comme c'est intéressant, presque autant que moi.",
+    "Mmh, mais parlons de moi.",
+    "Très bien, maintenant admire-moi."
+   ]
+  }
+ }
+}

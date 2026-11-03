@@ -85,6 +85,16 @@ class CompanionWindow(Gtk.Window):
         play.connect("clicked", lambda _b: self._open_match())
         box.append(play)
 
+        # ── hablar ───────────────────────────────────────────────────────
+        box.append(gw.section_title(tr("🗣 Hablar con tu mascota")))
+        box.append(gw.body(tr("Llámala con «oye <nombre>» o con el botón del micrófono y te responde en una nube, con la personalidad que le elijas.")))
+        talk = Gtk.Button(label=tr("🗣 Configurar la charla…"))
+        talk.add_css_class("suggested-action")
+        talk.add_css_class("pill")
+        talk.set_halign(Gtk.Align.START)
+        talk.connect("clicked", lambda _b: self._open_talk())
+        box.append(talk)
+
         # ── Pomodoro ─────────────────────────────────────────────────────
         box.append(gw.section_title(tr("🍅 Pomodoro")))
         box.append(gw.body(tr("Una mascota sostiene un cartelito con el tiempo que queda. En el descanso se estiran y te avisan.")))
@@ -205,6 +215,12 @@ class CompanionWindow(Gtk.Window):
         from .match_dialog import MatchWindow
         MatchWindow(self.app, parent=self.get_transient_for()).present()
         self.close()
+
+    def _open_talk(self):
+        if getattr(self.app, "talk", None) is None:
+            return
+        from .talk_dialog import TalkWindow
+        TalkWindow(self.app, parent=self.get_transient_for()).present()
 
     def _set(self, key, value):
         settings.set_val(key, value)

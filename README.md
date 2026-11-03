@@ -23,6 +23,7 @@ configurar nada.
 | **Editor de animación** | Estilo Toon Boom Harmony: capas raster y vectoriales, hoja de exposición, papel cebolla, mesa de luz, cámara animada, 12 pinceles, audio, GIF/MP4/PNG |
 | **Overlay** | Ventana layer-shell transparente por mascota, 6 poses, física real |
 | **Packs (.alpack)** | Importar/exportar personajes completos con todas sus poses |
+| **Hablar con la mascota** | «oye <nombre>» (o «ey»/«hey») o botón de micrófono; responde en una nube animada con su personalidad (amable, malhablada, sarcástica, dramática, tímida, presumida). IA local con Ollama o, si el equipo no da, frases escritas (905 por idioma, 7 idiomas). Todo en tu equipo |
 
 ---
 
@@ -63,7 +64,23 @@ sudo pacman -S python python-gobject gtk4 python-pillow python-numpy \
 # Opcionales
 sudo pacman -S mpv ffmpeg                          # audio y exportar MP4
 pip install --user --break-system-packages rembg onnxruntime  # recorte IA
+sudo pacman -S ollama python-vosk                  # hablar con la mascota (IA + voz)
 ```
+
+### Hablar con la mascota
+
+Compañía → **🗣 Configurar la charla…**
+
+- **Requisitos de la IA**: la app revisa el equipo y avisa. Con 8 GB de RAM y
+  4 núcleos (AVX2) va bien el modelo Gemma 3 4B (3,4 GB, ~3 s en frío y ~1,5 s
+  después en CPU). Con menos, el liviano (Gemma 3 1B, 0,8 GB) o las frases
+  escritas, que funcionan en cualquier equipo y sin internet.
+- **Voz**: Vosk, modelo pequeño de tu idioma (32–50 MB, se descarga con huella
+  SHA-256). En español «oye <nombre>» es lo más fiable (100 % en pruebas; «ey» ~80 %). Escuchar gasta ~4–7 % de un núcleo y ~130 MB de RAM,
+  que se liberan al apagarlo. El audio nunca se guarda ni sale del equipo.
+- **Privacidad**: Ollama corre solo en `127.0.0.1` (la app lo arranca y lo
+  apaga ella misma) y el historial de la charla vive solo en RAM.
+- Atajo de teclado en Hyprland: `bind = SUPER, T, exec, animalinux --talk`
 
 ### Reinstalar después de editar el código
 
@@ -126,6 +143,8 @@ animalinux --show
 animalinux --show     # abrir ventana de configuración
 animalinux --daemon   # solo el servicio en segundo plano (autostart)
 animalinux --quit     # cerrar todo
+animalinux --talk     # hablar con la mascota (escucha una frase)
+animalinux --talk-type  # escribirle a la mascota
 ```
 
 ---

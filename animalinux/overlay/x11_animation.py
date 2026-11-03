@@ -143,7 +143,7 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
         if self._spin:
             snapshot.restore()
         if self._bubble is not None:
-            _bubble.snapshot_bubble(snapshot, self._bubble, width)
+            _bubble.snapshot_any(snapshot, self._bubble, width, height)
 
 
 def _apply_transparency(display):
@@ -221,6 +221,12 @@ class MascotWindow(PoseLoaderMixin, ToyMixin, LiveAnimationMixin, Gtk.Window):
         self._xdpy = None
         self._xwin = None
         self._xpos = None
+        # Dónde quedó de verdad la ventana fullscreen respecto del monitor. GNOME
+        # (Mutter) no deja una ventana normal encima de su barra superior y la
+        # baja (p. ej. a y=29): sin restar esto, todo se dibuja más abajo y las
+        # mascotas quedan tapadas por la barra de abajo. Ver _measure_win_offset.
+        self._win_dx = 0
+        self._win_dy = 0
         self._cursor_task = None
         self._drag_ptr0 = None
 
@@ -310,6 +316,9 @@ class MascotWindow(PoseLoaderMixin, ToyMixin, LiveAnimationMixin, Gtk.Window):
         # refrescar la región de input al mapear/redibujar (evita bloquear clics)
         self.connect("map", lambda *_: self._update_input_region())
         self.connect("map", lambda *_: self._move_x11() if self._compact else None)
+        # el gestor de ventanas coloca la ventana un poco DESPUÉS del map
+        self.connect("map", lambda *_: [GLib.timeout_add(t, self._measure_win_offset)
+                                        for t in (300, 1500)])
 
         _apply_transparency(self.get_display() or Gdk.Display.get_default())
 
@@ -340,7 +349,8 @@ class MascotWindow(PoseLoaderMixin, ToyMixin, LiveAnimationMixin, Gtk.Window):
         # motion en la VENTANA fullscreen: en modo grab el sprite sigue el cursor
         # por todo el escritorio (la región de input cubre toda la pantalla).
         win_motion = Gtk.EventControllerMotion()
-        win_motion.connect("motion", lambda c, x, y: None if self._compact else self._on_grab_motion(c, x, y))
+        win_motion.connect("motion", lambda c, x, y: None if self._compact
+                           else self._on_grab_motion(c, x + self._win_dx, y + self._win_dy))
         self.add_controller(win_motion)
 
         # estado de interacción
@@ -382,9 +392,33 @@ class MascotWindow(PoseLoaderMixin, ToyMixin, LiveAnimationMixin, Gtk.Window):
             self._overlay.set_margin_top(self._pad)
             self._move_x11()
         else:
-            self._overlay.set_margin_start(self._x)
-            self._overlay.set_margin_top(self._y)
+            self._overlay.set_margin_start(max(0, self._x - self._win_dx))
+            self._overlay.set_margin_top(max(0, self._y - self._win_dy))
         self._update_input_region()
+
+    def _measure_win_offset(self):
+        """Lee por Xlib dónde está la ventana fullscreen y guarda su desplazamiento
+        respecto del monitor (ver _win_dy en __init__)."""
+        if self._compact:
+            return False
+        try:
+            r = _x11_hints._x11_window(self)
+            if r is None:
+                return False
+            dpy, xwin = r
+            try:
+                pos = dpy.screen().root.translate_coords(xwin, 0, 0)
+                dx, dy = pos.x - self._mon_x, pos.y - self._mon_y
+            finally:
+                dpy.close()
+        except Exception:  # noqa: BLE001
+            return False
+        if not (0 <= dx <= 200 and 0 <= dy <= 200):
+            return False
+        if (dx, dy) != (self._win_dx, self._win_dy):
+            self._win_dx, self._win_dy = dx, dy
+            self._set_position(self._x, self._y)
+        return False
 
     # ---------- modo compacto ----------
     def _calc_pad(self):
@@ -454,7 +488,8 @@ class MascotWindow(PoseLoaderMixin, ToyMixin, LiveAnimationMixin, Gtk.Window):
             return
         try:
             import cairo
-            ix, iy = (self._pad, self._pad) if self._compact else (self._x, self._y)
+            ix, iy = ((self._pad, self._pad) if self._compact
+                      else (self._x - self._win_dx, self._y - self._win_dy))
             reg = cairo.Region(cairo.RectangleInt(ix, iy, self._cat_w, self._cat_h))
             surf.set_input_region(reg)
         except Exception:  # noqa: BLE001

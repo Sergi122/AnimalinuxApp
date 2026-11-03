@@ -48,6 +48,9 @@ class PitchWindow(Gtk.Window):
         self.geo = geo
         self.h = handlers
         self.add_css_class("animalinux-pitch")
+        # desplazamiento real de la ventana respecto del monitor: GNOME (Mutter)
+        # la baja bajo su barra superior (p. ej. y=29); ver _measure_offset
+        self.dx = self.dy = 0
         self.set_decorated(False)
         _transparent(self.get_display() or Gdk.Display.get_default())
         _x, _y, w, h = geo
@@ -75,21 +78,25 @@ class PitchWindow(Gtk.Window):
             self.set_size_request(w, h + 1)
             self.connect("realize", lambda *_: _x11_hints.apply_ewmh_hints_early(self))
             self.connect("map", lambda *_: (_x11_hints.apply_ewmh_hints_late(self),
-                                            GLib.idle_add(self._move_x11)))
+                                            GLib.idle_add(self._move_x11),
+                                            GLib.timeout_add(300, self._measure_offset),
+                                            GLib.timeout_add(1500, self._measure_offset)))
 
         self.area = Gtk.DrawingArea()
         self.area.set_hexpand(True)
         self.area.set_vexpand(True)
-        self.area.set_draw_func(lambda _a, cr, aw, ah: self.h["draw"](cr, aw, ah))
+        self.area.set_draw_func(self._draw)
         self.set_child(self.area)
 
         mot = Gtk.EventControllerMotion()
-        mot.connect("motion", lambda _c, x, y: self.h["motion"](x, y))
+        mot.connect("motion", lambda _c, x, y: self.h["motion"](x + self.dx, y + self.dy))
         self.add_controller(mot)
         click = Gtk.GestureClick()
         click.set_button(0)
-        click.connect("pressed", lambda g, n, x, y: self.h["press"](x, y, g.get_current_button()))
-        click.connect("released", lambda g, n, x, y: self.h["release"](x, y, g.get_current_button()))
+        click.connect("pressed", lambda g, n, x, y: self.h["press"](
+            x + self.dx, y + self.dy, g.get_current_button()))
+        click.connect("released", lambda g, n, x, y: self.h["release"](
+            x + self.dx, y + self.dy, g.get_current_button()))
         self.add_controller(click)
         wheel = Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.VERTICAL)
         wheel.connect("scroll", lambda _c, _dx, dy: self.h["scroll"](dy) or True)
@@ -117,6 +124,30 @@ class PitchWindow(Gtk.Window):
                 dpy.flush()
             except Exception:  # noqa: BLE001
                 pass
+        return False
+
+    def _draw(self, _a, cr, aw, ah):
+        if self.dx or self.dy:
+            cr.translate(-self.dx, -self.dy)
+        self.h["draw"](cr, aw + self.dx, ah + self.dy)
+
+    def _measure_offset(self):
+        """Lee por Xlib dónde quedó la ventana (ver self.dy en __init__)."""
+        from ..overlay import _x11_hints
+        r = _x11_hints._x11_window(self)
+        if r is None:
+            return False
+        dpy, win = r
+        try:
+            pos = dpy.screen().root.translate_coords(win, 0, 0)
+            dx, dy = pos.x - int(self.geo[0]), pos.y - int(self.geo[1])
+        except Exception:  # noqa: BLE001
+            return False
+        finally:
+            dpy.close()
+        if 0 <= dx <= 200 and 0 <= dy <= 200 and (dx, dy) != (self.dx, self.dy):
+            self.dx, self.dy = dx, dy
+            self.redraw()
         return False
 
     def redraw(self):

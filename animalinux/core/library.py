@@ -38,16 +38,28 @@ class Library:
         if paths.LIBRARY_FILE.exists():
             try:
                 data = json.loads(paths.LIBRARY_FILE.read_text())
+                if not isinstance(data, dict) or not isinstance(data.get("animations", {}), dict):
+                    raise ValueError("library.json con forma inesperada")
                 self.config = data.get("config", self.config)
+                if not isinstance(self.config, dict):
+                    self.config = {}
                 self.animations = data.get("animations", {})
                 # 0.7.0–0.8.1.4 fijaban las sin vida a un escritorio; ahora
                 # todas se ven en todos: se borra esa fijación vieja
                 pinned = [a for a in self.animations.values() if a.pop("workspace", None)]
                 if pinned:
                     self.save()
-            except (json.JSONDecodeError, OSError):
-                # archivo corrupto: empezamos limpio sin romper la app
+            except (ValueError, OSError, AttributeError):
+                # archivo corrupto: empezamos limpio sin romper la app, pero
+                # SIN perderlo: se aparta una copia (el próximo save lo pisaría)
                 self.animations = {}
+                try:
+                    import time
+                    bak = paths.LIBRARY_FILE.with_name(
+                        f"library.json.corrupto-{time.strftime('%Y%m%d-%H%M%S')}")
+                    paths.LIBRARY_FILE.replace(bak)
+                except OSError:
+                    pass
 
     def save(self):
         paths.ensure_dirs()

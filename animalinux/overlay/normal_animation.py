@@ -140,7 +140,7 @@ class ScaledPaintable(GObject.GObject, Gdk.Paintable):
         if self._spin:
             snapshot.restore()
         if self._bubble is not None:
-            _bubble.snapshot_bubble(snapshot, self._bubble, width)
+            _bubble.snapshot_any(snapshot, self._bubble, width, height)
 
 
 def _apply_transparency(display):

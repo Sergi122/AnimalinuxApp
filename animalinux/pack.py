@@ -26,6 +26,7 @@ y compartirlo. Eso es lo que hizo famoso a Shimeji.
 import io
 import json
 import re
+import shutil
 import zipfile
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from .i18n import tr
@@ -104,11 +105,11 @@ def import_pack(library, pack_path):
 
     with zipfile.ZipFile(pack_path) as z:
         _validate_zip(z)
-        meta = json.loads(z.read("mascot.json"))
-        if meta.get("format") != MAGIC:
-            raise RuntimeError(tr("Ese archivo no es un pack de AnimaLinux válido."))
-
-        if not isinstance(meta, dict):
+        try:
+            meta = json.loads(z.read("mascot.json"))
+        except ValueError as e:                 # JSON roto o texto no UTF-8
+            raise RuntimeError(tr("Ese archivo no es un pack de AnimaLinux válido.")) from e
+        if not isinstance(meta, dict) or meta.get("format") != MAGIC:
             raise RuntimeError(tr("Ese archivo no es un pack de AnimaLinux válido."))
         poses = meta.get("poses", ["default"])
         if not isinstance(poses, list) or len(poses) > 64 or not all(
@@ -119,39 +120,54 @@ def import_pack(library, pack_path):
         anim_id = library.new_id()
         frames_dir = library.frames_dir(anim_id)
         frames_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            _extract_poses(z, poses, frames_dir)
+        except BaseException:
+            # un pack dañado a mitad (descarga cortada…) no debe dejar una
+            # carpeta huérfana en la biblioteca
+            shutil.rmtree(frames_dir, ignore_errors=True)
+            raise
 
-        # extraer cada pose
-        for pose in poses:
-            members = [n for n in z.namelist()
-                       if n.startswith(f"poses/{pose}/") and n.endswith(".png")]
-            if not members:
-                continue
-            if pose == "default":
-                target = frames_dir            # 'default' va en la capa plana
-            else:
-                target = frames_dir / pose
-                target.mkdir(parents=True, exist_ok=True)
-            for i, name in enumerate(sorted(members)):
-                data = z.read(name)
-                _check_png(data)
-                (target / f"frame_{i:04d}.png").write_bytes(data)
-
-    # generar espejados de cada pose (para mirar a la izquierda en modo Vida)
-    importer.ensure_flipped(frames_dir)
-    for sub in [p for p in frames_dir.iterdir() if p.is_dir()]:
-        importer.ensure_flipped(sub)
-
-    # medir tamaño del primer frame default
-    first = sorted(frames_dir.glob("frame_*.png"))
-    from PIL import Image
-    w, h = Image.open(first[0]).size if first else (100, 100)
-    fc = len(first)
+    try:
+        _finish_import(frames_dir)
+        # medir tamaño del primer frame default
+        first = sorted(frames_dir.glob("frame_*.png"))
+        from PIL import Image
+        w, h = Image.open(first[0]).size if first else (100, 100)
+        fc = len(first)
+    except BaseException:
+        shutil.rmtree(frames_dir, ignore_errors=True)
+        raise
 
     library.add(anim_id, _clean_text(meta.get("name"), "Mascota"), fc, w, h)
     library.update(anim_id, fps=_clean_fps(meta.get("fps")),
                    author=_clean_text(meta.get("author"), ""),
                    poses=poses)
     return anim_id
+
+
+def _extract_poses(z, poses, frames_dir):
+    for pose in poses:
+        members = [n for n in z.namelist()
+                   if n.startswith(f"poses/{pose}/") and n.endswith(".png")]
+        if not members:
+            continue
+        if pose == "default":
+            target = frames_dir            # 'default' va en la capa plana
+        else:
+            target = frames_dir / pose
+            target.mkdir(parents=True, exist_ok=True)
+        for i, name in enumerate(sorted(members)):
+            data = z.read(name)
+            _check_png(data)
+            (target / f"frame_{i:04d}.png").write_bytes(data)
+
+
+def _finish_import(frames_dir):
+    # generar espejados de cada pose (para mirar a la izquierda en modo Vida)
+    importer.ensure_flipped(frames_dir)
+    for sub in [p for p in frames_dir.iterdir() if p.is_dir()]:
+        importer.ensure_flipped(sub)
 
 
 def _clean_text(v, default, limit=60):

@@ -14,6 +14,7 @@ Quitar el fondo:
 Seguridad: límites contra "bombas de descompresión" (imágenes que se inflan a
 gigas y cuelgan el equipo) y topes de tamaño/cantidad de frames.
 """
+import re
 import shutil
 import subprocess
 
@@ -100,6 +101,36 @@ def _install_ffmpeg_hint():
 MAX_VIDEO_SECONDS = 10   # los vídeos más largos hay que recortarlos antes de importar
 
 
+# Contenedores que en realidad son LISTAS de otros archivos: un «vídeo»
+# malicioso de este tipo hace que ffmpeg lea archivos locales (o URLs) y los
+# pinte en los fotogramas (ataque conocido). Los ffmpeg nuevos ya lo bloquean;
+# los viejos (distros LTS, Windows) no siempre, así que se comprueba aquí.
+_UNSAFE_DEMUXERS = {"hls", "applehttp", "concat", "ffconcat", "tee", "data",
+                    "tty", "image2pipe", "lavfi"}
+_FF_SAFE = ["-protocol_whitelist", "file"]       # nada de http/ftp/tcp/…
+
+
+def _video_container_ok(path):
+    """False si ffprobe ve que el archivo es una lista/playlist, no un vídeo."""
+    if not shutil.which("ffprobe"):
+        return True
+    try:
+        r = subprocess.run(
+            ["ffprobe", "-v", "error", *_FF_SAFE, "-show_entries", "format=format_name",
+             "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
+            capture_output=True, text=True, timeout=20, **backend.SUBPROCESS_KW,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return True
+    names = set(r.stdout.strip().lower().split(","))
+    # ffprobe nombra el demuxer en sus errores: «[hls @ 0x…] …»
+    names |= {m.lower() for m in re.findall(r"\[(\w+) @", r.stderr or "")}
+    if names & _UNSAFE_DEMUXERS:
+        return False
+    # si ni siquiera ffprobe lo reconoce como vídeo, tampoco se importa
+    return r.returncode == 0 and bool(r.stdout.strip())
+
+
 def _video_duration_seconds(path):
     """Duración vía ffprobe (viene con el paquete ffmpeg). Si no se puede
     determinar (ffprobe ausente, contenedor raro...), no bloquea el import:
@@ -108,7 +139,7 @@ def _video_duration_seconds(path):
         return None
     try:
         out = subprocess.run(
-            ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+            ["ffprobe", "-v", "error", *_FF_SAFE, "-show_entries", "format=duration",
              "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
             check=True, capture_output=True, text=True, **backend.SUBPROCESS_KW,
         ).stdout.strip()
@@ -123,6 +154,8 @@ def _load_video(path):
         raise RuntimeError(
             tr("ffmpeg no está instalado. Instálalo con: {hint}", hint=_install_ffmpeg_hint())
         )
+    if not _video_container_ok(path):
+        raise RuntimeError(tr("Ese archivo no es un vídeo válido."))
     duration = _video_duration_seconds(path)
     if duration is not None and duration > MAX_VIDEO_SECONDS:
         raise RuntimeError(
@@ -132,7 +165,7 @@ def _load_video(path):
     tmp = Path(tempfile.mkdtemp(prefix="animalinux_"))
     try:
         subprocess.run(
-            ["ffmpeg", "-y", "-i", str(path),
+            ["ffmpeg", "-y", *_FF_SAFE, "-i", str(path),
              "-vf", "fps=15", "-frames:v", str(MAX_FRAMES),
              str(tmp / "f_%04d.png")],
             check=True, capture_output=True, **backend.SUBPROCESS_KW,

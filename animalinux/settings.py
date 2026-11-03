@@ -18,14 +18,18 @@ _DEFAULTS = {
 
 def _load() -> dict:
     try:
-        return json.loads(_PATH.read_text(encoding="utf-8"))
+        d = json.loads(_PATH.read_text(encoding="utf-8"))
     except Exception:
         return {}
+    return d if isinstance(d, dict) else {}
 
 
 def _save(data: dict):
+    """Escritura atómica: un corte de luz a mitad no deja el archivo roto."""
     _PATH.parent.mkdir(parents=True, exist_ok=True)
-    _PATH.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    tmp = _PATH.with_name(_PATH.name + ".tmp")
+    tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    tmp.replace(_PATH)
 
 
 def get(key: str, default=None):

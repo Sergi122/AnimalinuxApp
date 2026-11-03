@@ -73,6 +73,19 @@ def read(path):
 
 
 def parse(data):
+    """Lee un .aseprite. Un archivo dañado o malicioso SIEMPRE termina en
+    AseError (lo que el editor sabe mostrar), nunca en zlib/struct/IndexError
+    sueltos que se escaparían del diálogo sin avisar al usuario."""
+    try:
+        return _parse(data)
+    except AseError:
+        raise
+    except (zlib.error, struct.error, IndexError, ValueError, KeyError,
+            UnicodeDecodeError, OverflowError) as e:
+        raise AseError(f"archivo dañado: {e}") from e
+
+
+def _parse(data):
     r = _R(data)
     (_size, magic, nframes, w, h, depth, flags, _speed, _z1, _z2,
      transp) = r.take("<IHHHHHIHIIB")

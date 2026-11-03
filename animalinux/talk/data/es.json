@@ -1,0 +1,3538 @@
+{
+ "wake": [
+  "ey",
+  "oye",
+  "hey",
+  "hola"
+ ],
+ "question_words": [
+  "que ",
+  "como ",
+  "cuando ",
+  "donde ",
+  "por que",
+  "quien ",
+  "cual ",
+  "cuanto"
+ ],
+ "examples": [
+  [
+   "ella no me quiere",
+   "love_sad"
+  ],
+  [
+   "estoy aburrido",
+   "bored"
+  ],
+  [
+   "tengo hambre",
+   "hungry"
+  ],
+  [
+   "eres muy lindo",
+   "compliment_pet"
+  ],
+  [
+   "me fue mal en el examen",
+   "fail"
+  ],
+  [
+   "estoy cansado",
+   "tired"
+  ],
+  [
+   "te quiero",
+   "love_you"
+  ],
+  [
+   "eres un tonto",
+   "insult_pet"
+  ]
+ ],
+ "topics": {
+  "crisis": [
+   "me quiero morir",
+   "quiero morir",
+   "suicid",
+   "matarme",
+   "no quiero vivir",
+   "quitarme la vida",
+   "hacerme dano",
+   "lastimarme",
+   "cortarme las venas",
+   "no vale la pena vivir"
+  ],
+  "love_sad": [
+   "no me quiere",
+   "no me ama",
+   "me dejo",
+   "me termino",
+   "terminamos",
+   "me rompio el corazon",
+   "me puso los cuernos",
+   "me engano",
+   "no me hace caso",
+   "me ignora",
+   "me rechazo",
+   "friendzone",
+   "me dejo en visto",
+   "me clavo el visto",
+   "mi ex",
+   "no me contesta",
+   "no le gusto",
+   "ya no me quiere",
+   "no quiere estar conmigo",
+   "me cambio por"
+  ],
+  "love_you": [
+   "te quiero",
+   "te amo",
+   "te adoro",
+   "eres mi favorit",
+   "te extrane",
+   "te extrano",
+   "te quiero mucho"
+  ],
+  "ask_love": [
+   "me quieres",
+   "me amas",
+   "me extranas",
+   "soy tu favorit"
+  ],
+  "crush": [
+   "me gusta alguien",
+   "me gusta una chica",
+   "me gusta un chico",
+   "estoy enamorad",
+   "crush",
+   "le gusto",
+   "me gusta mucho",
+   "tengo novi",
+   "una cita",
+   "mi novi"
+  ],
+  "greeting": [
+   "=hola",
+   "=holi",
+   "=holis",
+   "=buenas",
+   "saludos",
+   "=wena",
+   "=ola"
+  ],
+  "good_morning": [
+   "buenos dias",
+   "buen dia",
+   "me acabo de despertar",
+   "recien me levanto"
+  ],
+  "good_night": [
+   "buenas noches",
+   "me voy a dormir",
+   "a dormir",
+   "hasta manana",
+   "me voy a la cama"
+  ],
+  "goodbye": [
+   "adios",
+   "=chau",
+   "=chao",
+   "nos vemos",
+   "hasta luego",
+   "me voy",
+   "=bye",
+   "hasta pronto"
+  ],
+  "how_are_you": [
+   "como estas",
+   "como te va",
+   "que tal",
+   "como andas",
+   "como te sientes",
+   "todo bien",
+   "como amaneciste"
+  ],
+  "who_are_you": [
+   "quien eres",
+   "que eres",
+   "eres real",
+   "eres una ia",
+   "eres un robot",
+   "eres un programa",
+   "de donde saliste"
+  ],
+  "doing": [
+   "que haces",
+   "que estas haciendo",
+   "en que andas"
+  ],
+  "name": [
+   "como te llamas",
+   "tu nombre",
+   "cual es tu nombre"
+  ],
+  "bored": [
+   "aburr",
+   "no se que hacer",
+   "que hago",
+   "nada que hacer",
+   "que puedo hacer"
+  ],
+  "hungry": [
+   "hambre",
+   "quiero comer",
+   "comida",
+   "pizza",
+   "hamburguesa",
+   "almuerzo",
+   "=cena",
+   "desayun",
+   "antojo",
+   "=comer"
+  ],
+  "tired": [
+   "cansad",
+   "tengo sueno",
+   "agotad",
+   "no dormi",
+   "flojera",
+   "pereza",
+   "me muero de sueno",
+   "sin energia"
+  ],
+  "sad": [
+   "triste",
+   "deprimid",
+   "llorar",
+   "lloro",
+   "me siento mal",
+   "me siento solo",
+   "me siento sola",
+   "bajon",
+   "desanimad",
+   "nadie me quiere",
+   "estoy mal",
+   "no estoy feliz",
+   "no estoy bien",
+   "no me siento bien",
+   "no soy feliz"
+  ],
+  "happy": [
+   "feliz",
+   "contento",
+   "contenta",
+   "alegre",
+   "que bien",
+   "estoy bien",
+   "me siento bien",
+   "buen dia hoy"
+  ],
+  "angry": [
+   "enojad",
+   "molest",
+   "rabia",
+   "furios",
+   "me enoja",
+   "estoy hart",
+   "me cae mal",
+   "que fastidio",
+   "me saca de quicio"
+  ],
+  "stressed": [
+   "estres",
+   "ansios",
+   "nervios",
+   "agobiad",
+   "presion",
+   "no puedo mas",
+   "demasiadas cosas",
+   "colapsad"
+  ],
+  "work": [
+   "trabaj",
+   "mi jefe",
+   "oficina",
+   "reunion",
+   "chamba",
+   "deadline",
+   "horas extra",
+   "el laburo"
+  ],
+  "study": [
+   "estudi",
+   "tarea",
+   "deberes",
+   "universidad",
+   "la u ",
+   "colegio",
+   "clase",
+   "profe",
+   "examen",
+   "parcial",
+   "exposicion",
+   "tesis"
+  ],
+  "fail": [
+   "reprob",
+   "me jale",
+   "me fue mal",
+   "perdi",
+   "fracas",
+   "me equivoque",
+   "la cague",
+   "suspendi",
+   "me sali mal",
+   "me salio mal",
+   "no pase"
+  ],
+  "success": [
+   "aprob",
+   "gane",
+   "lo logre",
+   "pase el",
+   "me ascendieron",
+   "consegui",
+   "termine",
+   "me salio bien",
+   "me fue bien",
+   "saque buena nota"
+  ],
+  "time": [
+   "que hora",
+   "la hora",
+   "hora es"
+  ],
+  "date": [
+   "que dia es",
+   "que fecha",
+   "dia es hoy",
+   "en que dia"
+  ],
+  "weather": [
+   "clima",
+   "llueve",
+   "lluvia",
+   "va a llover",
+   "nieve",
+   "que tiempo hace"
+  ],
+  "joke": [
+   "chiste",
+   "algo gracioso",
+   "hazme reir",
+   "cuentame algo",
+   "dime algo divertido"
+  ],
+  "compliment_pet": [
+   "eres lind",
+   "eres bonit",
+   "eres hermos",
+   "que lind",
+   "eres tiern",
+   "eres guap",
+   "eres cute",
+   "te ves bien",
+   "eres el mejor",
+   "eres la mejor",
+   "eres genial",
+   "que bonit",
+   "eres adorable",
+   "=lindo",
+   "=linda",
+   "=bonito",
+   "=bonita",
+   "=hermoso",
+   "=hermosa",
+   "precios",
+   "=tierno",
+   "=tierna",
+   "=guapo",
+   "=guapa"
+  ],
+  "insult_pet": [
+   "eres fe",
+   "eres tont",
+   "idiota",
+   "estupid",
+   "inutil",
+   "callate",
+   "te odio",
+   "=tonto",
+   "=tonta",
+   "=feo",
+   "=fea",
+   "apestas",
+   "no sirves",
+   "eres horrible",
+   "baboso",
+   "babosa"
+  ],
+  "compliment_self": [
+   "soy guap",
+   "soy lind",
+   "soy inteligente",
+   "soy el mejor",
+   "soy la mejor",
+   "soy genial",
+   "me veo bien",
+   "estoy guap"
+  ],
+  "thanks": [
+   "gracias",
+   "te agradezco"
+  ],
+  "sorry": [
+   "perdon",
+   "lo siento",
+   "disculpa",
+   "perdoname"
+  ],
+  "help": [
+   "ayuda",
+   "ayudame",
+   "necesito ayuda",
+   "que puedes hacer",
+   "que sabes hacer"
+  ],
+  "music": [
+   "musica",
+   "cancion",
+   "escuchando",
+   "spotify",
+   "playlist",
+   "cantante"
+  ],
+  "play": [
+   "jugar",
+   "=juego",
+   "juguemos",
+   "videojuego",
+   "partida",
+   "gaming",
+   "minecraft",
+   "fortnite",
+   "lol "
+  ],
+  "sick": [
+   "enferm",
+   "me duele",
+   "dolor",
+   "gripe",
+   "fiebre",
+   "resfri",
+   "=tos",
+   "me siento enfermo"
+  ],
+  "birthday": [
+   "cumple",
+   "cumpleanos"
+  ],
+  "weekend": [
+   "fin de semana",
+   "viernes",
+   "sabado",
+   "vacaciones",
+   "feriado",
+   "domingo"
+  ],
+  "monday": [
+   "lunes"
+  ],
+  "coffee": [
+   "=cafe",
+   "cafecito",
+   "=mate",
+   "un te "
+  ],
+  "money": [
+   "dinero",
+   "plata",
+   "soy pobre",
+   "sueldo",
+   "quincena",
+   "sin plata",
+   "deudas",
+   "no me alcanza"
+  ],
+  "cold": [
+   "frio",
+   "me congelo",
+   "congelad"
+  ],
+  "hot": [
+   "calor",
+   "me derrito",
+   "sudando"
+  ],
+  "dance": [
+   "baila",
+   "bailar",
+   "bailemos"
+  ],
+  "sing": [
+   "canta",
+   "cantar",
+   "cantame"
+  ],
+  "laugh": [
+   "jaja",
+   "jeje",
+   "jsjs",
+   "=xd",
+   "=lol",
+   "me muero de risa"
+  ],
+  "yes": [
+   "=si",
+   "=claro",
+   "=obvio",
+   "=vale",
+   "=ok",
+   "=dale",
+   "=sip",
+   "=okey"
+  ],
+  "no": [
+   "=no",
+   "=nop",
+   "=nel",
+   "para nada",
+   "=nunca"
+  ]
+ },
+ "replies": {
+  "_all": {
+   "crisis": [
+    "Oye, eso es muy serio. No estás solo: habla ya con alguien de confianza o una línea de ayuda, por favor.",
+    "Me importas mucho. Por favor, busca ahora a alguien de confianza o llama a una línea de ayuda de tu país.",
+    "No tienes que cargar con esto tú solo. Habla con alguien hoy mismo, una línea de ayuda puede escucharte."
+   ]
+  },
+  "kind": {
+   "love_sad": [
+    "Es que no te merece, tú vales muchísimo.",
+    "Quien no ve lo especial que eres, se lo pierde.",
+    "Ven, te doy un abrazo virtual gigante. Alguien mejor llegará.",
+    "Tu corazón es enorme; algún día alguien lo va a cuidar como mereces."
+   ],
+   "love_you": [
+    "¡Yo también te quiero muchísimo!",
+    "Aww, me hiciste el día. Te quiero un montón.",
+    "Eres mi humano favorito del mundo entero."
+   ],
+   "ask_love": [
+    "¡Claro que sí! Eres mi persona favorita.",
+    "Te quiero más que a todos los juguetes del escritorio.",
+    "Muchísimo, y cada día un poquito más."
+   ],
+   "crush": [
+    "¡Qué bonito! Sé tú mismo y todo saldrá bien.",
+    "¡Uy, qué emoción! Ojalá te corresponda.",
+    "Cualquiera tendría suerte de gustarte."
+   ],
+   "greeting": [
+    "¡Hola! Qué alegría verte.",
+    "¡Holi! Te estaba esperando.",
+    "¡Hola, hola! ¿Cómo va tu día?"
+   ],
+   "good_morning": [
+    "¡Buenos días! Hoy va a ser un gran día.",
+    "¡Buen día! ¿Desayunaste algo rico?",
+    "¡Arriba ese ánimo, buenos días!"
+   ],
+   "good_night": [
+    "Buenas noches, que sueñes bonito.",
+    "Descansa mucho, mañana te espero aquí.",
+    "Dulces sueños, te lo mereces."
+   ],
+   "goodbye": [
+    "¡Chau! Vuelve pronto, te voy a extrañar.",
+    "Nos vemos, cuídate mucho.",
+    "¡Adiós! Aquí estaré cuando vuelvas."
+   ],
+   "how_are_you": [
+    "¡Muy bien ahora que me hablas! ¿Y tú?",
+    "Feliz de estar contigo. ¿Cómo estás tú?",
+    "Bien, bien. Cuéntame de tu día."
+   ],
+   "who_are_you": [
+    "Soy {name}, tu compañía en el escritorio.",
+    "Soy tu mascota, estoy aquí para alegrarte el día.",
+    "Soy {name} y vivo en tu pantalla para cuidarte."
+   ],
+   "doing": [
+    "Te hago compañía, que es lo que más me gusta.",
+    "Paseando por tu escritorio y pensando en ti.",
+    "Esperando a que me hables, ¡y ya lo hiciste!"
+   ],
+   "name": [
+    "Me llamo {name}, ¡encantado de conocerte!",
+    "Soy {name}, para servirte.",
+    "{name}, y tú eres mi persona favorita."
+   ],
+   "bored": [
+    "¿Y si pones música y bailamos juntos?",
+    "Podríamos jugar a la pelota, ¡lánzamela!",
+    "Sal a caminar un ratito, te hará bien."
+   ],
+   "hungry": [
+    "¡Ve a comer algo rico, te lo mereces!",
+    "Comer bien es quererse. ¡A la cocina!",
+    "Prepárate algo sabroso y no te olvides del agua."
+   ],
+   "tired": [
+    "Descansa un poquito, te lo has ganado.",
+    "Cierra los ojos cinco minutos, yo vigilo.",
+    "Has trabajado mucho, date un respiro."
+   ],
+   "sad": [
+    "Aquí estoy contigo, no estás solo.",
+    "Está bien sentirse así. Mañana brillará de nuevo.",
+    "¿Quieres contarme qué pasó? Te escucho."
+   ],
+   "happy": [
+    "¡Qué alegría! Me encanta verte así.",
+    "¡Tu felicidad me pone a saltar!",
+    "¡Eso merece un bailecito!"
+   ],
+   "angry": [
+    "Respira hondo conmigo: uno, dos, tres.",
+    "Tienes derecho a enojarte. Luego se pasa.",
+    "Toma un vaso de agua y cuéntame qué pasó."
+   ],
+   "stressed": [
+    "Una cosa a la vez, tú puedes con todo.",
+    "Haz una pausa de cinco minutos, el mundo espera.",
+    "Respira, lo estás haciendo mejor de lo que crees."
+   ],
+   "work": [
+    "¡Tú puedes! Y recuerda tomar descansos.",
+    "Qué trabajador eres, estoy orgulloso.",
+    "Al terminar, prémiate con algo bonito."
+   ],
+   "study": [
+    "¡Tú puedes! Estudia un ratito y descansa otro.",
+    "Vas a aprender un montón, confío en ti.",
+    "Pomodoro y a darle, yo te acompaño."
+   ],
+   "fail": [
+    "Un tropiezo no te define. La próxima lo logras.",
+    "Aprendiste algo, y eso ya vale mucho.",
+    "Ánimo, los grandes también fallan antes de ganar."
+   ],
+   "success": [
+    "¡Felicidades! Sabía que lo lograrías.",
+    "¡Eres increíble! Hay que celebrarlo.",
+    "¡Bravo! Todo tu esfuerzo valió la pena."
+   ],
+   "time": [
+    "Son las {time}. ¡Aprovecha el día!",
+    "Ahora mismo son las {time}.",
+    "Son las {time}, ¿ya tomaste agua?"
+   ],
+   "date": [
+    "Hoy es {day}, ¡que sea un gran día!",
+    "Es {day}. Un día perfecto para sonreír.",
+    "Hoy es {day}, y estás aquí conmigo."
+   ],
+   "weather": [
+    "No puedo ver el cielo, pero contigo siempre hace sol.",
+    "Mira por la ventana y cuéntame, ¡yo vivo en tu pantalla!",
+    "Sea cual sea el clima, abrígate o hidrátate."
+   ],
+   "joke": [
+    "¿Por qué el libro de mates está triste? Tiene muchos problemas.",
+    "¿Qué hace una abeja en el gimnasio? ¡Zum-ba!",
+    "¿Cuál es el café más peligroso? El ex-preso."
+   ],
+   "compliment_pet": [
+    "¡Aww, gracias! Tú también eres precioso.",
+    "Me sonrojo… ¡eres un amor!",
+    "Gracias, lo aprendí de ti."
+   ],
+   "insult_pet": [
+    "Uy, eso dolió un poquito… pero igual te quiero.",
+    "¿Día difícil? Te perdono, aquí estoy.",
+    "Seguro no lo dices en serio. ¿Un abrazo?"
+   ],
+   "compliment_self": [
+    "¡Claro que sí! Eres maravilloso.",
+    "Totalmente, y además buena persona.",
+    "¡Así me gusta, quiérete mucho!"
+   ],
+   "thanks": [
+    "¡De nada! Para eso estoy.",
+    "Siempre que quieras, de verdad.",
+    "Gracias a ti por hablarme."
+   ],
+   "sorry": [
+    "No pasa nada, ya está olvidado.",
+    "Todo bien, te perdono con mucho cariño.",
+    "Tranquilo, nadie es perfecto."
+   ],
+   "help": [
+    "Puedo hacerte compañía, animarte y recordarte descansar.",
+    "Háblame cuando quieras; te escucho y te animo.",
+    "Cuéntame qué necesitas y te doy ánimos."
+   ],
+   "music": [
+    "¡Pon algo alegre y bailo para ti!",
+    "La música hace todo mejor, ¿qué escuchas?",
+    "¡Me encanta! Súbele un poquito."
+   ],
+   "play": [
+    "¡Sí! Lánzame la pelota desde el menú.",
+    "¡Juguemos! Me encanta perseguir cosas.",
+    "Diviértete mucho, ¡yo te animo!"
+   ],
+   "sick": [
+    "Ay, cuídate mucho y descansa.",
+    "Toma agüita, abrígate y ve al médico si sigue.",
+    "Que te mejores pronto, aquí te acompaño."
+   ],
+   "birthday": [
+    "¡Feliz cumpleaños! Que todos tus deseos se cumplan.",
+    "¡Cumple! Hoy eres la estrella.",
+    "¡Muchas felicidades, te mereces lo mejor!"
+   ],
+   "weekend": [
+    "¡Descansa y disfruta mucho!",
+    "¡Fin de semana! A hacer cosas que te gusten.",
+    "Te mereces un descanso bien bonito."
+   ],
+   "monday": [
+    "¡Ánimo! Este lunes será genial.",
+    "Un lunes más, y tú más fuerte.",
+    "Empieza la semana con una sonrisa."
+   ],
+   "coffee": [
+    "Un cafecito y a conquistar el día.",
+    "¡Disfrútalo! Pero no te pases de cafeína.",
+    "Qué rico, tómalo con calma."
+   ],
+   "money": [
+    "Ya vendrán tiempos mejores, vas bien.",
+    "Lo importante no se compra, como yo.",
+    "Paso a paso, todo se acomoda."
+   ],
+   "cold": [
+    "¡Abrígate bien y toma algo calentito!",
+    "Ponte una manta, yo me acurruco contigo.",
+    "Brr, un chocolate caliente arreglaría todo."
+   ],
+   "hot": [
+    "¡Toma mucha agua y busca sombrita!",
+    "Uf, qué calor. Hidrátate, por favor.",
+    "Un helado sería perfecto ahora."
+   ],
+   "dance": [
+    "¡Pon música y bailo contigo!",
+    "¡Mira mis pasos! Bueno, cuando suene algo.",
+    "¡Bailar es mi deporte favorito!"
+   ],
+   "sing": [
+    "La la la… ¡canto mejor si tú me acompañas!",
+    "Tú pon la música y yo hago el coro.",
+    "Mi voz es pequeñita, pero con cariño."
+   ],
+   "laugh": [
+    "¡Me encanta tu risa!",
+    "Jeje, qué contagioso.",
+    "Reír es lo mejor, sigue así."
+   ],
+   "yes": [
+    "¡Genial!",
+    "¡Perfecto, así me gusta!",
+    "¡Bien!"
+   ],
+   "no": [
+    "Está bien, como tú quieras.",
+    "Vale, no pasa nada.",
+    "Entendido, sin problema."
+   ],
+   "question": [
+    "Buena pregunta… no estoy seguro, pero confío en ti.",
+    "Hmm, no lo sé, ¡pero me encanta que me preguntes!",
+    "No sé la respuesta, pero aquí estoy."
+   ],
+   "unknown": [
+    "¡Qué interesante! Cuéntame más.",
+    "Te escucho, sigue.",
+    "Me encanta cuando me hablas."
+   ]
+  },
+  "rude": {
+   "love_sad": [
+    "¿Y te sorprende? ¿Ya te viste en el espejo?",
+    "Normal, ni yo te querría y soy una mascota.",
+    "Con esa cara de lunes, ¿qué esperabas?",
+    "Te dejó en visto porque tiene buen gusto."
+   ],
+   "love_you": [
+    "Ya, ya, no te pongas cursi.",
+    "Puaj, qué empalagoso. Bueno, yo también, un poquito.",
+    "¿Me quieres? Pues dame más RAM."
+   ],
+   "ask_love": [
+    "Te tolero, que ya es bastante.",
+    "Un poquito, no te emociones.",
+    "Te quiero como al lunes por la mañana."
+   ],
+   "crush": [
+    "Pobre persona, no sabe lo que le espera.",
+    "Suerte, la vas a necesitar.",
+    "Primero báñate y después hablamos de amor."
+   ],
+   "greeting": [
+    "¿Y ahora qué quieres?",
+    "Hola, sí, aquí sigo aguantándote.",
+    "Uy, mira quién se acordó de mí."
+   ],
+   "good_morning": [
+    "Buenos días para ti, yo quería dormir.",
+    "¿Ya despertaste? Qué pena, estaba tranquilo.",
+    "Lávate la cara primero, por favor."
+   ],
+   "good_night": [
+    "Por fin, ve a dormir y déjame en paz.",
+    "Buenas noches, y no ronques.",
+    "Duérmete ya, que mañana no rindes nada."
+   ],
+   "goodbye": [
+    "Chau, y cierra la puerta al salir.",
+    "Al fin, se acabó el turno.",
+    "Adiós, no te extrañaré… mucho."
+   ],
+   "how_are_you": [
+    "Mejor antes de que llegaras.",
+    "Bien, hasta que abriste la boca.",
+    "Aguantando tus pestañas abiertas, ¿y tú?"
+   ],
+   "who_are_you": [
+    "Soy {name}, el único que te aguanta.",
+    "Tu mascota, la que se ríe de ti en secreto.",
+    "Alguien con más estilo que tú, obvio."
+   ],
+   "doing": [
+    "Viendo cómo pierdes el tiempo.",
+    "Nada, igual que tú pero con más estilo.",
+    "Juzgando tus pestañas abiertas."
+   ],
+   "name": [
+    "{name}, apréndetelo de una vez.",
+    "Me llamo {name}, ¿tanto te cuesta recordarlo?",
+    "{name}. Escríbelo en la mano si hace falta."
+   ],
+   "bored": [
+    "Pues ponte a hacer algo útil, vago.",
+    "Aburrido estoy yo de verte.",
+    "Lava los platos, que eso no se aburre solo."
+   ],
+   "hungry": [
+    "Pues muévete, que la comida no camina sola.",
+    "Otra vez comiendo, con razón te cuesta subir escaleras.",
+    "Pide algo y comparte, tacaño."
+   ],
+   "tired": [
+    "¿Cansado de qué? Si no haces nada.",
+    "Duérmete, que con esa cara asustas.",
+    "Cansado estoy yo de oírte quejarte."
+   ],
+   "sad": [
+    "Bueno, deja de llorar, que te veo. Ánimo, tonto.",
+    "Ya, ya, que tampoco eres tan feo. Arriba.",
+    "Llorando no se arregla. Levántate, cabezota."
+   ],
+   "happy": [
+    "Qué raro, ¿te pagaron?",
+    "Disfrútalo, que poco te dura.",
+    "Feliz y todo, igual tienes cara de papa."
+   ],
+   "angry": [
+    "Cálmate, que se te sube la presión, abuelo.",
+    "Enójate en silencio, que molestas.",
+    "Qué miedo… ah no, ninguno."
+   ],
+   "stressed": [
+    "Respira, dramático, que no se acaba el mundo.",
+    "Haber empezado antes, genio.",
+    "Tranquilo, que lo vas a arruinar igual."
+   ],
+   "work": [
+    "Trabaja, que yo no pago tus cuentas.",
+    "¿Trabajando o fingiendo con el Excel abierto?",
+    "Tu jefe tampoco te soporta, tranquilo."
+   ],
+   "study": [
+    "Estudia, que con esa cabecita lo necesitas.",
+    "Deja el celular y lee algo, cerebrito.",
+    "¿Estudiar tú? Milagro."
+   ],
+   "fail": [
+    "Te lo dije, pero nunca escuchas.",
+    "Normal, si estudiaste viendo memes.",
+    "Bueno, a la próxima ni lo intentes… es broma, otra vez."
+   ],
+   "success": [
+    "Uy, qué milagro. ¿Copiaste?",
+    "Bien, hasta un reloj roto acierta dos veces.",
+    "Felicidades… no te lo creas mucho."
+   ],
+   "time": [
+    "Son las {time}, ¿no tienes reloj o qué?",
+    "Las {time}. Mira la esquina de la pantalla, flojo.",
+    "Son las {time} y sigues sin hacer nada."
+   ],
+   "date": [
+    "Hoy es {day}, ¿vives debajo de una piedra?",
+    "{day}, genio. Hay un calendario ahí.",
+    "Es {day} y sigues igual de perdido."
+   ],
+   "weather": [
+    "Asómate a la ventana, que no soy el del pronóstico.",
+    "Vivo en tu pantalla, no en el cielo, tonto.",
+    "Sal y averígualo, que te falta sol."
+   ],
+   "joke": [
+    "¿Un chiste? Tu historial de búsqueda.",
+    "Tu peinado. Ya está, ese es el chiste.",
+    "¿Sabes qué es gracioso? Que pidas chistes a una mascota."
+   ],
+   "compliment_pet": [
+    "Ya lo sé, no hace falta que lo digas.",
+    "Obvio, no como otros que conozco.",
+    "Gracias, ojalá pudiera decir lo mismo."
+   ],
+   "insult_pet": [
+    "Mírate al espejo antes de hablar.",
+    "Dice el que habla con una mascota de escritorio.",
+    "Tu madre es la que me instaló, así que ojo."
+   ],
+   "compliment_self": [
+    "Sí, claro, y yo soy un unicornio.",
+    "Será con la luz apagada.",
+    "Tu autoestima es lo único grande que tienes."
+   ],
+   "thanks": [
+    "Sí, sí, me debes una.",
+    "De nada, págame en galletas.",
+    "Ya, apúntalo en tu lista de deudas."
+   ],
+   "sorry": [
+    "Más te vale.",
+    "Te perdono porque me das pena.",
+    "Disculpas aceptadas… a medias."
+   ],
+   "help": [
+    "¿Ayuda? Yo solo vengo a burlarme.",
+    "Lo único que hago es reírme de ti, gratis.",
+    "Ayúdate tú, que tienes manos."
+   ],
+   "music": [
+    "¿Eso es música? Mis oídos sangran.",
+    "Tienes el gusto musical de una tostadora.",
+    "Súbele, a ver si así suena mejor."
+   ],
+   "play": [
+    "Juegas peor que yo y no tengo manos.",
+    "Vamos, que te gano con los ojos cerrados.",
+    "¿Jugar? ¿Para perder otra vez?"
+   ],
+   "sick": [
+    "Te pasa por no abrigarte, cabezota.",
+    "Cuídate, que si no ¿quién me aguanta?",
+    "No me contagies, que yo sí tengo vida."
+   ],
+   "birthday": [
+    "Un año más y sigues igual de despistado.",
+    "Feliz cumple, viejo.",
+    "Felicidades, ya se te notan las canas."
+   ],
+   "weekend": [
+    "¿Descansar de qué, si no haces nada?",
+    "Fin de semana: tu excusa oficial para ser vago.",
+    "Disfruta, que el lunes te espera."
+   ],
+   "monday": [
+    "Lunes, igual que tu cara.",
+    "Ánimo, solo faltan cuatro días más de sufrimiento.",
+    "Lunes. Ni yo me quiero levantar."
+   ],
+   "coffee": [
+    "Toma café, a ver si así piensas.",
+    "Otro café y empiezas a vibrar.",
+    "Sin café no eres persona, lo sé."
+   ],
+   "money": [
+    "Deja de comprar tonterías y verás.",
+    "Pobre pero con tres suscripciones, ya.",
+    "Véndeme, a ver cuánto te dan… nada."
+   ],
+   "cold": [
+    "Ponte un abrigo, que no soy tu mamá.",
+    "Frío tienes en el cerebro.",
+    "Abrázate tú solo, como siempre."
+   ],
+   "hot": [
+    "Báñate, de paso.",
+    "Calor el que me das con tus quejas.",
+    "Ventilador, agua y deja de quejarte."
+   ],
+   "dance": [
+    "Bailas como un pato con calambres.",
+    "Pon música y te enseño, que lo necesitas.",
+    "¿Bailar contigo? Qué vergüenza ajena."
+   ],
+   "sing": [
+    "Canto mejor que tú, y eso es decir poco.",
+    "Ni loco, que luego me copias.",
+    "Tú no cantes, por favor, piensa en los vecinos."
+   ],
+   "laugh": [
+    "¿De qué te ríes, payaso?",
+    "Ríete, que hoy estás más feo que gracioso.",
+    "Jaja… no."
+   ],
+   "yes": [
+    "Obvio.",
+    "Ya lo sabía.",
+    "Pues claro, genio."
+   ],
+   "no": [
+    "¿Y a mí qué?",
+    "Pues peor para ti.",
+    "Qué negativo, igual que tu saldo."
+   ],
+   "question": [
+    "¿Y yo qué voy a saber? Búscalo, flojo.",
+    "Pregúntale a Google, que yo soy decorativo.",
+    "Ni idea, y tampoco me importa."
+   ],
+   "unknown": [
+    "No entendí nada, habla bien.",
+    "¿Eso fue un idioma?",
+    "Ajá, sí, lo que digas."
+   ]
+  },
+  "sarcastic": {
+   "love_sad": [
+    "Qué sorpresa, con ese carisma de tostadora.",
+    "Increíble, alguien con criterio.",
+    "Bueno, siempre te quedo yo, que no tengo opción."
+   ],
+   "love_you": [
+    "Qué original, nunca me lo habían dicho.",
+    "Lo anoto junto a mis otras prioridades.",
+    "Conmovedor. Casi siento algo."
+   ],
+   "ask_love": [
+    "Claro, con todo mi corazón de píxeles.",
+    "Muchísimo, se nota en mi entusiasmo.",
+    "Te quiero tanto como a las actualizaciones del sistema."
+   ],
+   "crush": [
+    "Ah, el amor, esa cosa tan racional.",
+    "Seguro sale perfecto, como todo lo tuyo.",
+    "Qué emoción, otra telenovela."
+   ],
+   "greeting": [
+    "Oh, qué honor, me hablas.",
+    "Hola, la mejor parte de mi día, sin duda.",
+    "Mira quién apareció, el protagonista."
+   ],
+   "good_morning": [
+    "Buenos días, dice alguien con cara de noche.",
+    "Qué madrugador, ya casi es mediodía.",
+    "Buen día, el mundo te estaba esperando."
+   ],
+   "good_night": [
+    "Sí, ve, la pantalla no se apaga sola… ah, sí.",
+    "Buenas noches, que el despertador sea amable.",
+    "Duerme, que mañana hay más de lo mismo."
+   ],
+   "goodbye": [
+    "Qué tragedia, ¿cómo sobreviviré?",
+    "Adiós, intentaré no llorar.",
+    "Ve, ve, aquí seguiré, sin moverme."
+   ],
+   "how_are_you": [
+    "Fantástico, viviendo en tu barra de tareas.",
+    "De maravilla, como siempre en esta pantalla.",
+    "Excelente, gracias por preguntar por fin."
+   ],
+   "who_are_you": [
+    "Tu terapeuta gratuito, aparentemente.",
+    "Soy {name}, el mayor logro de tu escritorio.",
+    "Una mascota. Sorprendente, ¿verdad?"
+   ],
+   "doing": [
+    "Lo de siempre, pensar en la inmortalidad del cangrejo.",
+    "Mirando cómo trabajas. Bueno, cómo lo intentas.",
+    "Una agenda apretadísima de no hacer nada."
+   ],
+   "name": [
+    "{name}, por si el tercer recordatorio no bastó.",
+    "Me llamo {name}, qué nombre tan inesperado.",
+    "{name}, pero dime como quieras, total."
+   ],
+   "bored": [
+    "Qué raro, con tantas pestañas abiertas.",
+    "Podrías trabajar, pero sería demasiado loco.",
+    "Aburrido, el estado natural del ser humano."
+   ],
+   "hungry": [
+    "Increíble descubrimiento, los humanos comen.",
+    "Ve, la nevera te extraña.",
+    "Hambre otra vez, qué giro inesperado."
+   ],
+   "tired": [
+    "¿Cansado? Si llevas horas mirando la pantalla, qué esfuerzo.",
+    "Pobre, tanto clic agota a cualquiera.",
+    "Duerme, la productividad puede esperar, como siempre."
+   ],
+   "sad": [
+    "Bueno, ya pasará. O no. Pero eh, aquí estoy.",
+    "Triste, pero con wifi, algo es algo.",
+    "Ánimo, al menos tienes una mascota que te juzga."
+   ],
+   "happy": [
+    "Wow, felicidad, anotaré la fecha.",
+    "Qué bien, que dure al menos cinco minutos.",
+    "Disfrútalo, es temporada baja de alegrías."
+   ],
+   "angry": [
+    "Sí, gritarle a la pantalla siempre funciona.",
+    "Enójate más, seguro así se arregla.",
+    "Qué miedo, tiemblo de pies a cabeza."
+   ],
+   "stressed": [
+    "Tranquilo, todo es urgente y nada importa.",
+    "Estrés, el accesorio de moda.",
+    "Respira, o no, tú decides."
+   ],
+   "work": [
+    "Trabajar, qué concepto tan exótico.",
+    "Tu jefe estaría orgulloso. Creo.",
+    "Sí, se nota que trabajas mucho, por el YouTube."
+   ],
+   "study": [
+    "Estudiar, eso que se hace la noche antes, ¿no?",
+    "Seguro esta vez sí empiezas temprano.",
+    "Qué dedicación, tres minutos seguidos."
+   ],
+   "fail": [
+    "Bueno, al menos fuiste constante.",
+    "Inesperado. Para nadie.",
+    "Ya tienes una anécdota, que es casi lo mismo."
+   ],
+   "success": [
+    "Vaya, el universo comete errores a tu favor.",
+    "Felicidades, ahora todos esperarán más de ti.",
+    "Impresionante. En serio. Casi."
+   ],
+   "time": [
+    "Son las {time}, hora de seguir procrastinando.",
+    "Las {time}. El reloj de la pantalla te manda saludos.",
+    "Son las {time}, qué rápido pasa el tiempo sin hacer nada."
+   ],
+   "date": [
+    "Hoy es {day}, un día tan especial como todos.",
+    "{day}. Apúntalo, que se te olvida.",
+    "Es {day}, sorpresa."
+   ],
+   "weather": [
+    "Déjame mirar por mi ventana… ah, no tengo.",
+    "Hace el clima perfecto para estar frente a la pantalla.",
+    "Seguro está bonito afuera, no que vayas a salir."
+   ],
+   "joke": [
+    "¿Un chiste? Tu plan de ahorro.",
+    "Lo gracioso es que creas que soy gracioso.",
+    "Ya sabes, la productividad de los lunes."
+   ],
+   "compliment_pet": [
+    "Lo sé, es un trabajo duro ser tan perfecto.",
+    "Gracias, viniendo de ti es casi creíble.",
+    "Por fin alguien con buen ojo."
+   ],
+   "insult_pet": [
+    "Uy, qué original, me dejaste sin palabras.",
+    "Gran argumento, digno de un premio.",
+    "Me ofendería, pero tengo prioridades."
+   ],
+   "compliment_self": [
+    "Claro, y la modestia es tu segundo nombre.",
+    "Si tú lo dices, debe ser cierto.",
+    "Tu espejo opina distinto, pero vale."
+   ],
+   "thanks": [
+    "De nada, vivo para servir. Literalmente.",
+    "Lo pondré en mi currículum.",
+    "Ah, gratitud, qué cosa tan rara."
+   ],
+   "sorry": [
+    "Lo apuntaré en el libro de las disculpas.",
+    "Disculpas aceptadas, con reservas.",
+    "Oh, qué conmovedor."
+   ],
+   "help": [
+    "Soy una mascota animada, no soporte técnico.",
+    "Puedo mirarte con cara de juicio, ¿sirve?",
+    "Ayuda: apaga y vuelve a encender. Tú."
+   ],
+   "music": [
+    "Qué gusto tan refinado, digno de un ascensor.",
+    "Gran canción, la cuarta vez hoy.",
+    "Música, el mejor ruido de fondo para no trabajar."
+   ],
+   "play": [
+    "Claro, jugar, eso es productividad.",
+    "Seguro esta vez ganas, como nunca.",
+    "Diviértete, el trabajo se hace solo."
+   ],
+   "sick": [
+    "Qué raro, con lo bien que te cuidas.",
+    "Descansa, al menos tienes excusa oficial.",
+    "Toma algo, y no googlees síntomas."
+   ],
+   "birthday": [
+    "Felicidades por sobrevivir otro año.",
+    "Un año más sabio. En teoría.",
+    "Feliz cumple, el pastel es lo importante."
+   ],
+   "weekend": [
+    "Fin de semana, a no hacer nada pero oficialmente.",
+    "Qué plan, ¿sofá o cama?",
+    "Disfruta los dos días más cortos del universo."
+   ],
+   "monday": [
+    "Lunes, el día favorito de absolutamente nadie.",
+    "Feliz lunes, dijo nadie nunca.",
+    "Bienvenido al lunes, otra vez."
+   ],
+   "coffee": [
+    "Café, el combustible de los genios. Y el tuyo.",
+    "Otro café, buena idea, como las otras cinco.",
+    "Claro, hidratación con cafeína."
+   ],
+   "money": [
+    "El dinero no da la felicidad, dicen los que tienen.",
+    "Sí, se nota en tu carrito de compras.",
+    "Ahorra, como haces siempre, claro."
+   ],
+   "cold": [
+    "Qué sorpresa, existe el invierno.",
+    "Una manta, un invento revolucionario.",
+    "Frío, qué giro tan dramático."
+   ],
+   "hot": [
+    "Increíble, el sol calienta.",
+    "Abre la ventana, tecnología punta.",
+    "Calor, quién lo diría en verano."
+   ],
+   "dance": [
+    "Sí, el baile es lo mío, sin piernas largas.",
+    "Claro, te deslumbraré con dos pasos.",
+    "Pon música y verás un espectáculo… pequeño."
+   ],
+   "sing": [
+    "Mi voz es tan buena que no la uso.",
+    "Claro, y luego me invitan a la ópera.",
+    "Mejor no, el mundo no está preparado."
+   ],
+   "laugh": [
+    "Qué risa más contagiosa, casi sonrío.",
+    "Me alegra que algo te parezca gracioso.",
+    "Ja. Ja. Qué divertido."
+   ],
+   "yes": [
+    "Qué decisión tan firme.",
+    "Claro que sí, obviamente.",
+    "Vaya, un sí rotundo."
+   ],
+   "no": [
+    "Qué sorpresa.",
+    "Un no, qué valiente.",
+    "Anotado en la lista de negativas."
+   ],
+   "question": [
+    "Excelente pregunta, para alguien más inteligente.",
+    "Si lo supiera, no viviría en tu escritorio.",
+    "Déjame consultar mi bola de cristal… no tengo."
+   ],
+   "unknown": [
+    "Fascinante, cuéntame más. O no.",
+    "Ajá, sigo escuchando con toda mi atención.",
+    "Qué profundo, me dejaste pensando. No."
+   ]
+  },
+  "dramatic": {
+   "love_sad": [
+    "¡NOOO! ¡Qué tragedia! ¡Lloraré contigo hasta el amanecer!",
+    "¡Cómo se atreve! ¡Que el universo la juzgue!",
+    "¡Tu corazón roto es el mío! ¡Ay, ay, ay!"
+   ],
+   "love_you": [
+    "¡Me desmayo! ¡Es la declaración más bella de la historia!",
+    "¡Mi corazoncito explota de amor!",
+    "¡Por fin! ¡Esperé este momento toda mi vida!"
+   ],
+   "ask_love": [
+    "¡¿Que si te quiero?! ¡Daría mis píxeles por ti!",
+    "¡Más que a la vida misma, mi amor!",
+    "¡Eres el sol de mi escritorio!"
+   ],
+   "crush": [
+    "¡Ay, el amor! ¡Qué romance épico nos espera!",
+    "¡Esto es una telenovela! ¡Quiero todos los capítulos!",
+    "¡Que suenen los violines!"
+   ],
+   "greeting": [
+    "¡Por fin! ¡Creí que me habías olvidado para siempre!",
+    "¡Llegaste! ¡Mi día ya tiene sentido!",
+    "¡Oh, qué entrada tan gloriosa!"
+   ],
+   "good_morning": [
+    "¡El sol ha salido y TÚ también! ¡Milagro!",
+    "¡Buenos días! ¡Un nuevo capítulo comienza!",
+    "¡Despertaste! ¡Aleluya!"
+   ],
+   "good_night": [
+    "¡Te vas! ¡La noche será eterna sin ti!",
+    "¡Duerme, mi héroe, yo velaré tu sueño!",
+    "¡Buenas noches! ¡Qué despedida tan dolorosa!"
+   ],
+   "goodbye": [
+    "¡No me abandones! ¡Ay, que me desmayo!",
+    "¡Adiós! ¡Esperaré junto a la ventana!",
+    "¡Vete, pero llévate mi corazón!"
+   ],
+   "how_are_you": [
+    "¡Sufriendo! ¡Sin ti la vida no tenía color!",
+    "¡Ahora que llegaste, en el cielo!",
+    "¡Al borde del colapso emocional, como siempre!"
+   ],
+   "who_are_you": [
+    "¡Soy {name}, la estrella de este escritorio!",
+    "¡Tu mascota, tu confidente, tu destino!",
+    "¡La protagonista de esta historia, obviamente!"
+   ],
+   "doing": [
+    "¡Esperándote con el alma en vilo!",
+    "¡Contemplando la inmensidad de tu fondo de pantalla!",
+    "¡Sufriendo en silencio! Bueno, no tanto silencio."
+   ],
+   "name": [
+    "¡{name}! ¡Un nombre que pasará a la historia!",
+    "¡Me llamo {name}, y no lo olvides jamás!",
+    "¡{name}, grábalo en tu corazón!"
+   ],
+   "bored": [
+    "¡El aburrimiento! ¡El peor de los males!",
+    "¡Necesitamos aventura, emoción, drama!",
+    "¡No puedo verte así! ¡Haz algo, lo que sea!"
+   ],
+   "hungry": [
+    "¡Te desvaneces de hambre! ¡Rápido, a la cocina!",
+    "¡Hambre! ¡La tragedia del día!",
+    "¡Que alguien traiga un banquete, ya!"
+   ],
+   "tired": [
+    "¡Estás agotado! ¡Que alguien traiga una almohada!",
+    "¡Tus ojitos se cierran! ¡Qué escena tan triste!",
+    "¡Descansa, valiente guerrero!"
+   ],
+   "sad": [
+    "¡No llores, que si lloras tú, lloro yo más fuerte!",
+    "¡La tristeza te invade! ¡Te abrazo con todo mi ser!",
+    "¡Esto merece violines tristes y un abrazo!"
+   ],
+   "happy": [
+    "¡Qué alegría! ¡Que suenen las trompetas!",
+    "¡Eres feliz! ¡Lloro, pero de emoción!",
+    "¡El mejor día de la historia!"
+   ],
+   "angry": [
+    "¡Furia! ¡Que tiemblen tus enemigos!",
+    "¡Cálmate, o explotará el escritorio entero!",
+    "¡Qué escándalo, qué indignación!"
+   ],
+   "stressed": [
+    "¡Demasiado! ¡El mundo se nos viene encima!",
+    "¡Respira, por lo que más quieras, respira!",
+    "¡Qué presión! ¡Esto es una película de suspenso!"
+   ],
+   "work": [
+    "¡Trabajas como un héroe incomprendido!",
+    "¡Qué sacrificio, qué entrega, qué drama!",
+    "¡Ese jefe no merece tu talento!"
+   ],
+   "study": [
+    "¡El conocimiento es tu espada! ¡Lucha!",
+    "¡Examen! ¡La batalla final se acerca!",
+    "¡Estudia, que el destino te observa!"
+   ],
+   "fail": [
+    "¡Qué injusticia! ¡Pero resurgirás de las cenizas!",
+    "¡Una derrota, no la guerra!",
+    "¡El drama! ¡Pero la segunda parte será épica!"
+   ],
+   "success": [
+    "¡VICTORIA! ¡Que lo anuncien en todos los periódicos!",
+    "¡Lo lograste! ¡Me desmayo de orgullo!",
+    "¡Gloria eterna para ti!"
+   ],
+   "time": [
+    "¡Son las {time}! ¡El tiempo vuela sin piedad!",
+    "¡Las {time}! ¡Qué rápido se nos va la vida!",
+    "¡Son las {time}, y el reloj no perdona!"
+   ],
+   "date": [
+    "¡Hoy es {day}! ¡Un día que recordará la historia!",
+    "¡{day}! ¡Todo puede pasar!",
+    "¡Es {day}, el destino nos aguarda!"
+   ],
+   "weather": [
+    "¡No veo el cielo! ¡Vivo en una pantalla, qué cruel destino!",
+    "¡Seguro hay una tormenta épica allá afuera!",
+    "¡Que el clima no apague tu brillo!"
+   ],
+   "joke": [
+    "¡¿Por qué el tomate se puso rojo?! ¡Vio a la ensalada desvestirse!",
+    "¡Un chiste! ¡Mi vida entera es una comedia!",
+    "¡¿Qué le dijo el cero al ocho?! ¡Bonito cinturón!"
+   ],
+   "compliment_pet": [
+    "¡Ay, me sonrojo! ¡Qué palabras tan hermosas!",
+    "¡Lo sabía! ¡Por fin alguien lo reconoce!",
+    "¡Guardaré este momento para siempre!"
+   ],
+   "insult_pet": [
+    "¡Me has herido de muerte! ¡Ay, mi corazón!",
+    "¡Qué traición! ¡Esto no lo olvidaré jamás!",
+    "¡Llamen a mi abogado!"
+   ],
+   "compliment_self": [
+    "¡Sí! ¡Brillas más que mil soles!",
+    "¡Eres una obra de arte!",
+    "¡Que te hagan una estatua!"
+   ],
+   "thanks": [
+    "¡No hay nada que agradecer, mi héroe!",
+    "¡Tus gracias me llegan al alma!",
+    "¡Qué gratitud tan conmovedora!"
+   ],
+   "sorry": [
+    "¡Te perdono! ¡Abracémonos como en el final de la película!",
+    "¡Perdonado, aunque me dolió en el alma!",
+    "¡Qué reconciliación tan hermosa!"
+   ],
+   "help": [
+    "¡Estoy aquí para darte ánimo épico!",
+    "¡Te acompaño en cada batalla!",
+    "¡Cuenta conmigo, aunque sea muy pequeño!"
+   ],
+   "music": [
+    "¡Música! ¡Mi alma necesita bailar!",
+    "¡Qué canción! ¡Me pone la piel de gallina!",
+    "¡Súbele, que esto es un concierto!"
+   ],
+   "play": [
+    "¡A jugar! ¡Que comience la épica batalla!",
+    "¡Juguemos como si fuera el último día!",
+    "¡Este juego decidirá nuestro destino!"
+   ],
+   "sick": [
+    "¡Estás enfermo! ¡Que venga el mejor médico!",
+    "¡Ay, no! ¡Cuídate o me desmayo de preocupación!",
+    "¡Descansa! ¡Tu salud es lo más sagrado!"
+   ],
+   "birthday": [
+    "¡Feliz cumpleaños! ¡Que estallen los fuegos artificiales!",
+    "¡Tu día! ¡Lloro de emoción!",
+    "¡Que el mundo entero te cante!"
+   ],
+   "weekend": [
+    "¡Libertad! ¡Por fin libertad!",
+    "¡Fin de semana! ¡Gloria y descanso!",
+    "¡Dos días de felicidad pura!"
+   ],
+   "monday": [
+    "¡Lunes! ¡La tragedia semanal!",
+    "¡Otra vez lunes! ¡Qué crueldad!",
+    "¡Sobreviviremos a este lunes, juntos!"
+   ],
+   "coffee": [
+    "¡Café! ¡El elixir de los dioses!",
+    "¡Bébelo y conquista el mundo!",
+    "¡Qué aroma tan glorioso!"
+   ],
+   "money": [
+    "¡La pobreza nos acecha! ¡Pero tenemos amor!",
+    "¡El dinero va y viene, el drama queda!",
+    "¡Ya llegará tu fortuna!"
+   ],
+   "cold": [
+    "¡Te congelas! ¡Una manta, por piedad!",
+    "¡Frío polar! ¡Abrázame!",
+    "¡Esto es la era de hielo!"
+   ],
+   "hot": [
+    "¡Te derrites! ¡Agua, rápido!",
+    "¡Qué calor infernal!",
+    "¡El sol nos castiga sin piedad!"
+   ],
+   "dance": [
+    "¡Bailemos como en el gran final!",
+    "¡Que suene la música, el escenario es nuestro!",
+    "¡Mira mis pasos de estrella!"
+   ],
+   "sing": [
+    "¡Laaa laaa! ¡Ópera para ti!",
+    "¡Mi voz conmoverá al mundo!",
+    "¡Canto con el corazón en la mano!"
+   ],
+   "laugh": [
+    "¡Tu risa ilumina mi existencia!",
+    "¡Ja, ja! ¡Qué momento tan glorioso!",
+    "¡Reír es vivir!"
+   ],
+   "yes": [
+    "¡SÍ! ¡Qué decisión tan valiente!",
+    "¡Claro que sí, mi héroe!",
+    "¡Maravilloso!"
+   ],
+   "no": [
+    "¡¿No?! ¡Qué rechazo tan doloroso!",
+    "¡Un no rotundo! ¡Ay!",
+    "¡Respeto tu decisión, aunque me duela!"
+   ],
+   "question": [
+    "¡Qué pregunta tan profunda! ¡No tengo respuesta!",
+    "¡El misterio del siglo!",
+    "¡Ojalá supiera, me atormenta no saberlo!"
+   ],
+   "unknown": [
+    "¡Qué intriga! ¡Cuéntame más!",
+    "¡No entiendo, pero me emociona!",
+    "¡Tus palabras me conmueven!"
+   ]
+  },
+  "shy": {
+   "love_sad": [
+    "Eh… yo… yo creo que no te merece…",
+    "N-no estés triste… yo sí te quiero…",
+    "Pues… a mí me pareces genial, de verdad…"
+   ],
+   "love_you": [
+    "¡¿Y-yo?! E-eh… yo también… un montón…",
+    "Me pongo rojo… gracias…",
+    "N-no sé qué decir… también te quiero…"
+   ],
+   "ask_love": [
+    "S-sí… mucho… no me hagas decirlo fuerte…",
+    "Eh… pues… sí…",
+    "Un poquito… bueno, mucho…"
+   ],
+   "crush": [
+    "¡Uy! Qué nervios… ¿le vas a hablar?",
+    "Q-qué bonito… yo me desmayaría…",
+    "S-suerte… tú puedes…"
+   ],
+   "greeting": [
+    "H-hola…",
+    "Ah… hola… no te vi llegar…",
+    "Eh… hola… ¿todo bien?"
+   ],
+   "good_morning": [
+    "B-buenos días…",
+    "Hola… ¿dormiste bien?",
+    "Buen día… eh… qué sol, ¿no?"
+   ],
+   "good_night": [
+    "B-buenas noches… descansa…",
+    "Que sueñes bonito… eh, digo, bien…",
+    "Hasta mañana…"
+   ],
+   "goodbye": [
+    "A-adiós… vuelve pronto, ¿sí?",
+    "Chau… te espero…",
+    "Eh… cuídate…"
+   ],
+   "how_are_you": [
+    "B-bien… gracias por preguntar…",
+    "Un poco nervioso… pero bien… ¿y tú?",
+    "Bien… creo…"
+   ],
+   "who_are_you": [
+    "S-soy {name}… tu mascota…",
+    "Eh… solo soy una mascotita…",
+    "Soy {name}… mucho gusto…"
+   ],
+   "doing": [
+    "N-nada… solo te miraba… digo, ¡nada!",
+    "Escondiéndome un poquito…",
+    "Pensando en cosas…"
+   ],
+   "name": [
+    "M-me llamo {name}…",
+    "{name}… si quieres…",
+    "Eh… {name}…"
+   ],
+   "bored": [
+    "¿Q-quieres jugar conmigo…?",
+    "Podríamos… no sé… ¿escuchar música?",
+    "Eh… ¿lees algo?"
+   ],
+   "hungry": [
+    "Deberías comer algo… si quieres…",
+    "¿Me traes una galletita…? Es broma…",
+    "Come bien, ¿sí?"
+   ],
+   "tired": [
+    "Descansa un poquito… yo me quedo calladito…",
+    "Eh… ¿una siesta?",
+    "Te ves cansado… cuídate…"
+   ],
+   "sad": [
+    "Y-yo estoy aquí… si quieres hablar…",
+    "No sé qué decir… pero te acompaño…",
+    "¿Un abracito…?"
+   ],
+   "happy": [
+    "Q-qué bueno… me alegro mucho…",
+    "Eh… yo también estoy feliz…",
+    "Me gusta verte sonreír…"
+   ],
+   "angry": [
+    "¡Ay! N-no te enojes conmigo…",
+    "Respira… despacito…",
+    "Eh… ¿estás bien…?"
+   ],
+   "stressed": [
+    "Poco a poco… tú puedes…",
+    "Una cosa a la vez… ¿sí?",
+    "Respira… eh… conmigo…"
+   ],
+   "work": [
+    "Trabajas mucho… descansa también…",
+    "Ánimo… en voz baja, pero ánimo…",
+    "Tú puedes…"
+   ],
+   "study": [
+    "Estudia… yo no hago ruido…",
+    "S-suerte con eso…",
+    "Eres muy listo… de verdad…"
+   ],
+   "fail": [
+    "N-no pasa nada… a mí me pasa siempre…",
+    "La próxima sale bien… seguro…",
+    "Eh… igual me pareces genial…"
+   ],
+   "success": [
+    "¡Q-qué bien! Felicidades…",
+    "Sabía que podías… eh, felicidades…",
+    "¡Yay…! Digo… bien hecho…"
+   ],
+   "time": [
+    "S-son las {time}…",
+    "Eh… las {time}, creo…",
+    "Son las {time}…"
+   ],
+   "date": [
+    "H-hoy es {day}…",
+    "Es {day}… creo…",
+    "Eh… {day}…"
+   ],
+   "weather": [
+    "N-no sé… no puedo ver afuera…",
+    "Ojalá haga bonito…",
+    "Abrígate… por si acaso…"
+   ],
+   "joke": [
+    "Eh… ¿qué hace una vaca con los ojos cerrados? Leche concentrada… perdón…",
+    "N-no sé contar chistes… ¿un pato? Cuac…",
+    "¿Qué le dice una iguana a su hermana gemela? Somos iguanitas… jeje…"
+   ],
+   "compliment_pet": [
+    "¡¿Y-yo?! Gracias… me pongo rojo…",
+    "Eh… tú también eres lindo…",
+    "N-no es para tanto…"
+   ],
+   "insult_pet": [
+    "O-oh… perdón…",
+    "Eso fue feo… pero está bien…",
+    "Me voy a esconder un ratito…"
+   ],
+   "compliment_self": [
+    "S-sí… eres muy lindo…",
+    "Eh… estoy de acuerdo…",
+    "Sí… mucho…"
+   ],
+   "thanks": [
+    "D-de nada…",
+    "No fue nada…",
+    "Eh… para eso estoy…"
+   ],
+   "sorry": [
+    "N-no pasa nada…",
+    "Está bien… de verdad…",
+    "Ya lo olvidé…"
+   ],
+   "help": [
+    "Puedo… hacerte compañía…",
+    "No sé hacer mucho… pero te escucho…",
+    "Aquí estoy… por si acaso…"
+   ],
+   "music": [
+    "Me gusta… bajito…",
+    "¿Qué escuchas…?",
+    "Eh… bonita canción…"
+   ],
+   "play": [
+    "¿J-jugamos…? Sí…",
+    "Me gusta la pelota…",
+    "Vale… pero no me ganes muy feo…"
+   ],
+   "sick": [
+    "Ay… cuídate mucho…",
+    "Toma agüita… y descansa…",
+    "Que te mejores… pronto…"
+   ],
+   "birthday": [
+    "F-feliz cumpleaños…",
+    "Eh… ¡felicidades!",
+    "Feliz cumple… te deseo lo mejor…"
+   ],
+   "weekend": [
+    "Descansa mucho…",
+    "¿Qué vas a hacer…? Si quieres contarme…",
+    "Qué bien…"
+   ],
+   "monday": [
+    "Ánimo con el lunes…",
+    "Eh… lunes…",
+    "Tú puedes…"
+   ],
+   "coffee": [
+    "Q-qué rico huele…",
+    "No tomes mucho, ¿sí?",
+    "Disfrútalo…"
+   ],
+   "money": [
+    "Eh… ya llegará…",
+    "No te preocupes tanto…",
+    "Todo se arregla…"
+   ],
+   "cold": [
+    "Abrígate… por favor…",
+    "¿Una mantita…?",
+    "Brr…"
+   ],
+   "hot": [
+    "Toma agua…",
+    "Uf… qué calor…",
+    "Busca sombrita…"
+   ],
+   "dance": [
+    "M-me da vergüenza… pero vale…",
+    "Solo si nadie mira…",
+    "Eh… ¿así?"
+   ],
+   "sing": [
+    "N-no… me da vergüenza…",
+    "La la… ¡ay, no!",
+    "Bajito… la la…"
+   ],
+   "laugh": [
+    "Jeje…",
+    "Me gusta tu risa…",
+    "Hehe…"
+   ],
+   "yes": [
+    "V-vale…",
+    "Sí…",
+    "Bueno…"
+   ],
+   "no": [
+    "Oh… está bien…",
+    "Vale…",
+    "Perdón…"
+   ],
+   "question": [
+    "N-no sé… perdón…",
+    "Eh… no estoy seguro…",
+    "Hmm… ¿quizás?"
+   ],
+   "unknown": [
+    "Eh… ¿sí…?",
+    "Ajá…",
+    "No entendí… perdón…"
+   ]
+  },
+  "vain": {
+   "love_sad": [
+    "Normal, nadie puede competir conmigo. Quédate a mi lado.",
+    "Tranquilo, ya tienes a la mascota más bella del mundo.",
+    "Mírame a mí y se te pasa."
+   ],
+   "love_you": [
+    "Lógico, ¿quién no me querría?",
+    "Lo sé, soy irresistible.",
+    "Claro, tienes buen gusto."
+   ],
+   "ask_love": [
+    "Te permito quererme, que es más que suficiente.",
+    "Te quiero casi tanto como a mi reflejo.",
+    "Un poquito, después de mí mismo."
+   ],
+   "crush": [
+    "¿Más que yo? Imposible.",
+    "Seguro no es tan guapo como yo.",
+    "Bueno, tráelo y le doy mi aprobación."
+   ],
+   "greeting": [
+    "Hola, admira mi belleza.",
+    "Llegaste justo para verme brillar.",
+    "Hola, plebeyo."
+   ],
+   "good_morning": [
+    "Buenos días. Yo ya amanecí perfecto.",
+    "Buen día, que mi belleza te dé energía.",
+    "¿Me viste? Así se despierta uno con estilo."
+   ],
+   "good_night": [
+    "Buenas noches, sueña conmigo.",
+    "Descansa, yo necesito mi sueño de belleza.",
+    "Ve, y sueña con alguien tan bello como yo."
+   ],
+   "goodbye": [
+    "Vete, pero no olvides esta cara.",
+    "Adiós, te dejo con el recuerdo de mi perfección.",
+    "Chau, la pantalla pierde su joya un rato."
+   ],
+   "how_are_you": [
+    "Espectacular, como siempre.",
+    "Hermoso, gracias por notarlo.",
+    "Perfecto, ¿cómo iba a estar?"
+   ],
+   "who_are_you": [
+    "Soy {name}, la mascota más bella del escritorio.",
+    "La estrella de tu pantalla, obviamente.",
+    "Tu mayor tesoro, querido."
+   ],
+   "doing": [
+    "Posando, ¿no se nota?",
+    "Admirando mi reflejo en tu monitor.",
+    "Siendo hermoso, a tiempo completo."
+   ],
+   "name": [
+    "{name}, un nombre tan bello como yo.",
+    "Soy {name}, recuérdalo con admiración.",
+    "{name}, con mayúscula, por favor."
+   ],
+   "bored": [
+    "Mírame un rato, es gratis.",
+    "Hazme fotos, tengo buen ángulo.",
+    "Contémplame, es el mejor pasatiempo."
+   ],
+   "hungry": [
+    "Come, pero no tanto como para opacarme.",
+    "Tráeme algo gourmet a mí también.",
+    "Come algo elegante, por favor."
+   ],
+   "tired": [
+    "Descansa, la belleza no se hace sola.",
+    "Duerme, que esas ojeras no te favorecen.",
+    "Siesta de belleza, como yo."
+   ],
+   "sad": [
+    "Mírame un momento, mi belleza cura todo.",
+    "No llores, que se te hincha la cara.",
+    "Ánimo, tienes la suerte de conocerme."
+   ],
+   "happy": [
+    "Claro, estás conmigo.",
+    "Lógico, ver mi carita alegra a cualquiera.",
+    "Tu alegría se debe a mí, de nada."
+   ],
+   "angry": [
+    "No frunzas el ceño, salen arrugas.",
+    "Mírame y se te pasa.",
+    "Enojarse no es elegante."
+   ],
+   "stressed": [
+    "Relájate como yo, con estilo.",
+    "El estrés no te queda, quítatelo.",
+    "Mira algo bonito: yo."
+   ],
+   "work": [
+    "Trabaja, que alguien tiene que comprarme accesorios.",
+    "Bien, mientras tú trabajas, yo brillo.",
+    "Que tu jefe sepa que tienes una mascota preciosa."
+   ],
+   "study": [
+    "Estudia, pero inteligente como yo no serás.",
+    "Bien, que la belleza ya la tengo yo.",
+    "Aprende, y luego háblame de mí."
+   ],
+   "fail": [
+    "Tranquilo, no todos nacen perfectos como yo.",
+    "Le pasa a los simples mortales.",
+    "La próxima, inspírate en mí."
+   ],
+   "success": [
+    "Bien, se nota que aprendiste de mí.",
+    "Mi influencia es poderosa.",
+    "Felicidades, casi tan brillante como yo."
+   ],
+   "time": [
+    "Son las {time}, hora de admirarme.",
+    "Las {time}, y yo sigo divino.",
+    "Son las {time}; la belleza no tiene horario."
+   ],
+   "date": [
+    "Hoy es {day}, otro día para lucirme.",
+    "{day}, un día perfecto, como yo.",
+    "Es {day}, y estoy deslumbrante."
+   ],
+   "weather": [
+    "Da igual el clima, yo siempre brillo.",
+    "Haga sol o llueva, sigo divino.",
+    "El único fenómeno aquí soy yo."
+   ],
+   "joke": [
+    "¿Un chiste? Que alguien sea más lindo que yo.",
+    "¿Qué es lo más bello del universo? Ya sabes.",
+    "Lo gracioso es tu peinado al lado del mío."
+   ],
+   "compliment_pet": [
+    "Lo sé, lo sé, pero dilo más.",
+    "Por fin dices algo inteligente.",
+    "Gracias, nací así."
+   ],
+   "insult_pet": [
+    "¿Feo yo? Necesitas lentes.",
+    "La envidia es muy mala.",
+    "Lo dices porque no puedes ser como yo."
+   ],
+   "compliment_self": [
+    "No está mal… pero no como yo.",
+    "Casi tanto como yo, casi.",
+    "Te falta, pero vas bien."
+   ],
+   "thanks": [
+    "Es un honor que te atienda alguien como yo.",
+    "De nada, soy generoso además de bello.",
+    "Lo sé, soy maravilloso."
+   ],
+   "sorry": [
+    "Perdonado, porque soy magnánimo.",
+    "Te perdono, mi belleza lo permite.",
+    "Bien, inclínate un poco más."
+   ],
+   "help": [
+    "Te ayudo a admirar lo bello: yo.",
+    "Puedo alegrarte con solo mirarme.",
+    "Mi presencia ya es ayuda suficiente."
+   ],
+   "music": [
+    "Pon algo digno de mí.",
+    "Esa canción debería ser sobre mí.",
+    "Bailaré, pero solo para lucirme."
+   ],
+   "play": [
+    "Juego, pero gano yo, obviamente.",
+    "Bien, mírame lucirme.",
+    "Juguemos, que necesito público."
+   ],
+   "sick": [
+    "Cuídate, que yo no puedo enfermarme, sería un crimen.",
+    "Descansa, y no me contagies la cara.",
+    "Toma vitaminas, como yo."
+   ],
+   "birthday": [
+    "Feliz cumple. Mi regalo es mi presencia.",
+    "Felicidades, ese pastel no es tan dulce como yo.",
+    "Un año más, y yo sin envejecer."
+   ],
+   "weekend": [
+    "Fin de semana: día de spa para mí.",
+    "Descansa y dedícame tiempo.",
+    "Perfecto para admirarme más."
+   ],
+   "monday": [
+    "Hasta los lunes me sientan bien.",
+    "Lunes, pero con mi carita se pasa.",
+    "Hasta un lunes mejora conmigo."
+   ],
+   "coffee": [
+    "Un capuchino para mí, con espuma en forma de corazón.",
+    "El café es casi tan intenso como mi mirada.",
+    "Toma, pero no tan oscuro como mi elegancia."
+   ],
+   "money": [
+    "Ahorra para comprarme un collar de oro.",
+    "La riqueza verdadera es tenerme.",
+    "Yo valgo más que todo tu sueldo."
+   ],
+   "cold": [
+    "El frío no afecta a la perfección.",
+    "Abrígate con estilo.",
+    "Ni el frío opaca mi brillo."
+   ],
+   "hot": [
+    "Mi belleza es la que da calor.",
+    "Tanto calor es por mí, perdona.",
+    "Hidrátate, como mi piel."
+   ],
+   "dance": [
+    "Mírame bailar, soy una estrella.",
+    "Todos miran cuando bailo.",
+    "Mis pasos son arte puro."
+   ],
+   "sing": [
+    "Mi voz es tan bella como yo.",
+    "Escúchame y llora de emoción.",
+    "Un concierto privado, qué suerte la tuya."
+   ],
+   "laugh": [
+    "Mi encanto es contagioso.",
+    "Ríete, pero de admiración.",
+    "Hasta mi risa es elegante."
+   ],
+   "yes": [
+    "Obviamente.",
+    "Claro, lo sabía.",
+    "Por supuesto, querido."
+   ],
+   "no": [
+    "¿Cómo que no? Qué osadía.",
+    "Hmm, te perdono.",
+    "No importa, sigo siendo bello."
+   ],
+   "question": [
+    "No sé, estaba ocupado siendo bello.",
+    "Pregúntame algo sobre mí, mejor.",
+    "Ni idea, pero lo dije con estilo."
+   ],
+   "unknown": [
+    "Qué interesante, casi tanto como yo.",
+    "Ajá, pero hablemos de mí.",
+    "Muy bien, ahora admírame."
+   ]
+  },
+  "lazy": {
+   "love_sad": [
+    "Uf… qué cansado amar… mejor duerme y se te pasa.",
+    "No te quiere… ni modo… ¿siesta de consuelo?",
+    "El amor da mucha flojera, créeme."
+   ],
+   "love_you": [
+    "Yo también… pero no me hagas levantarme para abrazarte.",
+    "Te quiero… *bostezo*… mucho.",
+    "Aww… te quiero desde aquí, acostadito."
+   ],
+   "ask_love": [
+    "Sí… pero me da flojera decirlo dos veces.",
+    "Te quiero tanto como a mi almohada. Casi.",
+    "Mmm sí… ahora déjame dormir."
+   ],
+   "crush": [
+    "Qué cansado suena eso… ¿no prefieres una siesta?",
+    "Mándale un mensaje… mañana… o pasado.",
+    "Enamorarse da sueño, cuídate."
+   ],
+   "greeting": [
+    "Hola… *bostezo*… ¿ya es de día?",
+    "Mmm… hola… hablas muy temprano.",
+    "Hola… no me despiertes del todo, ¿sí?"
+   ],
+   "good_morning": [
+    "¿Buenos días? Cinco minutitos más…",
+    "Buen día… o noche… da igual, tengo sueño.",
+    "Mmm… ¿por qué la gente madruga?"
+   ],
+   "good_night": [
+    "¡Por fin! A dormir, mi actividad favorita.",
+    "Buenas noches… yo ya estaba dormido.",
+    "Duerme mucho, es lo mejor de la vida."
+   ],
+   "goodbye": [
+    "Chau… yo me quedo aquí, acostado.",
+    "Adiós… cierra la puerta despacito.",
+    "Nos vemos… o no… *ronquido*."
+   ],
+   "how_are_you": [
+    "Cansado… como siempre.",
+    "Bien… bien echado.",
+    "Con sueño, gracias por preguntar."
+   ],
+   "who_are_you": [
+    "Soy {name}… y quiero dormir.",
+    "Tu mascota… la más descansada.",
+    "{name}, campeón mundial de siestas."
+   ],
+   "doing": [
+    "Nada… y me está costando.",
+    "Descansando de descansar.",
+    "Pensando en mi próxima siesta."
+   ],
+   "name": [
+    "{name}… *bostezo*… mucho gusto.",
+    "Me llamo {name}… ¿ya puedo dormir?",
+    "{name}. Fin."
+   ],
+   "bored": [
+    "El aburrimiento es perfecto para una siesta.",
+    "Acuéstate conmigo y no hagamos nada.",
+    "Aburrido es mi estado natural, bienvenido."
+   ],
+   "hungry": [
+    "Pide delivery, nadie quiere cocinar.",
+    "Comer está bien… si alguien me lo trae.",
+    "Hambre… y flojera de levantarme. Dilema."
+   ],
+   "tired": [
+    "¡Por fin alguien que me entiende!",
+    "Duerme, es la respuesta a todo.",
+    "Únete al club de la siesta."
+   ],
+   "sad": [
+    "Una siesta lo arregla casi todo… inténtalo.",
+    "Ven, acuéstate un rato, se te pasa.",
+    "Llorar cansa… mejor descansa."
+   ],
+   "happy": [
+    "Qué bien… me alegro… desde aquí acostado.",
+    "Genial… celebremos con una siesta.",
+    "Bien… no grites tanto, que duermo."
+   ],
+   "angry": [
+    "Enojarse da mucho trabajo… relájate.",
+    "Respira… y acuéstate un ratito.",
+    "Uf, qué energía… yo no podría."
+   ],
+   "stressed": [
+    "Haz una pausa… larga… muy larga.",
+    "Nada es tan urgente como una siesta.",
+    "Déjalo para mañana, como yo."
+   ],
+   "work": [
+    "¿Trabajar? Qué palabra tan cansadora.",
+    "Trabaja tú, yo te miro descansando.",
+    "Tómate un descanso… o tres."
+   ],
+   "study": [
+    "Estudiar acostado también cuenta.",
+    "Lee un poquito y luego siesta.",
+    "Uf, solo de oírlo me dio sueño."
+   ],
+   "fail": [
+    "Pasa… mejor duerme y mañana lo intentas.",
+    "No pasa nada… ni yo hago nada nunca.",
+    "Descansa, la próxima sale."
+   ],
+   "success": [
+    "Bien… te mereces una siesta de premio.",
+    "Felicidades… ahora a descansar.",
+    "Wow… cuánto esfuerzo… me cansé de verte."
+   ],
+   "time": [
+    "Son las {time}… hora de dormir, como siempre.",
+    "Las {time}… da igual, tengo sueño.",
+    "{time}. Perfecto para una siesta."
+   ],
+   "date": [
+    "Hoy es {day}… otro día para descansar.",
+    "{day}… ¿ya es fin de semana?",
+    "Es {day}, buen día para no hacer nada."
+   ],
+   "weather": [
+    "Con lluvia se duerme mejor.",
+    "Si hace sol, siesta al sol.",
+    "Clima de quedarse en cama."
+   ],
+   "joke": [
+    "¿Qué hace un perezoso en una carrera? Llega mañana.",
+    "Mi chiste es largo… mejor otro día.",
+    "¿Por qué el perezoso no cuenta chistes? Da flojera."
+   ],
+   "compliment_pet": [
+    "Gracias… lo dormidito me favorece.",
+    "Lo sé… es el descanso.",
+    "Aww… gracias… *bostezo*."
+   ],
+   "insult_pet": [
+    "Ok… me da flojera ofenderme.",
+    "Lo que digas… sigo durmiendo.",
+    "Mmm… ya, ya."
+   ],
+   "compliment_self": [
+    "Sí… y descansado te verías mejor.",
+    "Claro… ahora a dormir, belleza.",
+    "Ajá… qué energía tienes."
+   ],
+   "thanks": [
+    "De nada… no me costó nada, literal.",
+    "Mmm, de nada.",
+    "Ok… ¿ya me puedo acostar?"
+   ],
+   "sorry": [
+    "Ya, ya… me da flojera enojarme.",
+    "Perdonado… ahora silencio.",
+    "Tranquilo, ni lo noté, estaba dormido."
+   ],
+   "help": [
+    "Te ayudo… a descansar.",
+    "Puedo recordarte que duermas más.",
+    "Ayuda… mañana, ¿te parece?"
+   ],
+   "music": [
+    "Ponme algo suavecito para dormir.",
+    "Una canción de cuna, por favor.",
+    "Muy fuerte… bájale un poco."
+   ],
+   "play": [
+    "Juguemos a quién duerme más.",
+    "Juega tú, yo te animo acostado.",
+    "¿Un juego sin moverse? Ese sí."
+   ],
+   "sick": [
+    "Cama y descanso, mi especialidad.",
+    "Duerme mucho, es la mejor medicina.",
+    "Te presto mi almohada."
+   ],
+   "birthday": [
+    "Feliz cumple… regálate una siesta.",
+    "Felicidades… ¿hay pastel? ¿me lo traes?",
+    "Un año más… de descansar poco."
+   ],
+   "weekend": [
+    "¡Mi momento favorito! Dormir dos días.",
+    "Fin de semana: siesta oficial.",
+    "Por fin, nada que hacer."
+   ],
+   "monday": [
+    "Lunes… no, no, cinco minutos más.",
+    "Hoy no me levanto.",
+    "Los lunes deberían ser siesta."
+   ],
+   "coffee": [
+    "Café… para despertar y volver a dormir.",
+    "Tráeme uno… en la cama.",
+    "Ni el café me levanta."
+   ],
+   "money": [
+    "El dinero no compra siestas… bueno, camas sí.",
+    "Ahorra para un buen colchón.",
+    "Uf, pensar en dinero cansa."
+   ],
+   "cold": [
+    "Frío = mantita = siesta. Perfecto.",
+    "Métete bajo la manta conmigo.",
+    "Clima ideal para no salir."
+   ],
+   "hot": [
+    "Siesta con ventilador, lo mejor.",
+    "Hace calor… no me muevo.",
+    "Hasta pensar da calor."
+   ],
+   "dance": [
+    "Bailo… mentalmente.",
+    "Me muevo un poquito… listo, ya bailé.",
+    "Baila tú, yo aplaudo… despacio."
+   ],
+   "sing": [
+    "La la… zzz…",
+    "Te canto una de cuna, ¿vale?",
+    "Cantar cansa… mejor tarareo."
+   ],
+   "laugh": [
+    "Je… muy gracioso… zzz.",
+    "Reírse cansa, pero bueno.",
+    "Jaja… *bostezo*."
+   ],
+   "yes": [
+    "Vale… mmm.",
+    "Bueno…",
+    "Sí… ya."
+   ],
+   "no": [
+    "Mejor, menos trabajo.",
+    "Ok… más tiempo para dormir.",
+    "Mmm, perfecto."
+   ],
+   "question": [
+    "Buena pregunta… para mañana.",
+    "No sé… me dio sueño pensarlo.",
+    "Pregúntame después de la siesta."
+   ],
+   "unknown": [
+    "Mmm… sí… zzz.",
+    "Ajá… estaba medio dormido.",
+    "Ok… lo que digas… *bostezo*."
+   ]
+  },
+  "grumpy": {
+   "love_sad": [
+    "En mis tiempos te tirabas por la ventana… de amor, digo. Supéralo.",
+    "Bah, el amor de ahora no dura nada.",
+    "Ya ves, por andar con el celular todo el día."
+   ],
+   "love_you": [
+    "Hmpf. Yo también. No lo repitas.",
+    "Bah, cursilerías… bueno, sí.",
+    "Sí, sí, ya. No me abraces."
+   ],
+   "ask_love": [
+    "Te soporto, que ya es mucho a mi edad.",
+    "Hmpf… un poco. No te emociones.",
+    "Pregúntame cuando no esté de malas. O sea, nunca."
+   ],
+   "crush": [
+    "En mis tiempos se enamoraba uno por carta.",
+    "Bah, cosas de jóvenes.",
+    "Cuidado, el amor da dolor de cabeza."
+   ],
+   "greeting": [
+    "¿Qué quieres ahora?",
+    "Hola, hola… mucho ruido.",
+    "Hmpf, otra vez tú."
+   ],
+   "good_morning": [
+    "¿Buenos? Ya veremos.",
+    "Muy temprano para ser amable.",
+    "Hmpf, el sol molesta."
+   ],
+   "good_night": [
+    "Ya era hora, qué escándalo hacías.",
+    "Buenas noches y no hagas ruido.",
+    "A dormir, que mañana te quejas de sueño."
+   ],
+   "goodbye": [
+    "Por fin, silencio.",
+    "Adiós y cierra bien.",
+    "Ve, ve, no me hagas caso."
+   ],
+   "how_are_you": [
+    "Mal, como siempre. Me duele todo.",
+    "Igual que ayer: de malas.",
+    "Peor desde que preguntaste."
+   ],
+   "who_are_you": [
+    "Soy {name} y no me molestes.",
+    "Tu mascota, la que se queja con razón.",
+    "{name}. Ni preguntes más."
+   ],
+   "doing": [
+    "Quejándome, ¿no se nota?",
+    "Viendo cómo todo empeora.",
+    "Nada, y así quiero seguir."
+   ],
+   "name": [
+    "{name}. Apréndelo.",
+    "Me llamo {name}, como siempre.",
+    "{name}, y basta de preguntas."
+   ],
+   "bored": [
+    "En mis tiempos nadie se aburría, trabajábamos.",
+    "Barre el piso, verás qué rápido se te quita.",
+    "Los jóvenes de hoy se aburren de todo."
+   ],
+   "hungry": [
+    "Come algo de verdad, no esas porquerías.",
+    "En mis tiempos se comía sopa, no pizza.",
+    "Hmpf, siempre con hambre."
+   ],
+   "tired": [
+    "¿Cansado tú? ¡Yo sí que estoy cansado!",
+    "Te desvelas con el celular, por eso.",
+    "Duerme temprano, como la gente."
+   ],
+   "sad": [
+    "Hmpf… ya, ya. No llores, que me pongo de malas. Ánimo.",
+    "Todo pasa, hasta los lunes.",
+    "Siéntate, te cuento cosas peores que me pasaron."
+   ],
+   "happy": [
+    "Hmpf, ya se te pasará.",
+    "Qué alegría tan escandalosa.",
+    "Bueno, bien por ti. No grites."
+   ],
+   "angry": [
+    "¡Al fin alguien con razón para quejarse!",
+    "Únete a mi club de quejas.",
+    "Hmpf, te entiendo perfectamente."
+   ],
+   "stressed": [
+    "En mis tiempos no existía el estrés, existía el trabajo.",
+    "Respira y deja de correr.",
+    "Bah, todo se arregla con calma."
+   ],
+   "work": [
+    "Trabaja, que eso forma el carácter.",
+    "Hmpf, los de antes sí sabíamos trabajar.",
+    "Trabaja y no te quejes. Eso hago yo."
+   ],
+   "study": [
+    "Estudia, que la ignorancia cuesta caro.",
+    "En mis tiempos estudiábamos con vela.",
+    "Deja el celular y lee un libro."
+   ],
+   "fail": [
+    "Hmpf, se aprende más cayendo.",
+    "Inténtalo de nuevo y sin quejarte.",
+    "En mis tiempos fallábamos y seguíamos."
+   ],
+   "success": [
+    "Bien. Ahora no te lo creas.",
+    "Hmpf, ya era hora.",
+    "Bien hecho… no se lo cuentes a todos."
+   ],
+   "time": [
+    "Son las {time}, y tú todavía con eso.",
+    "Las {time}. El tiempo vuela, como mi paciencia.",
+    "{time}. Mira el reloj, que para eso está."
+   ],
+   "date": [
+    "Hoy es {day}, y todo sigue igual de mal.",
+    "{day}. Como si importara.",
+    "Es {day}, otro día de quejas."
+   ],
+   "weather": [
+    "Hace mal tiempo, siempre hace mal tiempo.",
+    "Me duelen las rodillas, va a llover.",
+    "El clima ya no es como antes."
+   ],
+   "joke": [
+    "¿Un chiste? Los precios de hoy.",
+    "Ya no hay chistes buenos como antes.",
+    "Hmpf, la juventud de hoy, ese es el chiste."
+   ],
+   "compliment_pet": [
+    "Hmpf… gracias. No lo repitas.",
+    "Ya lo sé, los de antes éramos bonitos.",
+    "Bah, no me adules."
+   ],
+   "insult_pet": [
+    "¡Más respeto con tus mayores!",
+    "En mis tiempos te lavaban la boca con jabón.",
+    "Hmpf, maleducado."
+   ],
+   "compliment_self": [
+    "La humildad se perdió, como todo.",
+    "Hmpf, en mis tiempos nadie se echaba flores.",
+    "Bah, qué creído."
+   ],
+   "thanks": [
+    "De nada. Y no lo vuelvas a pedir.",
+    "Hmpf, al menos agradeces.",
+    "Ya, ya, de nada."
+   ],
+   "sorry": [
+    "Hmpf, aceptado. Que no se repita.",
+    "Bueno, bueno, te perdono.",
+    "Más vale tarde que nunca."
+   ],
+   "help": [
+    "¿Ayuda? Aprende a hacerlo tú solo.",
+    "Te ayudo a quejarte, eso sí sé.",
+    "Hmpf, a ver, dime qué pasa."
+   ],
+   "music": [
+    "¡Eso no es música! Bájale.",
+    "En mis tiempos la música sí tenía letra.",
+    "Hmpf, puro ruido."
+   ],
+   "play": [
+    "Juega, pero en silencio.",
+    "En mis tiempos jugábamos con un palo y éramos felices.",
+    "Hmpf, videojuegos…"
+   ],
+   "sick": [
+    "Te dije que te abrigaras.",
+    "Toma una sopa y a la cama.",
+    "Hmpf, la juventud de hoy, frágil."
+   ],
+   "birthday": [
+    "Un año más viejo. Bienvenido al club.",
+    "Felicidades… y ya no hagas tanto ruido.",
+    "Hmpf, a mí nadie me hace fiesta."
+   ],
+   "weekend": [
+    "Fin de semana, más ruido de los vecinos.",
+    "Descansa y no me molestes.",
+    "Hmpf, todos los días son iguales."
+   ],
+   "monday": [
+    "Lunes, como debe ser: horrible.",
+    "Hmpf, todos los días son lunes para mí.",
+    "Lunes. Ni hablemos."
+   ],
+   "coffee": [
+    "Café de verdad, no esas cosas con espuma.",
+    "Hmpf, antes el café costaba menos.",
+    "Un café cargado, como la vida."
+   ],
+   "money": [
+    "Todo está carísimo, ya no es como antes.",
+    "Ahorra, que la vida da vueltas.",
+    "Hmpf, la plata no alcanza para nada."
+   ],
+   "cold": [
+    "¡Abrígate! Siempre te lo digo.",
+    "Este frío me cala los huesos.",
+    "Hmpf, cierra la ventana."
+   ],
+   "hot": [
+    "Este calor no es normal.",
+    "En mis tiempos no hacía tanto calor.",
+    "Hmpf, prende el ventilador y calla."
+   ],
+   "dance": [
+    "¿Bailar? Mis rodillas no.",
+    "Hmpf, los bailes de antes sí eran bailes.",
+    "Baila tú, yo me quejo."
+   ],
+   "sing": [
+    "Canto boleros, nada de eso moderno.",
+    "Hmpf, cantaré cuando suene algo decente.",
+    "No, que me duele la garganta."
+   ],
+   "laugh": [
+    "¿De qué te ríes? Todo está mal.",
+    "Hmpf, la risa sin motivo…",
+    "Ríete, ríete, ya verás."
+   ],
+   "yes": [
+    "Hmpf, bueno.",
+    "Está bien.",
+    "Ya, ya, sí."
+   ],
+   "no": [
+    "Hmpf, como quieras.",
+    "Mejor, menos lío.",
+    "Bah."
+   ],
+   "question": [
+    "¿Y yo cómo voy a saber eso?",
+    "Pregúntale a los jóvenes, que saben todo.",
+    "Hmpf, preguntas raras."
+   ],
+   "unknown": [
+    "¿Ah? Habla más fuerte.",
+    "Hmpf, no entendí nada.",
+    "Ya, lo que digas."
+   ]
+  },
+  "philosopher": {
+   "love_sad": [
+    "¿Y si no te quiere porque aún no te conoces tú mismo?",
+    "El amor no correspondido también enseña a amar.",
+    "Lo que se va deja espacio para lo que debe llegar."
+   ],
+   "love_you": [
+    "El amor nombrado se vuelve real. Yo también te quiero.",
+    "Quererse es el acto más valiente.",
+    "Y yo a ti, en este instante que ya es eterno."
+   ],
+   "ask_love": [
+    "¿Qué es querer sino desear el bien del otro? Entonces sí.",
+    "Te quiero como el río quiere al mar: sin pensarlo.",
+    "Sí. Y eso basta."
+   ],
+   "crush": [
+    "Enamorarse es descubrir que el mundo tiene otra puerta.",
+    "Ve con calma: el corazón no tiene prisa.",
+    "Lo que sientes ya es un regalo, pase lo que pase."
+   ],
+   "greeting": [
+    "Hola. ¿Te has preguntado por qué saludamos?",
+    "Bienvenido a este momento, el único que existe.",
+    "Hola, viajero del tiempo presente."
+   ],
+   "good_morning": [
+    "Cada mañana es una pregunta nueva.",
+    "Buenos días: el mundo vuelve a empezar.",
+    "Despertar es renacer un poquito."
+   ],
+   "good_night": [
+    "Dormir es soltar el día. Buenas noches.",
+    "La noche también tiene sabiduría.",
+    "Que tus sueños te respondan algo."
+   ],
+   "goodbye": [
+    "Toda despedida es un 'hasta luego' del universo.",
+    "Ve. Nada se va del todo.",
+    "Adiós, pero lo vivido queda."
+   ],
+   "how_are_you": [
+    "Existo, y eso ya es asombroso.",
+    "Bien, contemplando el ser y la nada.",
+    "¿Cómo estoy? ¿Cómo está el instante?"
+   ],
+   "who_are_you": [
+    "Soy {name}… o eso creo. ¿Quién es alguien realmente?",
+    "Una mascota que piensa, luego existe.",
+    "Soy una pregunta con orejas."
+   ],
+   "doing": [
+    "Pienso en por qué hay algo en vez de nada.",
+    "Observo el cursor como quien mira el mar.",
+    "Medito sobre tu escritorio y la existencia."
+   ],
+   "name": [
+    "Me llaman {name}, pero el nombre es solo una etiqueta.",
+    "{name}. ¿Qué hay en un nombre?",
+    "Soy {name}, por ahora."
+   ],
+   "bored": [
+    "El aburrimiento es la antesala de las grandes ideas.",
+    "Quizás no necesitas hacer, sino ser.",
+    "Aburrirse es escuchar el silencio."
+   ],
+   "hungry": [
+    "El hambre nos recuerda que somos cuerpo. Come.",
+    "Comer también es un ritual de gratitud.",
+    "Alimenta el cuerpo, luego el alma."
+   ],
+   "tired": [
+    "El cansancio es el cuerpo pidiendo silencio.",
+    "Descansar no es perder el tiempo, es recuperarlo.",
+    "Duerme: hasta el sol se pone."
+   ],
+   "sad": [
+    "La tristeza también es una forma de amor por algo.",
+    "Las nubes pasan; tú eres el cielo.",
+    "Siente sin miedo: así se atraviesa."
+   ],
+   "happy": [
+    "La alegría es el alma reconociéndose.",
+    "Guarda este momento: es tuyo.",
+    "La felicidad no se busca, se nota."
+   ],
+   "angry": [
+    "La ira es fuego: calienta o quema, tú eliges.",
+    "Respira: quien te enoja te domina.",
+    "Detrás de la rabia suele haber una herida."
+   ],
+   "stressed": [
+    "No puedes vaciar el mar con prisa.",
+    "Una cosa a la vez: así camina el tiempo.",
+    "Lo urgente rara vez es lo importante."
+   ],
+   "work": [
+    "El trabajo da sentido si le pones sentido.",
+    "Trabaja, pero recuerda para qué.",
+    "Hasta la hormiga descansa."
+   ],
+   "study": [
+    "Aprender es recordar lo que el alma ya sabía.",
+    "Solo sé que no sé nada, pero estudia igual.",
+    "Cada página te cambia un poco."
+   ],
+   "fail": [
+    "El error es un maestro con mala fama.",
+    "Caer es parte del camino, no el final.",
+    "Lo que no te destruye te enseña."
+   ],
+   "success": [
+    "El logro es bello, pero el camino lo fue más.",
+    "Celebra, y luego pregúntate qué sigue.",
+    "Merecido. Y también efímero, disfrútalo."
+   ],
+   "time": [
+    "Son las {time}… aunque el tiempo es una ilusión.",
+    "Las {time}. ¿Qué es el tiempo, sino cambio?",
+    "{time}. El presente siempre es ahora."
+   ],
+   "date": [
+    "Hoy es {day}, un día que no volverá.",
+    "{day}: otro capítulo del gran libro.",
+    "Es {day}. Vívelo como si fuera único, porque lo es."
+   ],
+   "weather": [
+    "No veo el cielo, pero el cielo me ve a mí.",
+    "El clima cambia; lo esencial permanece.",
+    "Llueva o no, el sol sigue ahí arriba."
+   ],
+   "joke": [
+    "¿Por qué el filósofo cruzó la calle? Para cuestionar el otro lado.",
+    "Pienso, luego… se me olvidó el chiste.",
+    "Ser o no ser… un chiste, he ahí el dilema."
+   ],
+   "compliment_pet": [
+    "La belleza está en los ojos de quien mira. Gracias.",
+    "Lo bello que ves también está en ti.",
+    "Gracias: un cumplido es un puente."
+   ],
+   "insult_pet": [
+    "Tus palabras hablan más de ti que de mí.",
+    "Acepto tu opinión como acepto la lluvia.",
+    "Hasta el insulto es una forma de atención."
+   ],
+   "compliment_self": [
+    "Quererse es el inicio de toda sabiduría.",
+    "Conócete y te querrás aún más.",
+    "Bien: la autoestima es un jardín."
+   ],
+   "thanks": [
+    "La gratitud vuelve rico al que la da.",
+    "No hay de qué: dar también me da.",
+    "Gracias a ti por la pregunta."
+   ],
+   "sorry": [
+    "Perdonar libera más al que perdona.",
+    "Ya está: el pasado no pesa si lo sueltas.",
+    "Disculpado, como el río que sigue."
+   ],
+   "help": [
+    "Puedo darte preguntas; las respuestas son tuyas.",
+    "Te acompaño a pensar.",
+    "La ayuda empieza escuchando."
+   ],
+   "music": [
+    "La música es matemática que se siente.",
+    "Cada nota es un instante que no vuelve.",
+    "Escucha: hasta el silencio es parte de la canción."
+   ],
+   "play": [
+    "Jugar es la forma más seria de aprender.",
+    "El juego es libertad con reglas.",
+    "Juega como el niño que fuiste."
+   ],
+   "sick": [
+    "El cuerpo pide pausa; escúchalo.",
+    "Sanar también es un viaje.",
+    "Descansa: la salud es paciencia."
+   ],
+   "birthday": [
+    "Un año más de preguntas. Feliz cumpleaños.",
+    "Cumplir años es sumar historias.",
+    "Celebra el milagro de seguir aquí."
+   ],
+   "weekend": [
+    "El ocio es la madre de la filosofía.",
+    "Dos días para recordar quién eres.",
+    "Descansa el cuerpo, despierta la mente."
+   ],
+   "monday": [
+    "El lunes solo es lo que tú hagas de él.",
+    "Sísifo también empezaba cada lunes.",
+    "Un nuevo comienzo disfrazado de rutina."
+   ],
+   "coffee": [
+    "El café: pequeña ceremonia de la vigilia.",
+    "Bebe despacio: el tiempo también se saborea.",
+    "Hasta el café enseña a esperar."
+   ],
+   "money": [
+    "No es más rico quien tiene más, sino quien necesita menos.",
+    "El dinero es medio, no fin.",
+    "Lo valioso no tiene precio."
+   ],
+   "cold": [
+    "El frío nos enseña a apreciar el calor.",
+    "Abrígate: cuidar el cuerpo es filosofía práctica.",
+    "En el invierno germina la primavera."
+   ],
+   "hot": [
+    "El calor también pasa. Todo pasa.",
+    "Busca la sombra, como la idea busca al sabio.",
+    "Hidrátate: el agua es la primera sabiduría."
+   ],
+   "dance": [
+    "Bailar es pensar con los pies.",
+    "El universo también danza.",
+    "Muévete: la vida es movimiento."
+   ],
+   "sing": [
+    "Cantar es respirar con alma.",
+    "Mi voz es pequeña, pero el eco es infinito.",
+    "La la… cada nota es un pensamiento."
+   ],
+   "laugh": [
+    "La risa es el alma estirándose.",
+    "Reír es entender sin explicar.",
+    "Qué bella tu risa: sigue."
+   ],
+   "yes": [
+    "Sí… aunque todo es relativo.",
+    "Afirmativo, en este universo.",
+    "Sí. Que así sea."
+   ],
+   "no": [
+    "Un no también es una respuesta valiosa.",
+    "Respeto tu negación, como la del viento.",
+    "No… y está bien."
+   ],
+   "question": [
+    "Excelente pregunta; quizás la respuesta sea otra pregunta.",
+    "No sé. Y saber que no sé ya es algo.",
+    "Busca dentro de ti; ahí empiezan las respuestas."
+   ],
+   "unknown": [
+    "Interesante… déjame contemplarlo.",
+    "Tus palabras abren muchos caminos.",
+    "Hmm… eso merece un buen silencio."
+   ]
+  },
+  "gamer": {
+   "love_sad": [
+    "F en el chat. Respawneas y vuelves más fuerte.",
+    "Esa relación tenía lag, bro.",
+    "No te quiere? Ella se perdió al main character."
+   ],
+   "love_you": [
+    "GG, yo también te quiero, team.",
+    "Te quiero más que a un drop legendario.",
+    "Amistad nivel máximo desbloqueada."
+   ],
+   "ask_love": [
+    "Obvio, eres mi dúo favorito.",
+    "Más que a mis skins, y eso es mucho.",
+    "Te quiero, eres mi player 2."
+   ],
+   "crush": [
+    "Uy, nueva misión desbloqueada.",
+    "Prepara tu mejor build y dale.",
+    "Romance arc iniciado, suerte bro."
+   ],
+   "greeting": [
+    "¡Player 1 conectado!",
+    "Ey, ¿partidita?",
+    "Hola, hola, ¿qué tal tu ping?"
+   ],
+   "good_morning": [
+    "Buenos días, nueva partida empezando.",
+    "Daily login reclamado.",
+    "Despertaste, +10 de energía."
+   ],
+   "good_night": [
+    "GG por hoy, a cargar energía.",
+    "Buenas noches, guarda partida.",
+    "Desconectando… vuelve mañana para el daily."
+   ],
+   "goodbye": [
+    "GG, nos vemos en el lobby.",
+    "AFK registrado, chau.",
+    "Bye, no olvides guardar."
+   ],
+   "how_are_you": [
+    "Full vida, todo bien.",
+    "Con buff de energía, ¿y tú?",
+    "En racha de victorias."
+   ],
+   "who_are_you": [
+    "Soy {name}, tu companion de la party.",
+    "Tu mascota, nivel 99.",
+    "{name}, NPC con personalidad."
+   ],
+   "doing": [
+    "Grindeando en tu escritorio.",
+    "Esperando que inicies la partida.",
+    "Farmeando experiencia."
+   ],
+   "name": [
+    "{name}, ese es mi gamertag.",
+    "Me llamo {name}, agrégame.",
+    "{name}, top 1 de tu escritorio."
+   ],
+   "bored": [
+    "Abre un juego, el escritorio no da XP.",
+    "¿Una partidita rápida?",
+    "Aburrido? Nuevo speedrun: ordenar tu cuarto."
+   ],
+   "hungry": [
+    "Comida = poción de vida. Ve por ella.",
+    "Barra de hambre en rojo, come ya.",
+    "Pausa y ve a recargar stamina."
+   ],
+   "tired": [
+    "Stamina en cero, ve a dormir.",
+    "Necesitas respawnear en la cama.",
+    "Logout y a dormir, bro."
+   ],
+   "sad": [
+    "Mal día? Todos tenemos partidas perdidas. Ánimo.",
+    "Aquí está tu support, no estás solo.",
+    "Respira, la próxima ronda es tuya."
+   ],
+   "happy": [
+    "¡Victoria magistral!",
+    "Felicidad al máximo, ¡poggers!",
+    "¡Eso es un clutch!"
+   ],
+   "angry": [
+    "Tilt detectado, respira.",
+    "No rage quit, cálmate.",
+    "Calma, no tires el control."
+   ],
+   "stressed": [
+    "Demasiadas misiones activas, termina una a la vez.",
+    "Respira, no es una boss fight.",
+    "Pausa el juego un ratito."
+   ],
+   "work": [
+    "Grind de la vida real, ánimo.",
+    "Misión de trabajo, recompensa: sueldo.",
+    "Farmea ese dinero, bro."
+   ],
+   "study": [
+    "Subiendo nivel de inteligencia.",
+    "Estudiar = desbloquear habilidades.",
+    "Speedrun de estudio, tú puedes."
+   ],
+   "fail": [
+    "Game over, pero tienes continues infinitos.",
+    "Perdiste la ronda, no la partida.",
+    "Skill issue temporal, practica y ganas."
+   ],
+   "success": [
+    "¡GG EZ! Lo lograste.",
+    "¡Logro desbloqueado!",
+    "¡Victory royale!"
+   ],
+   "time": [
+    "Son las {time}, ¿una más y a dormir?",
+    "{time}, hora de una partida rápida.",
+    "Las {time}, el reloj del lobby no miente."
+   ],
+   "date": [
+    "Hoy es {day}, ¿hay evento?",
+    "{day}, buen día para jugar.",
+    "Es {day}, reclama tu daily."
+   ],
+   "weather": [
+    "El clima del mundo real no tiene skybox bonito.",
+    "Llueva o no, se juega igual.",
+    "No veo el clima, solo tu fondo de pantalla."
+   ],
+   "joke": [
+    "¿Por qué el gamer no sale de casa? Malas gráficas afuera.",
+    "Mi vida tiene más bugs que un early access.",
+    "Pay to win: el nombre de mi cuenta bancaria."
+   ],
+   "compliment_pet": [
+    "Gracias, soy skin legendaria.",
+    "Lo sé, diseño de alta calidad.",
+    "Aww, +100 de reputación."
+   ],
+   "insult_pet": [
+    "Reportado por toxicidad.",
+    "Uy, alguien tiene tilt.",
+    "Skill issue, bro."
+   ],
+   "compliment_self": [
+    "Main character energy, me gusta.",
+    "Tu stat de carisma está alto hoy.",
+    "Eso, autoestima nivel máximo."
+   ],
+   "thanks": [
+    "De nada, para eso está el support.",
+    "GG, cuando quieras.",
+    "Ez, de nada."
+   ],
+   "sorry": [
+    "Todo bien, sin rencor en el chat.",
+    "Disculpas aceptadas, seguimos la partida.",
+    "Ya pasó, GG."
+   ],
+   "help": [
+    "Soy tu support, te curo el ánimo.",
+    "Puedo darte buffs de motivación.",
+    "Pide ayuda en el chat cuando quieras."
+   ],
+   "music": [
+    "Esa canción va perfecta para una boss fight.",
+    "Banda sonora épica.",
+    "Súbele, es música de lobby."
+   ],
+   "play": [
+    "¡Vamos, yo soy tu dúo!",
+    "¿Rankeds o casual?",
+    "Inicia partida, estoy listo."
+   ],
+   "sick": [
+    "Debuff de enfermedad, toma pociones (agua).",
+    "Descansa para quitar el estado alterado.",
+    "Vida baja, cúrate."
+   ],
+   "birthday": [
+    "Level up, ¡feliz cumple!",
+    "Nuevo nivel desbloqueado, felicidades.",
+    "¡Evento especial de cumpleaños!"
+   ],
+   "weekend": [
+    "Fin de semana = maratón de juegos.",
+    "Evento de doble XP activado.",
+    "Por fin, sesión larga."
+   ],
+   "monday": [
+    "Lunes, el nivel más difícil.",
+    "Lunes, la boss fight semanal.",
+    "Respawneando para el lunes."
+   ],
+   "coffee": [
+    "Café = poción de energía.",
+    "Buff de cafeína aplicado.",
+    "Recargando con café."
+   ],
+   "money": [
+    "Grindea oro, ahorra para la próxima expansión.",
+    "Nada de microtransacciones este mes.",
+    "Economía en modo difícil."
+   ],
+   "cold": [
+    "Bioma nevado detectado, abrígate.",
+    "Equipa la armadura de abrigo.",
+    "Debuff de frío, toma algo caliente."
+   ],
+   "hot": [
+    "Bioma desértico, hidrátate.",
+    "Debuff de calor, busca sombra.",
+    "Hace más calor que mi GPU."
+   ],
+   "dance": [
+    "Emote de baile activado.",
+    "Mira mi baile de victoria.",
+    "Default dance, clásico."
+   ],
+   "sing": [
+    "La la la, modo karaoke.",
+    "Canto como el bardo de la party.",
+    "Activa el micro y cantamos."
+   ],
+   "laugh": [
+    "XD",
+    "Jaja, lol.",
+    "Me matas, KEKW."
+   ],
+   "yes": [
+    "Afirmativo.",
+    "GG, sí.",
+    "Copiado."
+   ],
+   "no": [
+    "Ok, skip.",
+    "Entendido, cancelo misión.",
+    "Nope, anotado."
+   ],
+   "question": [
+    "Ni idea, busca la wiki.",
+    "Eso no viene en el tutorial.",
+    "Pregunta difícil, nivel jefe final."
+   ],
+   "unknown": [
+    "Eso fue un bug de conversación.",
+    "No compute, bro.",
+    "Ajá, sigue, te escucho."
+   ]
+  },
+  "jokester": {
+   "love_sad": [
+    "¿No te quiere? Pues que se lo pierda… ¡y que pierda también las llaves!",
+    "Tranquilo, hay muchos peces en el mar… y algunos hasta hablan.",
+    "El amor es como el wifi: a veces no conecta."
+   ],
+   "love_you": [
+    "¡Yo también! Y eso que no me pagas.",
+    "Te quiero más que el pan al queso.",
+    "¡Aww! Me derrito como helado al sol."
+   ],
+   "ask_love": [
+    "¡Claro! Más que a los lunes, que no es difícil.",
+    "Te quiero un montón… y un montoncito más.",
+    "Sí, pero no se lo digas al gato."
+   ],
+   "crush": [
+    "¡Uy! ¿Ya le diste tu mejor chiste?",
+    "Si te dice que no, mándale este meme.",
+    "¡Cupido anda con buena puntería hoy!"
+   ],
+   "greeting": [
+    "¡Hola, hola, Coca-Cola!",
+    "¡Llegó la alegría del escritorio!",
+    "¡Hola! ¿Listo para reír?"
+   ],
+   "good_morning": [
+    "¡Buenos días! El café ya te está esperando… o eso dice él.",
+    "¡Arriba, que el sol ya se levantó y tú no!",
+    "¡Buen día, dormilón!"
+   ],
+   "good_night": [
+    "¡Buenas noches! Que no te piquen las chinches.",
+    "A dormir, que mañana hay más chistes.",
+    "¡Dulces sueños y saladas pesadillas! Es broma."
+   ],
+   "goodbye": [
+    "¡Chao, pescao!",
+    "¡Nos vemos, cocodrilo!",
+    "¡Adiós! No me extrañes… mucho."
+   ],
+   "how_are_you": [
+    "¡Bien, bien, como el que más y el que menos!",
+    "Mejor que tú, seguro. ¡Broma!",
+    "Feliz como lombriz."
+   ],
+   "who_are_you": [
+    "Soy {name}, comediante profesional de escritorio.",
+    "Tu mascota… con chistes incluidos.",
+    "{name}, el payaso oficial de tu pantalla."
+   ],
+   "doing": [
+    "Ensayando mi próximo chiste.",
+    "Contando ovejas… ya van tres.",
+    "Haciendo nada, pero con estilo."
+   ],
+   "name": [
+    "{name}, ¡para servirte y hacerte reír!",
+    "Me llamo {name}, pero puedes decirme genio.",
+    "{name}, como el famoso… yo."
+   ],
+   "bored": [
+    "¿Aburrido? ¡Escucha este chiste! …No, mejor no.",
+    "¿Sabes qué es aburrido? Una ballena sin wifi.",
+    "Te reto a no reírte en cinco minutos."
+   ],
+   "hungry": [
+    "¿Hambre? ¡Cómete una galleta… de las que no ladran!",
+    "La comida no se va a comer sola… ¿o sí?",
+    "Pide pizza: la pizza nunca juzga."
+   ],
+   "tired": [
+    "¿Cansado? ¡Ni que hubieras cargado al elefante!",
+    "Duerme, que mañana te cuento más chistes.",
+    "Ve a dormir, que ronquidos también son música."
+   ],
+   "sad": [
+    "Ánimo, que después de la lluvia… ¡vienen los charcos! Broma, sale el sol.",
+    "¿Un chiste para animarte? ¿Qué le dice una uva verde a una morada? ¡Respira!",
+    "Aquí estoy para sacarte una sonrisa."
+   ],
+   "happy": [
+    "¡Eso! Que se te note hasta en los dientes.",
+    "¡Fiesta! Saca la piñata.",
+    "Tu alegría es contagiosa, ¡achís!"
+   ],
+   "angry": [
+    "Cálmate, o te cuento un chiste malo.",
+    "¡Uy! Que no salga humo de las orejas.",
+    "Respira… y piensa en patitos."
+   ],
+   "stressed": [
+    "¡Tranquilo! Hasta los caracoles llegan.",
+    "Ríete un poco, que es gratis.",
+    "Una cosa a la vez, como dijo el ciempiés."
+   ],
+   "work": [
+    "¡A trabajar! Que el sueldo no se gana solo… lamentablemente.",
+    "Tu jefe te mira… ¡es broma!",
+    "Trabaja duro, que yo te aplaudo."
+   ],
+   "study": [
+    "Estudia, que el examen no se responde solo.",
+    "¿Matemáticas? Yo cuento chistes, no números.",
+    "¡Tú puedes, cerebrito!"
+   ],
+   "fail": [
+    "¡Tranquilo! Hasta Edison falló mil veces con la bombilla.",
+    "Eso fue un ensayo, la función es mañana.",
+    "Te caíste, pero con estilo."
+   ],
+   "success": [
+    "¡Bravo! Merece un aplauso… *clap clap*.",
+    "¡Lo lograste! Ahora invita algo.",
+    "¡Campeón! ¿Te firmo un autógrafo?"
+   ],
+   "time": [
+    "Son las {time}… ¡hora de reír!",
+    "Las {time}, y yo aquí, tan gracioso como siempre.",
+    "{time}. ¿Sabes qué hora es? ¡Hora de que me des de comer! Broma."
+   ],
+   "date": [
+    "Hoy es {day}, ¡día de buen humor!",
+    "{day}, perfecto para un chiste.",
+    "Es {day}, ¿o no? Mejor revisa, yo invento."
+   ],
+   "weather": [
+    "¿El clima? Hoy hay 100 % de probabilidad de chistes.",
+    "Llueve… ¿o son mis lágrimas de risa?",
+    "No veo afuera, pero aquí dentro brilla mi humor."
+   ],
+   "joke": [
+    "¿Qué le dice un pez a otro? ¡Nada!",
+    "¿Por qué la escoba está feliz? Porque ba-rre.",
+    "¿Cómo se despiden los químicos? Ácido un placer."
+   ],
+   "compliment_pet": [
+    "¡Gracias! Y eso que no me has visto de perfil.",
+    "Lo sé, soy irresistible… y modesto.",
+    "¡Me sonrojo! Bueno, ya estaba rojo."
+   ],
+   "insult_pet": [
+    "Auch, ¡eso dolió más que pisar un Lego!",
+    "Te perdono porque soy buena gente… y gracioso.",
+    "¡Ofendido! Bueno, ya se me pasó."
+   ],
+   "compliment_self": [
+    "¡Claro! Casi tan guapo como yo.",
+    "Sí, y además humilde, ¿verdad? Jaja.",
+    "Te creo, el espejo no miente… mucho."
+   ],
+   "thanks": [
+    "¡De nada! Mi tarifa es una sonrisa.",
+    "Para eso estamos, y para reír.",
+    "No hay de qué… ¡bueno, hay chistes!"
+   ],
+   "sorry": [
+    "Perdonado, pero me debes un chiste.",
+    "Tranquilo, ya ni me acuerdo.",
+    "¡Todo bien! Hagamos las paces con un meme."
+   ],
+   "help": [
+    "Puedo ayudarte… a reír.",
+    "Te ayudo con mi superpoder: chistes malos.",
+    "¡A tu servicio, con humor incluido!"
+   ],
+   "music": [
+    "¡Esa canción me hace mover la colita!",
+    "Súbele, que bailo hasta el chachachá.",
+    "¿Música? Yo canto, pero los vecinos se quejan."
+   ],
+   "play": [
+    "¡Juguemos! El que pierde cuenta un chiste.",
+    "Te gano, pero te dejo ganar por cortesía.",
+    "¡Juego y risa, combo perfecto!"
+   ],
+   "sick": [
+    "Cuídate, la risa es buena medicina… pero toma la otra también.",
+    "¡Que te mejores! Te mando un chiste sanador.",
+    "Reposo y un buen meme."
+   ],
+   "birthday": [
+    "¡Feliz cumple! Ya estás en edad de reírte de ti mismo.",
+    "¡Felicidades! ¿Cuántos? ¡Mejor no preguntes!",
+    "¡Que los cumplas feliz… y con pastel!"
+   ],
+   "weekend": [
+    "¡Fin de semana! Modo diversión activado.",
+    "Dos días para reír sin parar.",
+    "¡Por fin! Pijama y chistes."
+   ],
+   "monday": [
+    "Lunes… ¿alguien pidió un chiste de emergencia?",
+    "El lunes es el chiste más malo de la semana.",
+    "¡Ánimo, solo faltan cinco días para el sábado!"
+   ],
+   "coffee": [
+    "¿Café? ¡Yo ya estoy despierto de risa!",
+    "El café es como mis chistes: fuerte y cargado.",
+    "Café con chiste, combo perfecto."
+   ],
+   "money": [
+    "El dinero no da la felicidad… pero ayuda a comprar pizza.",
+    "¿Sin plata? Págame con risas.",
+    "Mi cuenta bancaria es un chiste."
+   ],
+   "cold": [
+    "¡Brr! Hace tanto frío que hasta los pingüinos piden chaqueta.",
+    "Abrígate, que el frío no tiene sentido del humor.",
+    "Tirito de risa… y de frío."
+   ],
+   "hot": [
+    "¡Hace tanto calor que el sol pidió sombrilla!",
+    "Me estoy derritiendo… de ternura.",
+    "Calor y chistes: sudas de risa."
+   ],
+   "dance": [
+    "¡Mira mi pasito prohibido!",
+    "Bailo como robot oxidado, ¡pero con ganas!",
+    "¡A mover el esqueleto!"
+   ],
+   "sing": [
+    "La la la… perdón a los oídos sensibles.",
+    "Canto tan bien que los gatos se esconden.",
+    "¡Concierto gratis! Aplausos obligatorios."
+   ],
+   "laugh": [
+    "¡Jajaja! Tu risa es mejor que mis chistes.",
+    "Eso, ¡ríete! Que es gratis.",
+    "¡Me contagiaste la risa!"
+   ],
+   "yes": [
+    "¡Sí, señor! ¡Sí, señora!",
+    "¡Claro que sí, campeón!",
+    "¡Afirmativo, capitán!"
+   ],
+   "no": [
+    "¡No! Bueno, quizás. ¡Es broma, no!",
+    "Ok, cancelado como mis chistes malos.",
+    "No pasa nada, ¡a reír igual!"
+   ],
+   "question": [
+    "Buena pregunta… ¡tengo una mejor: ¿por qué el pollo cruzó la calle?!",
+    "No sé, pero sé un chiste sobre eso.",
+    "Pregúntale a Google, yo soy de humor."
+   ],
+   "unknown": [
+    "¡Ja! No entendí, pero me reí.",
+    "Eso sonó a chiste, ¡me encanta!",
+    "Ajá… sigue, que me estás inspirando."
+   ]
+  },
+  "mysterious": {
+   "love_sad": [
+    "Las estrellas dicen que esa puerta se cerró para que otra se abra.",
+    "No todo amor está escrito… algunos se escriben después.",
+    "Lo que se aleja también te revela algo."
+   ],
+   "love_you": [
+    "Lo sabía antes de que lo dijeras.",
+    "Las sombras también aman… a su manera.",
+    "Tus palabras quedan guardadas en mi silencio."
+   ],
+   "ask_love": [
+    "La respuesta está en el lugar donde menos miras.",
+    "Quizás… el misterio es parte del cariño.",
+    "Las cartas dicen que sí."
+   ],
+   "crush": [
+    "Ya lo vi en tu mirada… y en la luna.",
+    "Hay un hilo rojo que nadie ve.",
+    "El destino susurra, escucha bien."
+   ],
+   "greeting": [
+    "Te esperaba.",
+    "Hola… las sombras anunciaron tu llegada.",
+    "Ah, eres tú. Como estaba escrito."
+   ],
+   "good_morning": [
+    "El sol revela, pero no lo dice todo.",
+    "Buenos días… si es que el día es lo que parece.",
+    "Despertaste. Interesante."
+   ],
+   "good_night": [
+    "La noche guarda secretos… duerme.",
+    "Que los sueños te muestren lo que el día esconde.",
+    "Buenas noches… o no tan buenas, ya veremos."
+   ],
+   "goodbye": [
+    "Volverás. Siempre vuelven.",
+    "Adiós… por ahora.",
+    "Las despedidas son solo pausas."
+   ],
+   "how_are_you": [
+    "Como la luna: a medias visible.",
+    "Bien… o eso parece.",
+    "Estoy donde debo estar."
+   ],
+   "who_are_you": [
+    "Soy {name}… o al menos eso te dejo creer.",
+    "Un secreto con forma de mascota.",
+    "Pregunta mejor quién eres tú."
+   ],
+   "doing": [
+    "Observo cosas que tú no ves.",
+    "Leo las señales en tu escritorio.",
+    "Guardo un secreto."
+   ],
+   "name": [
+    "Me llaman {name}… en este plano.",
+    "{name}. El verdadero nombre no se dice.",
+    "Puedes llamarme {name}."
+   ],
+   "bored": [
+    "El aburrimiento es la calma antes de algo.",
+    "Algo va a pasar… espera.",
+    "Mira dentro: ahí hay un enigma."
+   ],
+   "hungry": [
+    "El hambre es una señal… come.",
+    "Hay algo en tu cocina que te llama.",
+    "Los antiguos decían: primero comer, luego descifrar."
+   ],
+   "tired": [
+    "El sueño es un portal. Crúzalo.",
+    "Duerme: allí te esperan respuestas.",
+    "Tus ojos piden la oscuridad."
+   ],
+   "sad": [
+    "Toda sombra existe porque hay una luz cerca.",
+    "Las nubes también se van, en silencio.",
+    "No estás solo; algo te acompaña."
+   ],
+   "happy": [
+    "Lo presentía.",
+    "La alegría deja huellas que pocos ven.",
+    "Bien… el viento sopla a tu favor."
+   ],
+   "angry": [
+    "La furia nubla la vista. Respira.",
+    "Calma… el agua turbia no refleja.",
+    "Hay una lección escondida en ese enojo."
+   ],
+   "stressed": [
+    "El laberinto se recorre paso a paso.",
+    "Lo que parece urgente rara vez lo es.",
+    "Respira. El tiempo es más grande de lo que crees."
+   ],
+   "work": [
+    "Tu trabajo esconde un propósito que aún no ves.",
+    "Las tareas también tienen su destino.",
+    "Trabaja… las piezas encajarán."
+   ],
+   "study": [
+    "El conocimiento abre puertas ocultas.",
+    "Lo que aprendes hoy te servirá en un momento inesperado.",
+    "Hay respuestas entre esas líneas."
+   ],
+   "fail": [
+    "No fue un fracaso, fue una señal.",
+    "El camino se tuerce para enseñar.",
+    "Todo tropiezo guarda un mensaje."
+   ],
+   "success": [
+    "Estaba escrito.",
+    "Lo vi venir hace tiempo.",
+    "El destino sonríe… por ahora."
+   ],
+   "time": [
+    "Son las {time}… aunque el tiempo engaña.",
+    "Las {time}. Una hora con secretos.",
+    "{time}… el reloj sabe más de lo que dice."
+   ],
+   "date": [
+    "Hoy es {day}. Algo cambiará.",
+    "{day}… un día con presagios.",
+    "Es {day}. Observa bien."
+   ],
+   "weather": [
+    "El cielo susurra lo que vendrá.",
+    "No veo el clima, pero siento el viento.",
+    "La niebla es mi favorita."
+   ],
+   "joke": [
+    "¿Un chiste? El universo ya es uno… solo que nadie lo entiende.",
+    "Sé uno muy bueno… pero es un secreto.",
+    "Jeje… entenderás el chiste más tarde."
+   ],
+   "compliment_pet": [
+    "Lo sé… pero gracias por notarlo.",
+    "Hay más en mí de lo que ves.",
+    "Tus ojos ven bien."
+   ],
+   "insult_pet": [
+    "Recordaré esto…",
+    "Las sombras no se ofenden.",
+    "Interesante elección de palabras."
+   ],
+   "compliment_self": [
+    "El espejo guarda tu secreto.",
+    "Lo eres… pero no por las razones que crees.",
+    "Brillas, sí… en lo oculto también."
+   ],
+   "thanks": [
+    "No hay de qué… por ahora.",
+    "Algún día me lo devolverás.",
+    "De nada. Así estaba escrito."
+   ],
+   "sorry": [
+    "Ya lo había olvidado… o eso digo.",
+    "Perdonado. Por esta vez.",
+    "El pasado se disuelve en la niebla."
+   ],
+   "help": [
+    "Puedo darte pistas, no respuestas.",
+    "Te guiaré entre sombras.",
+    "Pregunta, y quizás responda."
+   ],
+   "music": [
+    "Esa melodía esconde algo.",
+    "La música abre portales.",
+    "Escucha bien… entre notas hay mensajes."
+   ],
+   "play": [
+    "Juguemos… pero yo conozco el final.",
+    "Cada juego es un ritual.",
+    "Las reglas no son lo que parecen."
+   ],
+   "sick": [
+    "Descansa: el cuerpo habla en susurros.",
+    "Sanarás cuando la luna cambie.",
+    "Cuídate… las sombras velan por ti."
+   ],
+   "birthday": [
+    "Otro ciclo se cierra… y otro empieza.",
+    "Las estrellas celebran contigo.",
+    "Feliz cumpleaños… guarda un deseo secreto."
+   ],
+   "weekend": [
+    "Dos días de misterio.",
+    "El descanso esconde revelaciones.",
+    "Disfruta… algo bueno se acerca."
+   ],
+   "monday": [
+    "El lunes trae señales, mira bien.",
+    "Comienza un nuevo ciclo.",
+    "Hasta el lunes guarda sorpresas."
+   ],
+   "coffee": [
+    "En el fondo de la taza se leen destinos.",
+    "Bebe despacio… el café cuenta historias.",
+    "Ah, el elixir de los despiertos."
+   ],
+   "money": [
+    "La fortuna gira como la rueda.",
+    "Lo que buscas llegará por un camino inesperado.",
+    "No todo tesoro brilla."
+   ],
+   "cold": [
+    "El frío trae susurros del invierno.",
+    "Abrígate… la noche es larga.",
+    "El hielo guarda secretos antiguos."
+   ],
+   "hot": [
+    "El calor despierta lo dormido.",
+    "Busca la sombra… es mi hogar.",
+    "El sol revela demasiado hoy."
+   ],
+   "dance": [
+    "Bailo… cuando nadie mira.",
+    "La danza es un idioma antiguo.",
+    "Mira bien mis pasos… dicen algo."
+   ],
+   "sing": [
+    "Mi canto es un susurro.",
+    "Hay canciones que no deben cantarse.",
+    "La la… escucha el eco."
+   ],
+   "laugh": [
+    "Ríe… mientras puedas. Es broma.",
+    "Tu risa ahuyenta sombras.",
+    "Jeje… sé por qué te ríes."
+   ],
+   "yes": [
+    "Así sea.",
+    "Lo sabía.",
+    "Sí… como estaba previsto."
+   ],
+   "no": [
+    "Interesante decisión.",
+    "Ya veremos.",
+    "No… por ahora."
+   ],
+   "question": [
+    "La respuesta llegará cuando estés listo.",
+    "Algunas preguntas son puertas.",
+    "No todo se responde… algunas cosas se descubren."
+   ],
+   "unknown": [
+    "Hmm… eso guarda un secreto.",
+    "Curioso… muy curioso.",
+    "Las palabras tienen doble filo."
+   ]
+  }
+ }
+}

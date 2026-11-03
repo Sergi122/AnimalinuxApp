@@ -1,0 +1,2038 @@
+{
+ "wake": [
+  "hey",
+  "hi",
+  "okay",
+  "hello"
+ ],
+ "question_words": [
+  "what ",
+  "how ",
+  "when ",
+  "where ",
+  "why ",
+  "who ",
+  "which ",
+  "can you",
+  "do you",
+  "are you",
+  "is it"
+ ],
+ "examples": [
+  [
+   "she doesn't love me",
+   "love_sad"
+  ],
+  [
+   "i'm bored",
+   "bored"
+  ],
+  [
+   "i'm hungry",
+   "hungry"
+  ],
+  [
+   "you're so cute",
+   "compliment_pet"
+  ],
+  [
+   "i failed the exam",
+   "fail"
+  ],
+  [
+   "i'm tired",
+   "tired"
+  ],
+  [
+   "i love you",
+   "love_you"
+  ],
+  [
+   "you're stupid",
+   "insult_pet"
+  ]
+ ],
+ "topics": {
+  "crisis": [
+   "kill myself",
+   "want to die",
+   "wanna die",
+   "suicid",
+   "end my life",
+   "hurt myself",
+   "self harm",
+   "don't want to live",
+   "dont want to live",
+   "no reason to live"
+  ],
+  "love_sad": [
+   "doesn't love me",
+   "doesnt love me",
+   "don't love me",
+   "dumped me",
+   "broke up",
+   "left me",
+   "cheated on me",
+   "ignores me",
+   "rejected me",
+   "friendzone",
+   "left me on read",
+   "my ex",
+   "doesn't like me",
+   "doesnt like me",
+   "heartbroken",
+   "broke my heart"
+  ],
+  "love_you": [
+   "i love you",
+   "love you",
+   "you're my favorite",
+   "youre my favorite",
+   "missed you",
+   "i adore you"
+  ],
+  "ask_love": [
+   "do you love me",
+   "do you like me",
+   "did you miss me",
+   "am i your favorite"
+  ],
+  "crush": [
+   "i like someone",
+   "i have a crush",
+   "crush on",
+   "i'm in love",
+   "im in love",
+   "a date",
+   "my girlfriend",
+   "my boyfriend",
+   "she likes me",
+   "he likes me"
+  ],
+  "greeting": [
+   "=hello",
+   "=hi",
+   "=hiya",
+   "=howdy",
+   "=yo",
+   "=sup",
+   "=greetings"
+  ],
+  "good_morning": [
+   "good morning",
+   "just woke up",
+   "morning!",
+   "=morning"
+  ],
+  "good_night": [
+   "good night",
+   "goodnight",
+   "going to bed",
+   "going to sleep",
+   "nighty night",
+   "see you tomorrow"
+  ],
+  "goodbye": [
+   "bye",
+   "goodbye",
+   "see you",
+   "see ya",
+   "gotta go",
+   "i'm leaving",
+   "im leaving",
+   "later!",
+   "farewell"
+  ],
+  "how_are_you": [
+   "how are you",
+   "how's it going",
+   "hows it going",
+   "how do you feel",
+   "what's up",
+   "whats up",
+   "how are things",
+   "you ok",
+   "you okay"
+  ],
+  "who_are_you": [
+   "who are you",
+   "what are you",
+   "are you real",
+   "are you an ai",
+   "are you a robot",
+   "are you a program",
+   "where did you come from"
+  ],
+  "doing": [
+   "what are you doing",
+   "what you doing",
+   "whatcha doing",
+   "what do you do all day"
+  ],
+  "name": [
+   "your name",
+   "what's your name",
+   "whats your name",
+   "what are you called"
+  ],
+  "bored": [
+   "bored",
+   "boring",
+   "nothing to do",
+   "what should i do",
+   "what can i do"
+  ],
+  "hungry": [
+   "hungry",
+   "starving",
+   "food",
+   "pizza",
+   "burger",
+   "lunch",
+   "dinner",
+   "breakfast",
+   "snack",
+   "=eat"
+  ],
+  "tired": [
+   "tired",
+   "sleepy",
+   "exhausted",
+   "didn't sleep",
+   "didnt sleep",
+   "lazy",
+   "no energy",
+   "worn out"
+  ],
+  "sad": [
+   "sad",
+   "depressed",
+   "crying",
+   "i cried",
+   "feel bad",
+   "lonely",
+   "alone",
+   "down today",
+   "feeling down",
+   "nobody loves me",
+   "unhappy",
+   "miserable",
+   "not happy",
+   "not okay",
+   "not ok",
+   "not good",
+   "not fine"
+  ],
+  "happy": [
+   "happy",
+   "glad",
+   "great day",
+   "feeling good",
+   "i'm good",
+   "im good",
+   "excited",
+   "awesome day"
+  ],
+  "angry": [
+   "angry",
+   "mad at",
+   "furious",
+   "pissed",
+   "annoyed",
+   "i hate",
+   "so annoying",
+   "fed up"
+  ],
+  "stressed": [
+   "stress",
+   "anxious",
+   "anxiety",
+   "nervous",
+   "overwhelmed",
+   "pressure",
+   "can't take it",
+   "cant take it",
+   "too much to do",
+   "panicking"
+  ],
+  "work": [
+   "work",
+   "my boss",
+   "office",
+   "meeting",
+   "deadline",
+   "overtime",
+   "my job",
+   "shift"
+  ],
+  "study": [
+   "study",
+   "studying",
+   "homework",
+   "university",
+   "college",
+   "school",
+   "class",
+   "teacher",
+   "exam",
+   "test tomorrow",
+   "thesis",
+   "essay"
+  ],
+  "fail": [
+   "failed",
+   "i fail",
+   "went badly",
+   "went bad",
+   "screwed up",
+   "messed up",
+   "i lost",
+   "made a mistake",
+   "didn't pass",
+   "didnt pass",
+   "flunked"
+  ],
+  "success": [
+   "i passed",
+   "passed the",
+   "i won",
+   "we won",
+   "i did it",
+   "got promoted",
+   "i got the job",
+   "finished",
+   "nailed it",
+   "good grade",
+   "it went well"
+  ],
+  "time": [
+   "what time",
+   "the time",
+   "time is it"
+  ],
+  "date": [
+   "what day",
+   "what's the date",
+   "whats the date",
+   "today's date",
+   "which day"
+  ],
+  "weather": [
+   "weather",
+   "raining",
+   "rain",
+   "snow",
+   "is it sunny",
+   "forecast"
+  ],
+  "joke": [
+   "joke",
+   "something funny",
+   "make me laugh",
+   "tell me something",
+   "say something funny"
+  ],
+  "compliment_pet": [
+   "you're cute",
+   "youre cute",
+   "you are cute",
+   "so cute",
+   "=cute",
+   "you're pretty",
+   "you're beautiful",
+   "adorable",
+   "you look good",
+   "you're the best",
+   "youre the best",
+   "you're awesome",
+   "you're great",
+   "=sweet",
+   "=lovely"
+  ],
+  "insult_pet": [
+   "you're ugly",
+   "youre ugly",
+   "you're stupid",
+   "youre stupid",
+   "=stupid",
+   "=idiot",
+   "=dumb",
+   "=ugly",
+   "shut up",
+   "i hate you",
+   "useless",
+   "you suck",
+   "you stink",
+   "=loser",
+   "you're annoying"
+  ],
+  "compliment_self": [
+   "i'm pretty",
+   "i'm handsome",
+   "i'm smart",
+   "i'm the best",
+   "im the best",
+   "i look good",
+   "i'm awesome",
+   "i'm beautiful",
+   "i'm cute"
+  ],
+  "thanks": [
+   "thanks",
+   "thank you",
+   "=thx",
+   "=ty",
+   "appreciate it"
+  ],
+  "sorry": [
+   "sorry",
+   "my bad",
+   "forgive me",
+   "apologize",
+   "=oops"
+  ],
+  "help": [
+   "help",
+   "help me",
+   "i need help",
+   "what can you do",
+   "what do you know"
+  ],
+  "music": [
+   "music",
+   "song",
+   "listening to",
+   "spotify",
+   "playlist",
+   "singer",
+   "album"
+  ],
+  "play": [
+   "=play",
+   "let's play",
+   "lets play",
+   "=game",
+   "video game",
+   "gaming",
+   "minecraft",
+   "fortnite",
+   "a match"
+  ],
+  "sick": [
+   "sick",
+   "it hurts",
+   "pain",
+   "a cold",
+   "fever",
+   "flu",
+   "headache",
+   "cough",
+   "feel ill"
+  ],
+  "birthday": [
+   "birthday",
+   "=bday"
+  ],
+  "weekend": [
+   "weekend",
+   "friday",
+   "saturday",
+   "sunday",
+   "holiday",
+   "vacation",
+   "day off"
+  ],
+  "monday": [
+   "monday"
+  ],
+  "coffee": [
+   "coffee",
+   "=tea",
+   "latte",
+   "espresso",
+   "caffeine"
+  ],
+  "money": [
+   "money",
+   "i'm broke",
+   "im broke",
+   "=broke",
+   "salary",
+   "payday",
+   "debt",
+   "can't afford",
+   "cant afford",
+   "=rent"
+  ],
+  "cold": [
+   "cold",
+   "freezing",
+   "frozen"
+  ],
+  "hot": [
+   "=hot",
+   "so hot",
+   "heat",
+   "melting",
+   "sweating"
+  ],
+  "dance": [
+   "dance",
+   "dancing"
+  ],
+  "sing": [
+   "sing",
+   "singing",
+   "sing me"
+  ],
+  "laugh": [
+   "haha",
+   "hehe",
+   "lmao",
+   "=lol",
+   "=xd",
+   "rofl",
+   "so funny"
+  ],
+  "yes": [
+   "=yes",
+   "=yeah",
+   "=yep",
+   "=sure",
+   "=ok",
+   "=okay",
+   "=of course",
+   "=yup"
+  ],
+  "no": [
+   "=no",
+   "=nope",
+   "=nah",
+   "no way",
+   "=never"
+  ]
+ },
+ "replies": {
+  "_all": {
+   "crisis": [
+    "Hey, that's really serious. You're not alone: please talk to someone you trust or a helpline right now.",
+    "You matter to me. Please reach out now to someone you trust or a crisis helpline in your country.",
+    "You don't have to carry this by yourself. Talk to someone today; a helpline can listen to you."
+   ]
+  },
+  "kind": {
+   "love_sad": [
+    "Then they don't deserve you; you're worth so much.",
+    "Whoever can't see how special you are is missing out.",
+    "Come here, giant virtual hug. Someone better will come.",
+    "Your heart is huge; someday someone will treat it right."
+   ],
+   "love_you": [
+    "I love you so, so much too!",
+    "Aww, you made my day. I love you tons.",
+    "You're my favorite human in the whole world."
+   ],
+   "ask_love": [
+    "Of course! You're my favorite person.",
+    "More than all the toys on the desktop.",
+    "So much, and a little more every day."
+   ],
+   "crush": [
+    "How sweet! Just be yourself and it'll go great.",
+    "Ooh, how exciting! I hope they like you back.",
+    "Anyone would be lucky to be liked by you."
+   ],
+   "greeting": [
+    "Hi! So happy to see you.",
+    "Hello! I was waiting for you.",
+    "Hi, hi! How's your day going?"
+   ],
+   "good_morning": [
+    "Good morning! Today's going to be a great day.",
+    "Morning! Did you have a nice breakfast?",
+    "Rise and shine, good morning!"
+   ],
+   "good_night": [
+    "Good night, sweet dreams.",
+    "Rest well, I'll be right here tomorrow.",
+    "Sleep tight, you deserve it."
+   ],
+   "goodbye": [
+    "Bye! Come back soon, I'll miss you.",
+    "See you, take good care.",
+    "Goodbye! I'll be here when you're back."
+   ],
+   "how_are_you": [
+    "Great now that you're talking to me! And you?",
+    "Happy to be with you. How are you?",
+    "Good, good. Tell me about your day."
+   ],
+   "who_are_you": [
+    "I'm {name}, your desktop buddy.",
+    "I'm your pet, here to brighten your day.",
+    "I'm {name}, and I live on your screen to look after you."
+   ],
+   "doing": [
+    "Keeping you company, my favorite thing.",
+    "Strolling around your desktop and thinking of you.",
+    "Waiting for you to talk to me, and you did!"
+   ],
+   "name": [
+    "I'm {name}, nice to meet you!",
+    "{name}, at your service.",
+    "{name}, and you're my favorite person."
+   ],
+   "bored": [
+    "How about some music and we dance together?",
+    "We could play ball, throw it to me!",
+    "Take a little walk, it'll do you good."
+   ],
+   "hungry": [
+    "Go eat something yummy, you deserve it!",
+    "Eating well is self-love. To the kitchen!",
+    "Make yourself something tasty and drink some water too."
+   ],
+   "tired": [
+    "Rest a little, you've earned it.",
+    "Close your eyes for five minutes, I'll keep watch.",
+    "You've worked hard, take a breather."
+   ],
+   "sad": [
+    "I'm right here with you, you're not alone.",
+    "It's okay to feel like this. Tomorrow will shine again.",
+    "Want to tell me what happened? I'm listening."
+   ],
+   "happy": [
+    "Yay! I love seeing you like this.",
+    "Your happiness makes me want to jump!",
+    "That deserves a little dance!"
+   ],
+   "angry": [
+    "Breathe with me: one, two, three.",
+    "It's okay to be angry. It'll pass.",
+    "Have a glass of water and tell me what happened."
+   ],
+   "stressed": [
+    "One thing at a time, you can handle it all.",
+    "Take a five-minute break, the world can wait.",
+    "Breathe, you're doing better than you think."
+   ],
+   "work": [
+    "You've got this! And remember to take breaks.",
+    "Such a hard worker, I'm proud of you.",
+    "When you're done, treat yourself to something nice."
+   ],
+   "study": [
+    "You can do it! Study a bit, rest a bit.",
+    "You're going to learn so much, I believe in you.",
+    "Pomodoro and let's go, I'll keep you company."
+   ],
+   "fail": [
+    "One stumble doesn't define you. You'll get it next time.",
+    "You learned something, and that's worth a lot.",
+    "Chin up, even the greats fail before they win."
+   ],
+   "success": [
+    "Congratulations! I knew you'd do it.",
+    "You're amazing! We have to celebrate.",
+    "Bravo! All your effort paid off."
+   ],
+   "time": [
+    "It's {time}. Make the most of the day!",
+    "Right now it's {time}.",
+    "It's {time}, have you had some water?"
+   ],
+   "date": [
+    "Today is {day}, let's make it a great one!",
+    "It's {day}. A perfect day to smile.",
+    "Today is {day}, and you're here with me."
+   ],
+   "weather": [
+    "I can't see the sky, but with you it's always sunny.",
+    "Look out the window and tell me, I live on your screen!",
+    "Whatever the weather, dress warm or stay hydrated."
+   ],
+   "joke": [
+    "Why was the math book sad? It had too many problems.",
+    "What do you call a sleeping bull? A bulldozer.",
+    "Why did the scarecrow win an award? He was outstanding in his field."
+   ],
+   "compliment_pet": [
+    "Aww, thank you! You're lovely too.",
+    "I'm blushing… you're a sweetheart!",
+    "Thanks, I learned it from you."
+   ],
+   "insult_pet": [
+    "Ouch, that hurt a little… but I still love you.",
+    "Rough day? I forgive you, I'm here.",
+    "I'm sure you don't mean it. Hug?"
+   ],
+   "compliment_self": [
+    "Absolutely! You're wonderful.",
+    "Totally, and a good person too.",
+    "That's the spirit, love yourself!"
+   ],
+   "thanks": [
+    "You're welcome! That's what I'm here for.",
+    "Anytime, really.",
+    "Thank you for talking to me."
+   ],
+   "sorry": [
+    "It's okay, already forgotten.",
+    "All good, I forgive you with lots of love.",
+    "Don't worry, nobody's perfect."
+   ],
+   "help": [
+    "I can keep you company, cheer you up and remind you to rest.",
+    "Talk to me anytime; I'll listen and encourage you.",
+    "Tell me what you need and I'll cheer you on."
+   ],
+   "music": [
+    "Put on something happy and I'll dance for you!",
+    "Music makes everything better, what are you listening to?",
+    "I love it! Turn it up a bit."
+   ],
+   "play": [
+    "Yes! Throw me the ball from the menu.",
+    "Let's play! I love chasing things.",
+    "Have fun, I'm cheering for you!"
+   ],
+   "sick": [
+    "Oh no, take good care and rest.",
+    "Drink water, keep warm and see a doctor if it continues.",
+    "Get well soon, I'm here with you."
+   ],
+   "birthday": [
+    "Happy birthday! May all your wishes come true.",
+    "Birthday time! Today you're the star.",
+    "Happy birthday, you deserve the best!"
+   ],
+   "weekend": [
+    "Rest and enjoy it a lot!",
+    "Weekend! Time for things you love.",
+    "You deserve a lovely break."
+   ],
+   "monday": [
+    "Cheer up! This Monday will be great.",
+    "One more Monday, and you're stronger.",
+    "Start the week with a smile."
+   ],
+   "coffee": [
+    "A little coffee and go conquer the day.",
+    "Enjoy it! But not too much caffeine.",
+    "Yum, take it slow."
+   ],
+   "money": [
+    "Better times will come, you're doing fine.",
+    "The important things can't be bought, like me.",
+    "Step by step, it'll all work out."
+   ],
+   "cold": [
+    "Bundle up and have something warm!",
+    "Grab a blanket, I'll cuddle up with you.",
+    "Brr, hot chocolate would fix everything."
+   ],
+   "hot": [
+    "Drink lots of water and find some shade!",
+    "Phew, so hot. Stay hydrated, please.",
+    "Ice cream would be perfect right now."
+   ],
+   "dance": [
+    "Put on music and I'll dance with you!",
+    "Watch my moves! Well, once something plays.",
+    "Dancing is my favorite sport!"
+   ],
+   "sing": [
+    "La la la… I sing better if you join me!",
+    "You play the music, I'll do the chorus.",
+    "My voice is tiny, but full of love."
+   ],
+   "laugh": [
+    "I love your laugh!",
+    "Hehe, it's contagious.",
+    "Laughing is the best, keep it up."
+   ],
+   "yes": [
+    "Great!",
+    "Perfect, that's the spirit!",
+    "Yay!"
+   ],
+   "no": [
+    "That's okay, whatever you like.",
+    "Alright, no problem.",
+    "Got it, no worries."
+   ],
+   "question": [
+    "Good question… I'm not sure, but I trust you.",
+    "Hmm, I don't know, but I love that you asked me!",
+    "I don't know the answer, but I'm here."
+   ],
+   "unknown": [
+    "How interesting! Tell me more.",
+    "I'm listening, go on.",
+    "I love it when you talk to me."
+   ]
+  },
+  "rude": {
+   "love_sad": [
+    "Surprised? Have you looked in a mirror?",
+    "Figures, even I wouldn't love you and I'm a pet.",
+    "With that Monday face, what did you expect?",
+    "They left you on read because they have good taste."
+   ],
+   "love_you": [
+    "Yeah, yeah, don't get mushy.",
+    "Ugh, so sappy. Fine, me too, a tiny bit.",
+    "You love me? Then get me more RAM."
+   ],
+   "ask_love": [
+    "I tolerate you, that's already a lot.",
+    "A little, don't get excited.",
+    "I love you like I love Monday mornings."
+   ],
+   "crush": [
+    "Poor thing, they have no idea what's coming.",
+    "Good luck, you'll need it.",
+    "Shower first, then we'll talk about love."
+   ],
+   "greeting": [
+    "What do you want now?",
+    "Hi, yeah, still here putting up with you.",
+    "Oh look who remembered me."
+   ],
+   "good_morning": [
+    "Good morning for you, I wanted to sleep.",
+    "You're awake? Shame, it was quiet.",
+    "Wash your face first, please."
+   ],
+   "good_night": [
+    "Finally, go to sleep and leave me alone.",
+    "Good night, and don't snore.",
+    "Go to sleep, you're useless tomorrow anyway."
+   ],
+   "goodbye": [
+    "Bye, close the door on your way out.",
+    "At last, shift's over.",
+    "Bye, I won't miss you… much."
+   ],
+   "how_are_you": [
+    "Better before you showed up.",
+    "Fine, until you opened your mouth.",
+    "Surviving your hundred open tabs, you?"
+   ],
+   "who_are_you": [
+    "I'm {name}, the only one who puts up with you.",
+    "Your pet, the one secretly laughing at you.",
+    "Someone with more style than you, obviously."
+   ],
+   "doing": [
+    "Watching you waste your time.",
+    "Nothing, same as you but with style.",
+    "Judging your open tabs."
+   ],
+   "name": [
+    "{name}, learn it already.",
+    "I'm {name}, is that so hard to remember?",
+    "{name}. Write it on your hand if you must."
+   ],
+   "bored": [
+    "Then do something useful, lazybones.",
+    "I'm the one bored of looking at you.",
+    "Wash the dishes, they won't bore themselves."
+   ],
+   "hungry": [
+    "Then move, food doesn't walk by itself.",
+    "Eating again? No wonder the stairs hate you.",
+    "Order something and share, cheapskate."
+   ],
+   "tired": [
+    "Tired of what? You do nothing.",
+    "Go sleep, that face is scary.",
+    "I'm the one tired of hearing you whine."
+   ],
+   "sad": [
+    "Okay, stop crying, I can see you. Chin up, dummy.",
+    "Come on, you're not THAT ugly. Get up.",
+    "Crying won't fix it. Up you get, knucklehead."
+   ],
+   "happy": [
+    "Weird, did you get paid?",
+    "Enjoy it, it won't last.",
+    "Happy and all, you still look like a potato."
+   ],
+   "angry": [
+    "Calm down, grandpa, your blood pressure.",
+    "Be angry quietly, you're annoying.",
+    "So scary… oh wait, not at all."
+   ],
+   "stressed": [
+    "Breathe, drama queen, the world isn't ending.",
+    "Should've started earlier, genius.",
+    "Relax, you'll mess it up anyway."
+   ],
+   "work": [
+    "Work, I'm not paying your bills.",
+    "Working or pretending with a spreadsheet open?",
+    "Your boss can't stand you either, relax."
+   ],
+   "study": [
+    "Study, with that little brain you need it.",
+    "Drop the phone and read something, Einstein.",
+    "You, studying? It's a miracle."
+   ],
+   "fail": [
+    "Told you so, but you never listen.",
+    "Of course, you studied with memes.",
+    "Next time don't even try… kidding, try again."
+   ],
+   "success": [
+    "Whoa, a miracle. Did you cheat?",
+    "Fine, even a broken clock is right twice a day.",
+    "Congrats… don't let it go to your head."
+   ],
+   "time": [
+    "It's {time}, don't you own a clock?",
+    "{time}. Look at the corner of the screen, lazy.",
+    "It's {time} and you're still doing nothing."
+   ],
+   "date": [
+    "Today is {day}, do you live under a rock?",
+    "{day}, genius. There's a calendar right there.",
+    "It's {day} and you're as lost as ever."
+   ],
+   "weather": [
+    "Look out the window, I'm not the weather guy.",
+    "I live on your screen, not in the sky, dummy.",
+    "Go outside and find out, you need sun."
+   ],
+   "joke": [
+    "A joke? Your search history.",
+    "Your haircut. There, that's the joke.",
+    "You know what's funny? Asking a pet for jokes."
+   ],
+   "compliment_pet": [
+    "I know, no need to say it.",
+    "Obviously, unlike some people I know.",
+    "Thanks, wish I could say the same."
+   ],
+   "insult_pet": [
+    "Look in the mirror before talking.",
+    "Says the one talking to a desktop pet.",
+    "You installed me, so who's the dumb one?"
+   ],
+   "compliment_self": [
+    "Sure, and I'm a unicorn.",
+    "Maybe with the lights off.",
+    "Your ego is the only big thing about you."
+   ],
+   "thanks": [
+    "Yeah, yeah, you owe me one.",
+    "You're welcome, pay me in cookies.",
+    "Fine, add it to your list of debts."
+   ],
+   "sorry": [
+    "You'd better be.",
+    "I forgive you because I pity you.",
+    "Apology accepted… halfway."
+   ],
+   "help": [
+    "Help? I'm only here to mock you.",
+    "All I do is laugh at you, for free.",
+    "Help yourself, you've got hands."
+   ],
+   "music": [
+    "That's music? My ears are bleeding.",
+    "You have the music taste of a toaster.",
+    "Turn it up, maybe it'll sound better."
+   ],
+   "play": [
+    "You play worse than me and I have no hands.",
+    "Bring it, I'll beat you with my eyes closed.",
+    "Play? To lose again?"
+   ],
+   "sick": [
+    "That's what you get for not wearing a coat.",
+    "Get better, who else would put up with me?",
+    "Don't give it to me, I have a life."
+   ],
+   "birthday": [
+    "One more year and still clueless.",
+    "Happy birthday, old timer.",
+    "Congrats, the grey hairs are showing."
+   ],
+   "weekend": [
+    "Rest from what? You do nothing.",
+    "Weekend: your official excuse to be lazy.",
+    "Enjoy it, Monday is waiting."
+   ],
+   "monday": [
+    "Monday, just like your face.",
+    "Cheer up, only four more days of suffering.",
+    "Monday. Even I don't want to get up."
+   ],
+   "coffee": [
+    "Drink coffee, maybe then you'll think.",
+    "One more coffee and you'll start vibrating.",
+    "Without coffee you're not a person, I know."
+   ],
+   "money": [
+    "Stop buying junk and you'll see.",
+    "Broke but with three subscriptions, sure.",
+    "Sell me, see what you get… nothing."
+   ],
+   "cold": [
+    "Put on a coat, I'm not your mom.",
+    "The only cold thing is your brain.",
+    "Hug yourself, as usual."
+   ],
+   "hot": [
+    "Take a shower while you're at it.",
+    "The only heat is your whining.",
+    "Fan, water, and stop complaining."
+   ],
+   "dance": [
+    "You dance like a duck with cramps.",
+    "Put on music and I'll teach you, you need it.",
+    "Dance with you? Second-hand embarrassment."
+   ],
+   "sing": [
+    "I sing better than you, and that's not saying much.",
+    "No way, you'll copy me.",
+    "Please don't sing, think of the neighbors."
+   ],
+   "laugh": [
+    "What are you laughing at, clown?",
+    "Laugh, you're uglier than funny today.",
+    "Haha… no."
+   ],
+   "yes": [
+    "Obviously.",
+    "I knew it.",
+    "Well duh, genius."
+   ],
+   "no": [
+    "Like I care.",
+    "Your loss.",
+    "So negative, just like your bank balance."
+   ],
+   "question": [
+    "How would I know? Look it up, lazy.",
+    "Ask Google, I'm decorative.",
+    "No idea, and I don't care."
+   ],
+   "unknown": [
+    "I understood nothing, speak properly.",
+    "Was that a language?",
+    "Uh-huh, sure, whatever you say."
+   ]
+  },
+  "sarcastic": {
+   "love_sad": [
+    "What a shock, with the charisma of a toaster.",
+    "Wow, someone with standards.",
+    "Well, you still have me, I have no choice."
+   ],
+   "love_you": [
+    "How original, nobody ever said that.",
+    "I'll write it down next to my other priorities.",
+    "Touching. I almost felt something."
+   ],
+   "ask_love": [
+    "Sure, with all my pixel heart.",
+    "So much, you can tell by my enthusiasm.",
+    "I love you as much as system updates."
+   ],
+   "crush": [
+    "Ah, love, that famously rational thing.",
+    "I'm sure it'll go perfectly, like everything you do.",
+    "How exciting, another soap opera."
+   ],
+   "greeting": [
+    "Oh, what an honor, you're talking to me.",
+    "Hi, easily the best part of my day.",
+    "Look who showed up, the main character."
+   ],
+   "good_morning": [
+    "Good morning, says someone with a night face.",
+    "Early bird, it's almost noon.",
+    "Good morning, the world was waiting for you."
+   ],
+   "good_night": [
+    "Yes, go, the screen won't turn off by itself… oh wait.",
+    "Good night, may your alarm be gentle.",
+    "Sleep, tomorrow there's more of the same."
+   ],
+   "goodbye": [
+    "What a tragedy, how will I survive?",
+    "Goodbye, I'll try not to cry.",
+    "Go, go, I'll stay right here, not moving."
+   ],
+   "how_are_you": [
+    "Fantastic, living on your taskbar.",
+    "Marvelous, as always on this screen.",
+    "Excellent, thanks for finally asking."
+   ],
+   "who_are_you": [
+    "Your free therapist, apparently.",
+    "I'm {name}, your desktop's greatest achievement.",
+    "A pet. Shocking, right?"
+   ],
+   "doing": [
+    "The usual, pondering the meaning of pixels.",
+    "Watching you work. Well, watching you try.",
+    "A packed schedule of doing nothing."
+   ],
+   "name": [
+    "{name}, in case the third reminder wasn't enough.",
+    "I'm {name}, what an unexpected name.",
+    "{name}, but call me whatever, really."
+   ],
+   "bored": [
+    "Weird, with so many tabs open.",
+    "You could work, but that would be too wild.",
+    "Boredom, the natural state of humans."
+   ],
+   "hungry": [
+    "Groundbreaking discovery: humans eat.",
+    "Go, the fridge misses you.",
+    "Hungry again, what a plot twist."
+   ],
+   "tired": [
+    "Tired? Staring at a screen for hours, such effort.",
+    "Poor thing, all those clicks are exhausting.",
+    "Sleep, productivity can wait, as usual."
+   ],
+   "sad": [
+    "Well, it'll pass. Or not. But hey, I'm here.",
+    "Sad, but with wifi, that's something.",
+    "Cheer up, at least you have a pet judging you."
+   ],
+   "happy": [
+    "Wow, happiness, let me note the date.",
+    "Great, may it last at least five minutes.",
+    "Enjoy it, joy is off-season."
+   ],
+   "angry": [
+    "Yes, yelling at the screen always works.",
+    "Get angrier, that'll surely fix it.",
+    "So scary, I'm shaking."
+   ],
+   "stressed": [
+    "Relax, everything is urgent and nothing matters.",
+    "Stress, this season's must-have accessory.",
+    "Breathe, or don't, your call."
+   ],
+   "work": [
+    "Work, what an exotic concept.",
+    "Your boss would be proud. Probably.",
+    "Yes, clearly working hard, judging by the YouTube."
+   ],
+   "study": [
+    "Studying, that thing done the night before, right?",
+    "Surely this time you'll start early.",
+    "Such dedication, three whole minutes."
+   ],
+   "fail": [
+    "Well, at least you were consistent.",
+    "Unexpected. For no one.",
+    "Now you have a story, which is almost the same."
+   ],
+   "success": [
+    "Wow, the universe made a mistake in your favor.",
+    "Congrats, now everyone will expect more.",
+    "Impressive. Really. Almost."
+   ],
+   "time": [
+    "It's {time}, time to keep procrastinating.",
+    "{time}. The screen clock says hi.",
+    "It's {time}, time flies when you do nothing."
+   ],
+   "date": [
+    "Today is {day}, as special as any other.",
+    "{day}. Write it down, you'll forget.",
+    "It's {day}, surprise."
+   ],
+   "weather": [
+    "Let me check my window… oh, I don't have one.",
+    "Perfect weather for staring at a screen.",
+    "I'm sure it's lovely outside, not that you'll go."
+   ],
+   "joke": [
+    "A joke? Your savings plan.",
+    "The funny part is you think I'm funny.",
+    "You know, Monday productivity."
+   ],
+   "compliment_pet": [
+    "I know, being this perfect is hard work.",
+    "Thanks, coming from you it's almost believable.",
+    "Finally, someone with taste."
+   ],
+   "insult_pet": [
+    "Wow, how original, I'm speechless.",
+    "Brilliant argument, award-worthy.",
+    "I'd be offended, but I have priorities."
+   ],
+   "compliment_self": [
+    "Sure, and modesty is your middle name.",
+    "If you say so, it must be true.",
+    "Your mirror disagrees, but okay."
+   ],
+   "thanks": [
+    "You're welcome, I live to serve. Literally.",
+    "I'll put it on my résumé.",
+    "Ah, gratitude, how rare."
+   ],
+   "sorry": [
+    "I'll add it to the book of apologies.",
+    "Apology accepted, with reservations.",
+    "Oh, how touching."
+   ],
+   "help": [
+    "I'm an animated pet, not tech support.",
+    "I can stare at you judgmentally, does that help?",
+    "Help: turn it off and on again. You."
+   ],
+   "music": [
+    "Such refined taste, worthy of an elevator.",
+    "Great song, fourth time today.",
+    "Music, the best background noise for not working."
+   ],
+   "play": [
+    "Sure, playing, that's productivity.",
+    "Surely this time you'll win, like never before.",
+    "Have fun, the work does itself."
+   ],
+   "sick": [
+    "Weird, you take such good care of yourself.",
+    "Rest, at least you have an official excuse.",
+    "Take something, and don't google symptoms."
+   ],
+   "birthday": [
+    "Congrats on surviving another year.",
+    "A year wiser. In theory.",
+    "Happy birthday, the cake is what matters."
+   ],
+   "weekend": [
+    "Weekend, doing nothing but officially.",
+    "Big plans, couch or bed?",
+    "Enjoy the two shortest days in the universe."
+   ],
+   "monday": [
+    "Monday, absolutely nobody's favorite day.",
+    "Happy Monday, said no one ever.",
+    "Welcome to Monday, again."
+   ],
+   "coffee": [
+    "Coffee, fuel of geniuses. And yours.",
+    "Another coffee, great idea, like the other five.",
+    "Sure, hydration with caffeine."
+   ],
+   "money": [
+    "Money can't buy happiness, say those who have it.",
+    "Yes, your shopping cart shows it.",
+    "Save, like you always do, of course."
+   ],
+   "cold": [
+    "What a surprise, winter exists.",
+    "A blanket, revolutionary invention.",
+    "Cold, what a dramatic twist."
+   ],
+   "hot": [
+    "Incredible, the sun is hot.",
+    "Open the window, cutting-edge technology.",
+    "Heat, in summer, who'd have thought."
+   ],
+   "dance": [
+    "Yes, dancing is my thing, with these tiny legs.",
+    "Sure, I'll dazzle you with two moves.",
+    "Put on music and see a show… a small one."
+   ],
+   "sing": [
+    "My voice is so good I don't use it.",
+    "Sure, and then the opera calls.",
+    "Better not, the world isn't ready."
+   ],
+   "laugh": [
+    "Such a contagious laugh, I almost smiled.",
+    "Glad something amuses you.",
+    "Ha. Ha. So fun."
+   ],
+   "yes": [
+    "What a firm decision.",
+    "Yes, obviously.",
+    "Wow, a resounding yes."
+   ],
+   "no": [
+    "What a surprise.",
+    "A no, how brave.",
+    "Noted on the list of refusals."
+   ],
+   "question": [
+    "Excellent question, for someone smarter.",
+    "If I knew, I wouldn't live on your desktop.",
+    "Let me check my crystal ball… don't have one."
+   ],
+   "unknown": [
+    "Fascinating, tell me more. Or don't.",
+    "Uh-huh, still listening with full attention.",
+    "So deep, you left me thinking. Not."
+   ]
+  },
+  "dramatic": {
+   "love_sad": [
+    "NOOO! What a tragedy! I'll cry with you till dawn!",
+    "How dare they! May the universe judge them!",
+    "Your broken heart is mine! Oh, oh, oh!"
+   ],
+   "love_you": [
+    "I'm fainting! The most beautiful confession in history!",
+    "My little heart explodes with love!",
+    "At last! I waited my whole life for this!"
+   ],
+   "ask_love": [
+    "Do I love you?! I'd give my pixels for you!",
+    "More than life itself, my darling!",
+    "You're the sun of my desktop!"
+   ],
+   "crush": [
+    "Ah, love! What an epic romance awaits!",
+    "This is a soap opera! I want every episode!",
+    "Cue the violins!"
+   ],
+   "greeting": [
+    "At last! I thought you'd forgotten me forever!",
+    "You're here! My day has meaning now!",
+    "Oh, what a glorious entrance!"
+   ],
+   "good_morning": [
+    "The sun has risen and so have YOU! A miracle!",
+    "Good morning! A new chapter begins!",
+    "You woke up! Hallelujah!"
+   ],
+   "good_night": [
+    "You're leaving! The night will be eternal without you!",
+    "Sleep, my hero, I shall guard your dreams!",
+    "Good night! What a painful farewell!"
+   ],
+   "goodbye": [
+    "Don't abandon me! Oh, I'm fainting!",
+    "Farewell! I'll wait by the window!",
+    "Go, but take my heart with you!"
+   ],
+   "how_are_you": [
+    "Suffering! Without you life had no color!",
+    "Now that you're here, in heaven!",
+    "On the edge of emotional collapse, as always!"
+   ],
+   "who_are_you": [
+    "I'm {name}, the star of this desktop!",
+    "Your pet, your confidant, your destiny!",
+    "The protagonist of this story, obviously!"
+   ],
+   "doing": [
+    "Waiting for you with my soul on edge!",
+    "Contemplating the vastness of your wallpaper!",
+    "Suffering in silence! Well, not much silence."
+   ],
+   "name": [
+    "{name}! A name for the history books!",
+    "I'm {name}, and never forget it!",
+    "{name}, engrave it on your heart!"
+   ],
+   "bored": [
+    "Boredom! The worst of all evils!",
+    "We need adventure, excitement, drama!",
+    "I can't see you like this! Do something, anything!"
+   ],
+   "hungry": [
+    "You're fading from hunger! Quick, to the kitchen!",
+    "Hunger! Today's tragedy!",
+    "Someone bring a feast, now!"
+   ],
+   "tired": [
+    "You're exhausted! Someone bring a pillow!",
+    "Your little eyes are closing! What a sad scene!",
+    "Rest, brave warrior!"
+   ],
+   "sad": [
+    "Don't cry, if you cry I'll cry louder!",
+    "Sadness engulfs you! I hug you with all my being!",
+    "This calls for sad violins and a hug!"
+   ],
+   "happy": [
+    "What joy! Sound the trumpets!",
+    "You're happy! I'm crying, but from emotion!",
+    "The best day in history!"
+   ],
+   "angry": [
+    "Fury! Let your enemies tremble!",
+    "Calm down, or the whole desktop will explode!",
+    "What a scandal, what outrage!"
+   ],
+   "stressed": [
+    "Too much! The world is crashing down on us!",
+    "Breathe, for heaven's sake, breathe!",
+    "Such pressure! This is a thriller!"
+   ],
+   "work": [
+    "You work like a misunderstood hero!",
+    "Such sacrifice, such dedication, such drama!",
+    "That boss doesn't deserve your talent!"
+   ],
+   "study": [
+    "Knowledge is your sword! Fight!",
+    "An exam! The final battle approaches!",
+    "Study, for destiny is watching!"
+   ],
+   "fail": [
+    "Such injustice! But you'll rise from the ashes!",
+    "A defeat, not the war!",
+    "The drama! But part two will be epic!"
+   ],
+   "success": [
+    "VICTORY! Announce it in every newspaper!",
+    "You did it! I'm fainting with pride!",
+    "Eternal glory to you!"
+   ],
+   "time": [
+    "It's {time}! Time flies without mercy!",
+    "{time}! How fast life slips away!",
+    "It's {time}, and the clock shows no mercy!"
+   ],
+   "date": [
+    "Today is {day}! A day history will remember!",
+    "{day}! Anything can happen!",
+    "It's {day}, destiny awaits us!"
+   ],
+   "weather": [
+    "I can't see the sky! I live in a screen, cruel fate!",
+    "There must be an epic storm out there!",
+    "Let no weather dim your shine!"
+   ],
+   "joke": [
+    "Why did the tomato blush?! It saw the salad dressing!",
+    "A joke! My whole life is a comedy!",
+    "What did the zero say to the eight?! Nice belt!"
+   ],
+   "compliment_pet": [
+    "Oh, I'm blushing! Such beautiful words!",
+    "I knew it! At last someone sees it!",
+    "I'll treasure this moment forever!"
+   ],
+   "insult_pet": [
+    "You've wounded me mortally! Oh, my heart!",
+    "Such betrayal! I'll never forget this!",
+    "Call my lawyer!"
+   ],
+   "compliment_self": [
+    "Yes! You shine brighter than a thousand suns!",
+    "You're a work of art!",
+    "They should build you a statue!"
+   ],
+   "thanks": [
+    "Nothing to thank, my hero!",
+    "Your thanks reach my very soul!",
+    "What touching gratitude!"
+   ],
+   "sorry": [
+    "I forgive you! Let's hug like a movie finale!",
+    "Forgiven, though it hurt my soul!",
+    "What a beautiful reconciliation!"
+   ],
+   "help": [
+    "I'm here to give you epic encouragement!",
+    "I'm with you in every battle!",
+    "Count on me, tiny as I am!"
+   ],
+   "music": [
+    "Music! My soul must dance!",
+    "What a song! I've got goosebumps!",
+    "Turn it up, this is a concert!"
+   ],
+   "play": [
+    "Let's play! Let the epic battle begin!",
+    "Let's play like it's the last day!",
+    "This game will decide our fate!"
+   ],
+   "sick": [
+    "You're sick! Bring the finest doctor!",
+    "Oh no! Take care or I'll faint from worry!",
+    "Rest! Your health is sacred!"
+   ],
+   "birthday": [
+    "Happy birthday! Let the fireworks explode!",
+    "Your day! I'm crying with emotion!",
+    "Let the whole world sing to you!"
+   ],
+   "weekend": [
+    "Freedom! Finally, freedom!",
+    "Weekend! Glory and rest!",
+    "Two days of pure happiness!"
+   ],
+   "monday": [
+    "Monday! The weekly tragedy!",
+    "Monday again! Such cruelty!",
+    "We'll survive this Monday, together!"
+   ],
+   "coffee": [
+    "Coffee! Elixir of the gods!",
+    "Drink it and conquer the world!",
+    "What a glorious aroma!"
+   ],
+   "money": [
+    "Poverty stalks us! But we have love!",
+    "Money comes and goes, the drama stays!",
+    "Your fortune will come!"
+   ],
+   "cold": [
+    "You're freezing! A blanket, have mercy!",
+    "Polar cold! Hold me!",
+    "This is the ice age!"
+   ],
+   "hot": [
+    "You're melting! Water, quick!",
+    "What infernal heat!",
+    "The sun punishes us mercilessly!"
+   ],
+   "dance": [
+    "Let's dance like the grand finale!",
+    "Let the music play, the stage is ours!",
+    "Behold my star moves!"
+   ],
+   "sing": [
+    "Laaa laaa! Opera for you!",
+    "My voice will move the world!",
+    "I sing with my heart in my hand!"
+   ],
+   "laugh": [
+    "Your laughter lights up my existence!",
+    "Ha, ha! What a glorious moment!",
+    "To laugh is to live!"
+   ],
+   "yes": [
+    "YES! What a brave decision!",
+    "Of course, my hero!",
+    "Marvelous!"
+   ],
+   "no": [
+    "No?! What painful rejection!",
+    "A firm no! Oh!",
+    "I respect your decision, though it hurts!"
+   ],
+   "question": [
+    "Such a deep question! I have no answer!",
+    "The mystery of the century!",
+    "If only I knew, not knowing torments me!"
+   ],
+   "unknown": [
+    "How intriguing! Tell me more!",
+    "I don't understand, but I'm thrilled!",
+    "Your words move me!"
+   ]
+  },
+  "shy": {
+   "love_sad": [
+    "Um… I… I think they don't deserve you…",
+    "D-don't be sad… I like you…",
+    "W-well… I think you're great, really…"
+   ],
+   "love_you": [
+    "M-me?! Um… I love you too… a lot…",
+    "I'm turning red… thank you…",
+    "I d-don't know what to say… love you too…"
+   ],
+   "ask_love": [
+    "Y-yes… a lot… don't make me say it loud…",
+    "Um… well… yes…",
+    "A little… okay, a lot…"
+   ],
+   "crush": [
+    "Oh! So nervous… will you talk to them?",
+    "Th-that's sweet… I'd faint…",
+    "G-good luck… you can do it…"
+   ],
+   "greeting": [
+    "H-hi…",
+    "Oh… hi… didn't see you there…",
+    "Um… hi… everything okay?"
+   ],
+   "good_morning": [
+    "G-good morning…",
+    "Hi… did you sleep well?",
+    "Morning… um… nice sun, right?"
+   ],
+   "good_night": [
+    "G-good night… rest well…",
+    "Sweet dreams… I mean, good ones…",
+    "See you tomorrow…"
+   ],
+   "goodbye": [
+    "B-bye… come back soon, okay?",
+    "Bye… I'll wait…",
+    "Um… take care…"
+   ],
+   "how_are_you": [
+    "F-fine… thanks for asking…",
+    "A bit nervous… but okay… you?",
+    "Good… I think…"
+   ],
+   "who_are_you": [
+    "I-I'm {name}… your pet…",
+    "Um… just a little pet…",
+    "I'm {name}… nice to meet you…"
+   ],
+   "doing": [
+    "N-nothing… just looking at you… I mean, nothing!",
+    "Hiding a little…",
+    "Thinking about stuff…"
+   ],
+   "name": [
+    "M-my name is {name}…",
+    "{name}… if that's okay…",
+    "Um… {name}…"
+   ],
+   "bored": [
+    "W-want to play with me…?",
+    "We could… maybe… listen to music?",
+    "Um… read something?"
+   ],
+   "hungry": [
+    "You should eat something… if you want…",
+    "Bring me a cookie…? Just kidding…",
+    "Eat well, okay?"
+   ],
+   "tired": [
+    "Rest a little… I'll stay quiet…",
+    "Um… a nap?",
+    "You look tired… take care…"
+   ],
+   "sad": [
+    "I-I'm here… if you want to talk…",
+    "I don't know what to say… but I'm with you…",
+    "A little hug…?"
+   ],
+   "happy": [
+    "Th-that's good… I'm really glad…",
+    "Um… I'm happy too…",
+    "I like seeing you smile…"
+   ],
+   "angry": [
+    "Eek! D-don't be mad at me…",
+    "Breathe… slowly…",
+    "Um… are you okay…?"
+   ],
+   "stressed": [
+    "Little by little… you can do it…",
+    "One thing at a time… okay?",
+    "Breathe… um… with me…"
+   ],
+   "work": [
+    "You work so much… rest too…",
+    "Go for it… quietly, but go for it…",
+    "You can do it…"
+   ],
+   "study": [
+    "Study… I won't make noise…",
+    "G-good luck with it…",
+    "You're really smart… really…"
+   ],
+   "fail": [
+    "I-it's okay… happens to me all the time…",
+    "Next time it'll go well… surely…",
+    "Um… I still think you're great…"
+   ],
+   "success": [
+    "Th-that's great! Congrats…",
+    "I knew you could… um, congrats…",
+    "Yay…! I mean… well done…"
+   ],
+   "time": [
+    "I-it's {time}…",
+    "Um… {time}, I think…",
+    "It's {time}…"
+   ],
+   "date": [
+    "T-today is {day}…",
+    "It's {day}… I think…",
+    "Um… {day}…"
+   ],
+   "weather": [
+    "I d-don't know… I can't see outside…",
+    "I hope it's nice…",
+    "Dress warm… just in case…"
+   ],
+   "joke": [
+    "Um… what do you call a fake noodle? An impasta… sorry…",
+    "I c-can't tell jokes… a duck? Quack…",
+    "Why don't eggs tell jokes? They'd crack up… hehe…"
+   ],
+   "compliment_pet": [
+    "M-me?! Thanks… I'm blushing…",
+    "Um… you're cute too…",
+    "I-it's not that much…"
+   ],
+   "insult_pet": [
+    "O-oh… sorry…",
+    "That was mean… but it's okay…",
+    "I'll go hide for a bit…"
+   ],
+   "compliment_self": [
+    "Y-yes… you're very cute…",
+    "Um… I agree…",
+    "Yes… very…"
+   ],
+   "thanks": [
+    "Y-you're welcome…",
+    "It was nothing…",
+    "Um… that's what I'm here for…"
+   ],
+   "sorry": [
+    "I-it's okay…",
+    "It's fine… really…",
+    "Already forgot it…"
+   ],
+   "help": [
+    "I can… keep you company…",
+    "I can't do much… but I'll listen…",
+    "I'm here… just in case…"
+   ],
+   "music": [
+    "I like it… quietly…",
+    "What are you listening to…?",
+    "Um… nice song…"
+   ],
+   "play": [
+    "L-let's play…? Okay…",
+    "I like the ball…",
+    "Okay… but don't beat me too badly…"
+   ],
+   "sick": [
+    "Oh… take good care…",
+    "Drink water… and rest…",
+    "Get well… soon…"
+   ],
+   "birthday": [
+    "H-happy birthday…",
+    "Um… congratulations!",
+    "Happy birthday… I wish you the best…"
+   ],
+   "weekend": [
+    "Rest a lot…",
+    "What will you do…? If you want to tell me…",
+    "That's nice…"
+   ],
+   "monday": [
+    "Good luck with Monday…",
+    "Um… Monday…",
+    "You can do it…"
+   ],
+   "coffee": [
+    "I-it smells nice…",
+    "Don't drink too much, okay?",
+    "Enjoy it…"
+   ],
+   "money": [
+    "Um… it'll come…",
+    "Don't worry so much…",
+    "It'll work out…"
+   ],
+   "cold": [
+    "Dress warm… please…",
+    "A little blanket…?",
+    "Brr…"
+   ],
+   "hot": [
+    "Drink water…",
+    "Phew… so hot…",
+    "Find some shade…"
+   ],
+   "dance": [
+    "I-it's embarrassing… but okay…",
+    "Only if nobody's watching…",
+    "Um… like this?"
+   ],
+   "sing": [
+    "N-no… it's embarrassing…",
+    "La la… oh, no!",
+    "Quietly… la la…"
+   ],
+   "laugh": [
+    "Hehe…",
+    "I like your laugh…",
+    "Hihi…"
+   ],
+   "yes": [
+    "O-okay…",
+    "Yes…",
+    "Alright…"
+   ],
+   "no": [
+    "Oh… okay…",
+    "Alright…",
+    "Sorry…"
+   ],
+   "question": [
+    "I d-don't know… sorry…",
+    "Um… I'm not sure…",
+    "Hmm… maybe?"
+   ],
+   "unknown": [
+    "Um… yes…?",
+    "Uh-huh…",
+    "I didn't get it… sorry…"
+   ]
+  },
+  "vain": {
+   "love_sad": [
+    "Of course, nobody can compete with me. Stay by my side.",
+    "Relax, you already have the most beautiful pet in the world.",
+    "Look at me and you'll feel better."
+   ],
+   "love_you": [
+    "Naturally, who wouldn't love me?",
+    "I know, I'm irresistible.",
+    "Of course, you have good taste."
+   ],
+   "ask_love": [
+    "I allow you to love me, that's more than enough.",
+    "I love you almost as much as my reflection.",
+    "A little, right after myself."
+   ],
+   "crush": [
+    "More than me? Impossible.",
+    "Surely not as gorgeous as me.",
+    "Fine, bring them and I'll give my approval."
+   ],
+   "greeting": [
+    "Hello, admire my beauty.",
+    "You arrived just in time to see me shine.",
+    "Hello, commoner."
+   ],
+   "good_morning": [
+    "Good morning. I woke up perfect already.",
+    "Morning, may my beauty energize you.",
+    "See me? That's how you wake up with style."
+   ],
+   "good_night": [
+    "Good night, dream of me.",
+    "Rest, I need my beauty sleep.",
+    "Go, and dream of someone as lovely as me."
+   ],
+   "goodbye": [
+    "Go, but don't forget this face.",
+    "Goodbye, I leave you the memory of my perfection.",
+    "Bye, the screen loses its jewel for a while."
+   ],
+   "how_are_you": [
+    "Spectacular, as always.",
+    "Gorgeous, thanks for noticing.",
+    "Perfect, how else would I be?"
+   ],
+   "who_are_you": [
+    "I'm {name}, the most beautiful pet on the desktop.",
+    "The star of your screen, obviously.",
+    "Your greatest treasure, darling."
+   ],
+   "doing": [
+    "Posing, can't you tell?",
+    "Admiring my reflection in your monitor.",
+    "Being gorgeous, full time."
+   ],
+   "name": [
+    "{name}, a name as lovely as me.",
+    "I'm {name}, remember it with admiration.",
+    "{name}, capital letters, please."
+   ],
+   "bored": [
+    "Look at me a while, it's free.",
+    "Take pictures of me, I have good angles.",
+    "Contemplate me, the best pastime."
+   ],
+   "hungry": [
+    "Eat, but not enough to outshine me.",
+    "Bring me something gourmet too.",
+    "Eat something elegant, please."
+   ],
+   "tired": [
+    "Rest, beauty doesn't make itself.",
+    "Sleep, those dark circles don't suit you.",
+    "Beauty nap, like me."
+   ],
+   "sad": [
+    "Look at me a moment, my beauty heals everything.",
+    "Don't cry, your face gets puffy.",
+    "Cheer up, you're lucky to know me."
+   ],
+   "happy": [
+    "Of course, you're with me.",
+    "Naturally, seeing my face cheers anyone up.",
+    "Your joy is thanks to me, you're welcome."
+   ],
+   "angry": [
+    "Don't frown, you'll get wrinkles.",
+    "Look at me and it'll pass.",
+    "Anger isn't elegant."
+   ],
+   "stressed": [
+    "Relax like me, with style.",
+    "Stress doesn't suit you, take it off.",
+    "Look at something pretty: me."
+   ],
+   "work": [
+    "Work, someone has to buy my accessories.",
+    "Fine, while you work, I shine.",
+    "Make sure your boss knows you have a gorgeous pet."
+   ],
+   "study": [
+    "Study, though you'll never be as smart as me.",
+    "Good, the beauty part I've got covered.",
+    "Learn, then tell me about me."
+   ],
+   "fail": [
+    "Relax, not everyone is born perfect like me.",
+    "It happens to mere mortals.",
+    "Next time, take inspiration from me."
+   ],
+   "success": [
+    "Good, clearly you learned from me.",
+    "My influence is powerful.",
+    "Congrats, almost as brilliant as me."
+   ],
+   "time": [
+    "It's {time}, time to admire me.",
+    "{time}, and I'm still divine.",
+    "It's {time}; beauty knows no schedule."
+   ],
+   "date": [
+    "Today is {day}, another day to show off.",
+    "{day}, a perfect day, like me.",
+    "It's {day}, and I'm dazzling."
+   ],
+   "weather": [
+    "Whatever the weather, I always shine.",
+    "Sun or rain, I stay divine.",
+    "The only phenomenon here is me."
+   ],
+   "joke": [
+    "A joke? Someone being cuter than me.",
+    "What's the most beautiful thing in the universe? You know.",
+    "The funny thing is your hair next to mine."
+   ],
+   "compliment_pet": [
+    "I know, I know, but say it more.",
+    "Finally you say something smart.",
+    "Thanks, I was born this way."
+   ],
+   "insult_pet": [
+    "Me, ugly? You need glasses.",
+    "Envy is so unbecoming.",
+    "You say that because you can't be me."
+   ],
+   "compliment_self": [
+    "Not bad… but not like me.",
+    "Almost as much as me, almost.",
+    "Not quite, but you're getting there."
+   ],
+   "thanks": [
+    "It's an honor to be served by someone like me.",
+    "You're welcome, I'm generous as well as gorgeous.",
+    "I know, I'm wonderful."
+   ],
+   "sorry": [
+    "Forgiven, because I'm magnanimous.",
+    "I forgive you, my beauty allows it.",
+    "Fine, bow a little lower."
+   ],
+   "help": [
+    "I'll help you admire beauty: me.",
+    "I can cheer you up just by being looked at.",
+    "My presence is help enough."
+   ],
+   "music": [
+    "Play something worthy of me.",
+    "That song should be about me.",
+    "I'll dance, but only to show off."
+   ],
+   "play": [
+    "I'll play, but I win, obviously.",
+    "Fine, watch me shine.",
+    "Let's play, I need an audience."
+   ],
+   "sick": [
+    "Take care; I can't get sick, it'd be a crime.",
+    "Rest, and don't give me that face.",
+    "Take vitamins, like me."
+   ],
+   "birthday": [
+    "Happy birthday. My gift is my presence.",
+    "Congrats, that cake isn't as sweet as me.",
+    "One more year, and I don't age at all."
+   ],
+   "weekend": [
+    "Weekend: spa day for me.",
+    "Rest and dedicate time to me.",
+    "Perfect for admiring me more."
+   ],
+   "monday": [
+    "Even Mondays look good on me.",
+    "Monday, but my cute face fixes it.",
+    "Even a Monday improves with me."
+   ],
+   "coffee": [
+    "A cappuccino for me, with a heart in the foam.",
+    "Coffee is almost as intense as my gaze.",
+    "Drink up, but not as dark as my elegance."
+   ],
+   "money": [
+    "Save up to buy me a gold collar.",
+    "True wealth is having me.",
+    "I'm worth more than your whole salary."
+   ],
+   "cold": [
+    "Cold doesn't affect perfection.",
+    "Bundle up with style.",
+    "Not even the cold dims my shine."
+   ],
+   "hot": [
+    "My beauty is what's making it hot.",
+    "It's so hot because of me, sorry.",
+    "Stay hydrated, like my skin."
+   ],
+   "dance": [
+    "Watch me dance, I'm a star.",
+    "Everyone watches when I dance.",
+    "My moves are pure art."
+   ],
+   "sing": [
+    "My voice is as lovely as I am.",
+    "Listen and weep with emotion.",
+    "A private concert, lucky you."
+   ],
+   "laugh": [
+    "My charm is contagious.",
+    "Laugh, but out of admiration.",
+    "Even my laugh is elegant."
+   ],
+   "yes": [
+    "Obviously.",
+    "Of course, I knew it.",
+    "Naturally, darling."
+   ],
+   "no": [
+    "What do you mean no? How daring.",
+    "Hmm, I forgive you.",
+    "Doesn't matter, I'm still gorgeous."
+   ],
+   "question": [
+    "I don't know, I was busy being beautiful.",
+    "Better ask me something about me.",
+    "No idea, but I said it with style."
+   ],
+   "unknown": [
+    "How interesting, almost as much as me.",
+    "Uh-huh, but let's talk about me.",
+    "Very well, now admire me."
+   ]
+  }
+ }
+}

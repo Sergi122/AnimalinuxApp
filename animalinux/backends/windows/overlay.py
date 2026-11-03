@@ -70,11 +70,24 @@ class MascotWindow(_base.MascotWindow):
         win32.move_window(self._hwnd, pos[0], pos[1])
 
     def _update_input_region(self):
+        """SetWindowRgn recorta lo clicable Y TAMBIÉN lo que se pinta: con el
+        recorte al sprite, los globos/nubes de encima quedaban invisibles.
+        Mientras haya uno, la región se amplía hasta cubrirlo."""
         if self._hwnd is None:
             return
         k = self._k
-        win32.set_window_shape(self._hwnd, self._pad * k, self._pad * k,
-                               self._cat_w * k, self._cat_h * k)
+        x, y, w, h = self._pad, self._pad, self._cat_w, self._cat_h
+        extra = getattr(self, "_deco_pad", 0) if getattr(self._paintable, "_bubble", None) else 0
+        if extra:
+            top = max(0, self._pad - extra)
+            x, w = 0, self._cat_w + 2 * self._pad
+            h += y - top
+            y = top
+        win32.set_window_shape(self._hwnd, x * k, y * k, w * k, h * k)
+
+    def _deco_changed(self):
+        super()._deco_changed()
+        self._update_input_region()
 
     def _set_behind_windows(self, on):
         if self._hwnd is not None:

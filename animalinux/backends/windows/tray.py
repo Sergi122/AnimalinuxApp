@@ -30,14 +30,17 @@ TPM_RIGHTBUTTON, TPM_RETURNCMD, TPM_BOTTOMALIGN = 0x0002, 0x0100, 0x0020
 ID_SHOW, ID_QUIT, ID_UPDATE = 1, 2, 3
 ID_BALL, ID_YARN, ID_CLEAR, ID_POMO, ID_DND, ID_PLAY = 10, 11, 12, 13, 14, 15
 ID_FOOT, ID_VOLLEY, ID_BASKET, ID_PINGPONG, ID_TENNIS = 16, 17, 18, 19, 20
+ID_TALK, ID_TALK_TYPE = 21, 22
 # órdenes que otra instancia puede enviar por WM_COPYDATA (nada más se ejecuta)
 _ALLOWED_ARGS = {"--show", "--quit", "--daemon", "--update",
                  "--toy", "--pomodoro", "--dnd", "--play",
                  "ball", "yarn", "clear", "toggle", "on", "off", "tag", "hide",
-                 "--sport", "football", "volley", "basket", "pingpong", "tennis"}
+                 "--sport", "football", "volley", "basket", "pingpong", "tennis",
+                 "--talk", "--talk-type"}
 MAX_COPYDATA = 256
 
-_MENU_ARGS = {ID_BALL: ("--toy", "ball"), ID_YARN: ("--toy", "yarn"),
+_MENU_ARGS = {ID_TALK: ("--talk",), ID_TALK_TYPE: ("--talk-type",),
+              ID_BALL: ("--toy", "ball"), ID_YARN: ("--toy", "yarn"),
               ID_CLEAR: ("--toy", "clear"), ID_POMO: ("--pomodoro",),
               ID_DND: ("--dnd",), ID_PLAY: ("--play",),
               ID_FOOT: ("--sport", "football"), ID_VOLLEY: ("--sport", "volley"),
@@ -204,6 +207,8 @@ class Tray:
         user32.AppendMenuW(m, MF_STRING, ID_SHOW, tr("⚙  Configurar"))
         user32.AppendMenuW(m, MF_STRING, ID_UPDATE, tr("⬆  Buscar actualizaciones"))
         user32.AppendMenuW(m, MF_SEPARATOR, 0, None)
+        user32.AppendMenuW(m, MF_STRING, ID_TALK, tr("🎤  Hablar con tu mascota"))
+        user32.AppendMenuW(m, MF_STRING, ID_TALK_TYPE, tr("💬  Escribirle a tu mascota"))
         user32.AppendMenuW(m, MF_STRING, ID_BALL, tr("⚽  Lanzar una pelota"))
         user32.AppendMenuW(m, MF_STRING, ID_YARN, tr("🧶  Lanzar un ovillo"))
         user32.AppendMenuW(m, MF_STRING, ID_CLEAR, tr("🧺  Guardar los juguetes"))

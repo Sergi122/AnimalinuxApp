@@ -78,7 +78,9 @@ def main():
 
     menu.append(Gtk.SeparatorMenuItem())
 
-    for label, args in ((tr("⚽  Lanzar una pelota"), ("--toy", "ball")),
+    for label, args in ((tr("🎤  Hablar con tu mascota"), ("--talk",)),
+                        (tr("💬  Escribirle a tu mascota"), ("--talk-type",)),
+                        (tr("⚽  Lanzar una pelota"), ("--toy", "ball")),
                         (tr("🧶  Lanzar un ovillo"), ("--toy", "yarn")),
                         (tr("🧺  Guardar los juguetes"), ("--toy", "clear")),
                         (tr("🎲  ¡A jugar!"), ("--play",)),
@@ -101,6 +103,17 @@ def main():
 
     menu.show_all()
     indicator.set_menu(menu)
+    # si la app principal muere sin avisar (cuelgue, kill -9), esta bandeja
+    # quedaría huérfana para siempre: al cambiar de padre, se cierra sola
+    from gi.repository import GLib
+    parent = os.getppid()
+
+    def _parent_alive():
+        if os.getppid() != parent:
+            Gtk.main_quit()
+            return False
+        return True
+    GLib.timeout_add_seconds(3, _parent_alive)
     Gtk.main()
     return 0
 

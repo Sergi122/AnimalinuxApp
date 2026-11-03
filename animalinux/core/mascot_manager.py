@@ -82,6 +82,7 @@ class MascotManager:
         comp = getattr(self.app, "companion", None)
         if comp is not None:
             win.set_mood(comp.mood_now())
+        self._talk_pets_changed()
         if self.hidden:
             win.set_paused(True)
             win.set_visible(False)
@@ -144,6 +145,12 @@ class MascotManager:
             win = self.mascots.pop(anim_id, None)
             if win:
                 win.destroy_window()
+                self._talk_pets_changed()
+
+    def _talk_pets_changed(self):
+        talk = getattr(self.app, "talk", None)
+        if talk is not None:
+            talk.pets_changed()
 
     def set_fps(self, anim_id, fps):
         win = self.mascots.get(anim_id)

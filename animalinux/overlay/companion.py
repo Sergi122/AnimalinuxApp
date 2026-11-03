@@ -22,20 +22,58 @@ inventa cuadros.
 """
 import math
 import random
+import time
 
 from gi.repository import GLib
 
 from . import bubble as _bubble
+
+Cloud_CPS = _bubble.Cloud.CPS
 
 # poses opcionales nuevas (ver folderimport.KNOWN_POSES y la guía del panel)
 EXTRA_POSES = ("dance", "tired", "worried", "surprised", "stretch")
 
 # estados que maneja este módulo (no los toca el tick de LiveAnimationMixin)
 STATES = frozenset({"dance", "chase", "flee", "look_up", "stretch",
-                    "to_hide", "hidden", "seek_sleep", "count"})
+                    "to_hide", "hidden", "seek_sleep", "count", "talk"})
+TALK_MAX_TICKS = 600    # red de seguridad: ~36 s quieta hablando como mucho
+CLOUD_STUCK_S = 25      # nube «escuchando/pensando» sin respuesta: se cierra
 
 CHASE_TTL = 90          # ticks (~5 s) sin nuevas órdenes → abandona
 SPEED_RUN = 6           # px/tick base al correr (se escala por tamaño)
+
+
+_GAP_CACHE = {}
+
+
+def _top_gap(tex):
+    """Fracción de la altura de la textura que está vacía ARRIBA (la caja del
+    sprite es la unión de todas las poses: en reposo suele sobrar espacio
+    sobre la cabeza). Se calcula una vez por textura."""
+    if tex is None:
+        return 0.0
+    key = id(tex)
+    if key in _GAP_CACHE:
+        return _GAP_CACHE[key]
+    frac = 0.0
+    try:
+        import numpy as np
+        from gi.repository import Gdk
+        dl = Gdk.TextureDownloader.new(tex)
+        dl.set_format(Gdk.MemoryFormat.R8G8B8A8)
+        data, stride = dl.download_bytes()
+        h, w = tex.get_height(), tex.get_width()
+        a = np.frombuffer(data.get_data(), dtype=np.uint8)[: h * stride]
+        alpha = a.reshape(h, stride)[:, 3:w * 4:4]
+        rows = np.flatnonzero((alpha > 24).any(axis=1))
+        if rows.size:
+            frac = float(rows[0]) / h
+    except Exception:  # noqa: BLE001
+        frac = 0.0
+    if len(_GAP_CACHE) > 256:
+        _GAP_CACHE.clear()
+    _GAP_CACHE[key] = frac
+    return frac
 
 
 class CompanionMixin:
@@ -51,6 +89,11 @@ class CompanionMixin:
     _hidden_layer = False
     _sleep_x = None
     _stretch_t = 0
+    _cloud = None           # bubble.Cloud mientras hablas con ella
+    _cloud_id = 0
+    _cloud_last = 0.0
+    _cloud_hold = 0.0       # instante en que la nube se cierra sola
+    _cloud_size = None
 
     # ───────────────────────── utilidades ──────────────────────────────────
     def _pose_or(self, *names):
@@ -77,10 +120,12 @@ class CompanionMixin:
 
     # ───────────────────────── globos / cartel ─────────────────────────────
     def _show_bubble(self, b):
+        if self._cloud is not None and b is not self._cloud:
+            return                       # la nube de la charla manda
         self._paintable.set_bubble(b)
         need = 0
         if b is not None:
-            _tex, bw, bh, anchor = b
+            bw, bh, anchor = _bubble.bubble_size(b)
             need = int(max(bw / 2 - self._cat_w / 2, bh - anchor)) + 8
         if need != self._deco_pad:
             self._deco_pad = need
@@ -112,6 +157,110 @@ class CompanionMixin:
         self._sign_bubble = _bubble.render(text, "sign") if text else None
         if self._say_bubble is None:
             self._show_bubble(self._sign_bubble)
+
+    # ───────────────────────── hablar: nube animada ────────────────────────
+    def talk_listen(self):
+        """Te oyó llamarla: levanta la cabeza y abre la nube con «…»."""
+        self._cloud_open("listen")
+
+    def talk_think(self):
+        self._cloud_open("think")
+
+    def talk_say(self, text, final=True):
+        """Escribe `text` en la nube (crece si llega en trozos). final=True:
+        se queda un rato proporcional al texto y se cierra sola."""
+        self._cloud_open("say", text)
+        if final:
+            secs = 3.2 + len(text) / Cloud_CPS + len(text) * 0.045
+            self._cloud_hold = time.monotonic() + min(14.0, secs)
+            self._talk_hop()
+        else:
+            self._cloud_hold = 0.0
+
+    def talk_close(self):
+        if self._cloud is not None:
+            self._cloud.close()
+
+    def is_talking(self):
+        return self._cloud is not None
+
+    def _cloud_open(self, mode, text=""):
+        if self._cloud is None or self._cloud.closing_at is not None:
+            self._cloud = _bubble.Cloud(mode, text)
+            self._cloud_size = None
+            frac = _top_gap(getattr(self._paintable, "_tex", None))
+            self._cloud.head_frac = frac
+            self._cloud.head_px = frac * self._cat_h
+        else:
+            self._cloud.set(mode, text)
+        self._cloud_hold = 0.0
+        self._talk_pose(mode)
+        self._cloud_relayout()
+        if not self._cloud_id:
+            self._cloud_last = time.monotonic()
+            self._cloud_id = GLib.timeout_add(33, self._cloud_tick)
+
+    def _talk_pose(self, mode):
+        if self.mode != "life" or self.is_busy() and self._state != "talk":
+            return
+        if self._state == "sleep":
+            self._wake_soft()
+        if self._state != "talk":
+            self._state = "talk"
+            self._speed = 0
+            self._chase_x = None
+        self._state_ttl = TALK_MAX_TICKS
+        self._set_pose(self._pose_or("greet", "idle") if mode == "listen"
+                       else self._pose_or("idle"))
+
+    def _talk_hop(self):
+        if self.mode == "life" and self._state == "talk" and self._on_ground():
+            self._squash(1.08, 0.9)
+
+    def _cloud_relayout(self):
+        c = self._cloud
+        if c is None:
+            return
+        half = c.size()[0] / 2.0
+        cx = self._x + self._cat_w / 2.0
+        lo, hi = half + 4, self._screen_w - half - 4
+        want = min(max(cx, lo), hi) if hi > lo else cx
+        c.shift_x = want - cx
+        size = c.size()
+        if size != self._cloud_size:
+            self._cloud_size = size
+            self._show_bubble(c)
+
+    def _cloud_tick(self):
+        c = self._cloud
+        if c is None:
+            self._cloud_id = 0
+            return False
+        now = time.monotonic()
+        dt, self._cloud_last = now - self._cloud_last, now
+        c.step(dt)
+        if c.closing_at is None and self._cloud_hold and now >= self._cloud_hold \
+                and c.typing_done():
+            c.close()
+        # red de seguridad: escuchando/pensando sin respuesta (micrófono que
+        # falló, IA colgada…) no se queda abierta para siempre
+        if c.closing_at is None and c.mode in ("listen", "think") \
+                and now - c.mode_t > CLOUD_STUCK_S:
+            c.close()
+        if c.finished():
+            self._cloud = None
+            self._cloud_id = 0
+            self._cloud_hold = 0.0
+            self._cloud_size = None
+            self._show_bubble(self._say_bubble or self._sign_bubble)
+            if self._state == "talk":
+                self._state = "rest"
+                self._rest_ttl = random.randint(6, 14)
+                self._set_pose(self._pose_or("idle"))
+            return False
+        self._cloud_relayout()
+        self._paintable.invalidate_contents()
+        return True
 
     # ───────────────────────── reacciones al sistema ───────────────────────
     def set_mood(self, mood):
@@ -357,6 +506,14 @@ class CompanionMixin:
         if st == "hidden":
             return True
 
+        if st == "talk":
+            self._state_ttl -= 1
+            if self._state_ttl <= 0 or self._cloud is None:
+                self._state = "rest"
+                self._rest_ttl = 6
+                self._set_pose(self._pose_or("idle"))
+            return True
+
         self._chase_ttl -= 1
         if self._chase_ttl <= 0:
             if st == "to_hide":
@@ -430,6 +587,15 @@ class CompanionMixin:
             return 1.0 + (1.0 - sy) * 0.8, sy, 7.0 * math.sin(p) + 4 * self._dir, 0.07 * air
         if st == "count":
             return 1.0, 1.0, 0.0, 0.0
+        if st == "talk":
+            c = self._cloud
+            if c is not None and c.mode == "say" and not c.typing_done():
+                b = abs(math.sin(t * 1.9))           # «habla»: rebotito
+                return 1.0 + 0.025 * b, 1.0 - 0.04 * b, 0.0, 0.02 * b
+            if c is not None and c.mode == "listen":
+                return 1.0, 1.0, (-6.0 if not self._facing_left else 6.0), 0.0
+            b = math.sin(t * 0.6)
+            return 1.0 + 0.01 * b, 1.0 - 0.015 * b, 0.0, 0.0
         if st in ("idle", "rest"):
             if self._mood == "tired":                 # jadea, cabizbaja
                 b = math.sin(t * 0.9)

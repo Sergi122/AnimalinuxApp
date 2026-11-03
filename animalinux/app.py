@@ -9,6 +9,8 @@ Modos (argumentos):
   (sin args) / --daemon : arranca el servicio + mascotas (para el autostart)
   --show                : abre la ventana de configuración
   --quit                : cierra todo
+  --talk                : hablar con la mascota (escucha una frase)
+  --talk-type           : escribirle a la mascota
 """
 import gi
 
@@ -38,6 +40,7 @@ class AnimaApp(Gtk.Application):
         self._fs_watch = None
         self._prox_id = None
         self.companion = None
+        self.talk = None
 
     # ------------------------------------------------------------------
     def do_command_line(self, command_line):
@@ -99,6 +102,11 @@ class AnimaApp(Gtk.Application):
         from .core.companion import Companion
         self.companion = Companion(self)
         self.companion.start()
+        # hablar con la mascota: se arranca cuando ya salieron las mascotas
+        from .talk.brain import TalkBrain
+        self.talk = TalkBrain(self)
+        n = len(self.library.active())
+        GLib.timeout_add(n * 400 + 1500, lambda: self.talk.start() and False)
         # buscar versiones nuevas cada vez que se abre la app
         GLib.timeout_add_seconds(3, lambda: self._check_updates() and False)
 
@@ -180,6 +188,11 @@ class AnimaApp(Gtk.Application):
         sport = val("--sport", "football")
         if sport:
             self.show_match_menu(sport)
+        if self.talk is not None:
+            if "--talk" in args:
+                self.talk.ask()
+            if "--talk-type" in args:
+                self.talk.open_type()
 
     def show_match_menu(self, sport=None):
         from .ui.match_dialog import MatchWindow
@@ -278,6 +291,8 @@ class AnimaApp(Gtk.Application):
         return False
 
     def quit_all(self):
+        if self.talk is not None:
+            self.talk.stop()
         if self.companion is not None:
             self.companion.stop()
         self.manager.destroy_all()

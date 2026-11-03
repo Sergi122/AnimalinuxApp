@@ -255,6 +255,10 @@ def cam_key(cam, prev=None):
 
 
 # ── escena ───────────────────────────────────────────────────────────────────
+MAX_LOAD_LAYERS = 200        # topes al abrir un .alproj ajeno
+MAX_LOAD_DRAWINGS = 5000
+
+
 def safe_audio(path):
     """Ruta de audio utilizable o None. Un .alproj ajeno controla este campo y
     acaba en la línea de comandos de mpv/ffmpeg: solo se admite una ruta
@@ -601,6 +605,19 @@ class Scene:
             if v == 1: return cls._load_v1(zf, meta)
         raise ValueError("Versión de proyecto no soportada")
 
+    @staticmethod
+    def _read_img(zf, name, w, h):
+        """Imagen de un .alproj ajeno: se mide ANTES de decodificarla. Un PNG
+        de pocos KB puede declarar 20000×20000 px y agotar la RAM («bomba de
+        descompresión»); además debe medir lo mismo que el lienzo."""
+        try:
+            im = Image.open(io.BytesIO(zf.read(name)))
+        except Image.DecompressionBombError as e:
+            raise ValueError("Imagen del proyecto demasiado grande") from e
+        if im.size != (w, h):
+            raise ValueError("Imagen del proyecto con tamaño distinto al lienzo")
+        return np.array(im.convert("RGBA"))
+
     @classmethod
     def _load_v2(cls, zf, meta):
         sc = cls(meta["w"], meta["h"], meta.get("fps", 12))
@@ -609,15 +626,21 @@ class Scene:
         sc.start, sc.stop = meta.get("start", 0), meta.get("stop", meta["frames"] - 1)
         sc.cam_keys = {int(k): v for k, v in meta.get("cam_keys", {}).items()}
         sc.audio = safe_audio(meta.get("audio"))
+        if len(meta["layers"]) > MAX_LOAD_LAYERS:
+            raise ValueError("Proyecto con demasiadas capas")
         for lm in meta["layers"]:
+            if len(lm["drawings"]) > MAX_LOAD_DRAWINGS or len(lm["exposure"]) > 5000:
+                raise ValueError("Proyecto con demasiados dibujos")
             l = Layer(lm["name"], lm["kind"], 0)
             l.apply_meta({k: lm[k] for k in ("visible", "locked", "alpha_locked", "opacity", "blend", "onion") if k in lm})
             l.exposure = list(lm["exposure"])
             for dm in lm["drawings"]:
                 if "img" in dm:
-                    arr = np.array(Image.open(io.BytesIO(zf.read(dm["img"]))).convert("RGBA"))
+                    arr = cls._read_img(zf, dm["img"], sc.w, sc.h)
                     l.drawings.append(Drawing(sc.w, sc.h, "raster", arr))
                 else:
+                    if len(dm["strokes"]) > 20000 or sum(len(x["pts"]) for x in dm["strokes"]) > 2_000_000:
+                        raise ValueError("Proyecto con demasiados trazos")
                     d = Drawing(sc.w, sc.h, "vector")
                     d.strokes = [{**s, "pts": [tuple(p) for p in s["pts"]], "color": tuple(s["color"]),
                                   "fill": tuple(s["fill"]) if s.get("fill") else None}
@@ -636,6 +659,8 @@ class Scene:
         sc.frame_count = len(frames)
         sc.layers = []
         nl = max(len(fr["layers"]) for fr in frames)
+        if nl > MAX_LOAD_LAYERS:
+            raise ValueError("Proyecto con demasiadas capas")
         for li in range(nl):
             first = next((fr["layers"][li] for fr in frames if li < len(fr["layers"])), None)
             l = Layer(first["name"] if first else tr("Dibujo {n}", n=li + 1), "raster", len(frames))
@@ -645,7 +670,7 @@ class Scene:
                               "opacity": first.get("opacity", 255), "blend": first.get("blend_mode", "Normal")})
             for fi, fr in enumerate(frames):
                 if li >= len(fr["layers"]): continue
-                arr = np.array(Image.open(io.BytesIO(zf.read(fr["layers"][li]["img"]))).convert("RGBA"))
+                arr = cls._read_img(zf, fr["layers"][li]["img"], w, h)
                 if not arr[..., 3].any(): continue
                 l.drawings.append(Drawing(w, h, "raster", arr))
                 l.exposure[fi] = len(l.drawings) - 1
