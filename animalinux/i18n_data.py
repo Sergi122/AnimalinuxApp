@@ -604,6 +604,8 @@ TR.update({"Comunidad": ("Community", "Comunidade", "Communauté", "Community", 
 TR.update({
 "Animaciones de la comunidad": ("Community animations", "Animações da comunidade", "Animations de la communauté", "Community-Animationen", "コミュニティのアニメーション", "社区动画"),
 "Descarga packs de la comunidad y sube los tuyos": ("Download community packs and upload your own", "Baixe pacotes da comunidade e envie os seus", "Téléchargez des packs de la communauté et publiez les vôtres", "Lade Community-Pakete herunter und lade deine eigenen hoch", "コミュニティのパックをダウンロードし、自作パックをアップロード", "下载社区资源包,并上传你自己的"),
+"Únete al Discord": ("Join the Discord", "Entre no Discord", "Rejoindre le Discord", "Dem Discord beitreten", "Discordに参加", "加入 Discord"),
+"Entra al servidor de Discord de la comunidad: novedades, ayuda y tus mascotas": ("Join the community Discord server: news, help and your pets", "Entre no servidor do Discord da comunidade: novidades, ajuda e seus mascotes", "Rejoins le serveur Discord de la communauté : nouveautés, aide et tes mascottes", "Tritt dem Discord-Server der Community bei: Neuigkeiten, Hilfe und deine Haustiere", "コミュニティのDiscordサーバーへ: 最新情報、サポート、あなたのペット", "加入社区 Discord 服务器:新闻、帮助和你的宠物"),
 })
 
 TR.update({

@@ -18,6 +18,7 @@ from ..overlay import BACKEND
 from ..backends import current as _backend_mod
 from ..overlay.live_animation import MANDATORY_POSES
 from ..i18n import t, tr, N_
+from ..community import DISCORD
 from . import guide_widgets as gw
 
 
@@ -246,6 +247,11 @@ class ControlWindow(Gtk.ApplicationWindow):
         comb.set_tooltip_text(tr("Descarga packs de la comunidad y sube los tuyos"))
         comb.connect("clicked", lambda _: open_url("https://animalinux-community.web.app/"))
         bar.append(comb)
+        disc = Gtk.Button(label="💬  " + tr("Únete al Discord"))
+        disc.add_css_class("pill")
+        disc.set_tooltip_text(tr("Entra al servidor de Discord de la comunidad: novedades, ayuda y tus mascotas"))
+        disc.connect("clicked", lambda _: open_url(DISCORD))
+        bar.append(disc)
         imp = Gtk.MenuButton(label=t("ctl_import") + " ▾")
         imp.add_css_class("pill")
         pop = Gtk.Popover()
@@ -310,7 +316,9 @@ class ControlWindow(Gtk.ApplicationWindow):
         tour.connect("clicked", lambda _: self._show_tour(force=True))
         com = Gtk.Button(label=t("empty_comm")); com.add_css_class("pill")
         com.connect("clicked", lambda _: open_url("https://animalinux-community.web.app/"))
-        for b in (cta, tour, com):
+        dsc = Gtk.Button(label="💬  " + tr("Únete al Discord")); dsc.add_css_class("pill")
+        dsc.connect("clicked", lambda _: open_url(DISCORD))
+        for b in (cta, tour, com, dsc):
             self._empty_btns.append(b)
         box.append(self._empty_btns)
         return box

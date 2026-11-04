@@ -20,6 +20,7 @@ from pathlib import Path
 SUPABASE_URL = "https://vutmbldvzgqcqenuzjav.supabase.co"
 SUPABASE_ANON = "sb_publishable_TpezmyjjZmEoDeP47E8h7A_IjJ4maa9"
 GALLERY = "https://animalinux-community.web.app/"
+DISCORD = "https://discord.gg/wshjY2WChB"  # invitación permanente al servidor oficial
 MAX_MB = 50
 
 
