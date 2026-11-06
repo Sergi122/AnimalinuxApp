@@ -70,8 +70,12 @@ class TalkBrain:
 
     # ── arranque / parada ─────────────────────────────────────────────────
     def start(self):
-        self.refresh_status()
-        self.apply()
+        # apply() necesita el estado (micrófono, vosk, modelo de voz), que se
+        # revisa en segundo plano: aplicarlo cuando termine. Antes se llamaba
+        # en seguida con el estado vacío y la escucha «oye <nombre>» nunca
+        # arrancaba al abrir la app (solo al abrir la ventana de Hablar).
+        self._set_mic_button(bool(cfg("talk_enabled")) and bool(cfg("talk_mic_button")))
+        self.refresh_status(done=self.apply)
 
     def stop(self):
         if self.listener is not None:
@@ -86,6 +90,7 @@ class TalkBrain:
         """Aplica la configuración (la llama la ventana al cambiar algo)."""
         on = bool(cfg("talk_enabled"))
         self._set_mic_button(on and bool(cfg("talk_mic_button")))
+        self._auto_whisper(on)
         if on and cfg("talk_wake") and self._voice_ready():
             self._ensure_listener()
             self.listener.set_names(self.wake_names())
@@ -94,6 +99,17 @@ class TalkBrain:
             self.listener.stop_wake()
             self.listener.release()
         self._notify()
+
+    def set_listening(self, on=None):
+        """Prende/apaga la escucha «oye <nombre>» (None = alternar). Apagada,
+        el micrófono queda libre; el botón de micrófono sigue funcionando."""
+        if on is None:
+            on = not (cfg("talk_enabled") and cfg("talk_wake"))
+        settings.set_val("talk_wake", bool(on))
+        if on:
+            settings.set_val("talk_enabled", True)
+        self.apply()
+        return on
 
     def pets_changed(self):
         if self.listener is not None and self.listener.state != "off":
@@ -521,14 +537,37 @@ class TalkBrain:
                 voice.download_model(lang, lambda f: GLib.idle_add(on_progress, f))
             except Exception as e:  # noqa: BLE001
                 err = str(e)[:200]
-            GLib.idle_add(lambda: (on_done(err), self.refresh_status(self.apply), False)[2])
+            if not err and cfg("talk_whisper") and voice.can_install_whisper():
+                try:   # Whisper de fábrica: se baja junto con la voz
+                    voice.ensure_whisper()
+                except Exception as e:  # noqa: BLE001
+                    self.last_error = f"Whisper: {str(e)[:160]}"
+            GLib.idle_add(lambda: (on_done(err), self.refresh_status(self._after_voice), False)[2])
         threading.Thread(target=work, daemon=True).start()
+
+    def _auto_whisper(self, on):
+        """Whisper viene de fábrica: con la voz lista y sin Whisper, se instala
+        y se baja solo una vez por sesión (Vosk solo confunde muchas palabras)."""
+        if (not on or getattr(self, "_wh_auto", False) or not cfg("talk_whisper")
+                or not self._voice_ready() or not voice.can_install_whisper()
+                or (self.status.get("whisper_pkg") and self.status.get("whisper"))):
+            return
+        self._wh_auto = True
+        self.whisper_busy = True
+        self._notify()
+
+        def done(err):
+            self.whisper_busy = False
+            if err:
+                self.last_error = f"Whisper: {err}"
+            self._notify()
+        self.download_whisper(done)
 
     def download_whisper(self, on_done):
         def work():
             err = ""
             try:
-                voice.download_whisper()
+                voice.ensure_whisper()
             except Exception as e:  # noqa: BLE001
                 err = str(e)[:200]
             def fin():
@@ -539,6 +578,11 @@ class TalkBrain:
                 return False
             GLib.idle_add(fin)
         threading.Thread(target=work, daemon=True).start()
+
+    def _after_voice(self):
+        if self.listener is not None and voice.whisper_available() and voice.whisper_installed():
+            self.listener.whisper = voice.Whisper()
+        self.apply()
 
     def download_model(self, name, on_progress, on_done):
         def work():

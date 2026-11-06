@@ -396,7 +396,11 @@ def norm_text(t):
 
 
 # ── Whisper (opcional): transcripción precisa de la frase ───────────────────
-WHISPER_MODEL = "base"          # ~145 MB; «small» (~460 MB) entiende algo más y tarda ×3
+# Medido el 05-nov-2026 con 120 frases (4 voces, ruido de laptop, nombres de
+# mascotas): base 83 %, small 94,5 %, small con beam 5 96,1 % (~1,5 s por
+# frase en CPU), large-v3-turbo 99,3 % (5 s en CPU; en GPU ver GPU_MODEL).
+WHISPER_MODEL = "small"         # ~460 MB, modelo de CPU (y respaldo si la GPU falla)
+CPU_BEAM = 5
 # frase de ejemplo que orienta el estilo: en español, tuteo latino («estás»,
 # no «estáis»), que es como se le habla a una mascota
 WHISPER_HINT = {"es": "Hola, ¿cómo estás? ¿Qué estás haciendo? Tengo hambre.",
@@ -407,52 +411,218 @@ def whisper_available():
     return _has_module("faster_whisper")
 
 
-def whisper_dir():
-    return models_root() / f"whisper-{WHISPER_MODEL}"
+# ── GPU NVIDIA (CUDA) ───────────────────────────────────────────────────────
+# Con tarjeta NVIDIA, Whisper corre en la GPU con el modelo grande
+# «large-v3-turbo» (mucho más preciso y aun así más rápido que «base» en CPU).
+# Las librerías de CUDA que faltan (cuBLAS, cuDNN) se instalan con pip en el
+# usuario: no hace falta el paquete «cuda» del sistema.
+GPU_MODEL = "large-v3-turbo"    # ~1,6 GB
+CUDA_PIP = ("nvidia-cublas-cu12", "nvidia-cudnn-cu12>=9,<10")
+_cuda_ok = None
 
 
-def whisper_installed():
-    d = whisper_dir()
+def nvidia_present():
+    if sys.platform == "win32":
+        return bool(shutil.which("nvidia-smi"))
+    return os.path.exists("/proc/driver/nvidia/version")
+
+
+def _cuda_libs():
+    """Rutas de libcublas/libcudnn instaladas con pip (paquetes nvidia-*)."""
+    import site
+    roots = [site.getusersitepackages(), *getattr(site, "getsitepackages", lambda: [])()]
+    out = []
+    for r in roots:
+        base = Path(r) / "nvidia"
+        for sub in ("cublas", "cudnn"):
+            d = base / sub / "lib"
+            if d.is_dir():
+                out += sorted(d.glob("*.so*"))
+    return out
+
+
+def preload_cuda():
+    """Carga cuBLAS/cuDNN con RTLD_GLOBAL para que CTranslate2 los encuentre
+    por nombre (poner LD_LIBRARY_PATH con el proceso ya andando no sirve)."""
+    import ctypes
+    libs = _cuda_libs()
+    order = sorted(libs, key=lambda p: (0 if "cublasLt" in p.name else 1 if "cublas" in p.name
+                                        else 2 if p.name.startswith("libcudnn.so") else 3))
+    for p in order:
+        try:
+            ctypes.CDLL(str(p), mode=ctypes.RTLD_GLOBAL)
+        except OSError:
+            pass
+    return bool(libs)
+
+
+def cuda_usable():
+    """¿Puede Whisper usar la GPU? (se prueba una sola vez)."""
+    global _cuda_ok
+    if _cuda_ok is not None:
+        return _cuda_ok
+    _cuda_ok = False
+    if not nvidia_present() or not whisper_available():
+        return False
+    try:
+        import ctranslate2
+        if ctranslate2.get_cuda_device_count() < 1:
+            return False
+        if sys.platform != "win32" and not preload_cuda():
+            return False
+        import ctypes
+        ctypes.CDLL("libcublas.so.12" if sys.platform != "win32" else "cublas64_12.dll")
+        _cuda_ok = True
+    except Exception:  # noqa: BLE001
+        _cuda_ok = False
+    return _cuda_ok
+
+
+def install_cuda_pkgs():
+    if not nvidia_present() or not can_install_whisper() or _cuda_libs():
+        return
+    cmd = [sys.executable, "-m", "pip", "install", "--user", "--quiet", *CUDA_PIP]
+    if sys.platform != "win32":
+        cmd.insert(5, "--break-system-packages")
+    subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=3600)
+
+
+def whisper_model():
+    return GPU_MODEL if cuda_usable() else WHISPER_MODEL
+
+
+def whisper_dir(model=None):
+    return models_root() / f"whisper-{model or whisper_model()}"
+
+
+def whisper_installed(model=None):
+    d = whisper_dir(model)
     return (d / "model.bin").is_file() and (d / "config.json").is_file()
 
 
-def download_whisper(on_progress=None):
+def download_whisper(on_progress=None, model=None):
     """Baja el modelo de Whisper (Hugging Face, HTTPS) a la carpeta de voz."""
     from faster_whisper.utils import download_model
-    d = whisper_dir()
+    model = model or whisper_model()
+    d = whisper_dir(model)
     d.mkdir(parents=True, exist_ok=True)
     if on_progress is not None:
         on_progress(None)
-    download_model(WHISPER_MODEL, output_dir=str(d))
-    if not whisper_installed():
+    download_model(model, output_dir=str(d))
+    if not whisper_installed(model):
         raise VoiceError("el modelo de Whisper no se descargó completo")
     return d
 
 
+def can_install_whisper():
+    """Se puede instalar con pip (no dentro del AnimaWin empaquetado)."""
+    return not getattr(sys, "frozen", False)
+
+
+def install_whisper_pkg():
+    """pip install --user faster-whisper (lo mismo que hace el actualizador)."""
+    if whisper_available():
+        return
+    if not can_install_whisper():
+        raise VoiceError("esta versión empaquetada no puede instalar Whisper")
+    cmd = [sys.executable, "-m", "pip", "install", "--user", "--quiet", "faster-whisper"]
+    if sys.platform != "win32":
+        cmd.insert(5, "--break-system-packages")   # pip --user en distros con PEP 668
+    r = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=1800)
+    import importlib
+    import site
+    importlib.invalidate_caches()
+    usp = site.getusersitepackages()
+    if usp not in sys.path:
+        sys.path.append(usp)
+    if r.returncode != 0 or not whisper_available():
+        raise VoiceError("no se pudo instalar Whisper: " + (r.stderr or r.stdout or "")[-200:])
+
+
+def ensure_whisper(on_progress=None):
+    """Deja Whisper listo: instala el paquete si falta (y CUDA si hay NVIDIA)
+    y baja el modelo que toca. Siempre deja también el de CPU, de respaldo."""
+    global _cuda_ok
+    install_whisper_pkg()
+    if nvidia_present():
+        try:
+            install_cuda_pkgs()
+            _cuda_ok = None
+        except Exception:  # noqa: BLE001
+            pass
+    if not whisper_installed(WHISPER_MODEL):
+        download_whisper(on_progress, WHISPER_MODEL)
+    old = models_root() / "whisper-base"          # modelo de antes (83 %): ya no se usa
+    if WHISPER_MODEL != "base" and old.is_dir():
+        shutil.rmtree(old, ignore_errors=True)
+    if cuda_usable() and not whisper_installed(GPU_MODEL):
+        try:
+            download_whisper(on_progress, GPU_MODEL)
+        except Exception:  # noqa: BLE001
+            pass
+    return whisper_dir()
+
+
+def whisper_prompt(lang, names=()):
+    """Frase de ejemplo + los nombres de las mascotas: así Whisper escribe
+    «Conejo» y no «Con ego»."""
+    hint = WHISPER_HINT.get(lang, "")
+    ns = [n for n in dict.fromkeys(n.strip() for n in names) if n][:20]
+    if ns:
+        hint = (hint + " " + ", ".join(ns) + ".").strip()
+    return hint or None
+
+
 class Whisper:
-    """Carga perezosa: solo ocupa RAM (~200 MB) la primera vez que transcribe."""
+    """Carga perezosa: solo ocupa memoria la primera vez que transcribe. Con
+    NVIDIA usa la GPU; si la GPU falla, sigue con el modelo de CPU."""
 
     def __init__(self):
         self._m = None
+        self.device = None
 
-    def transcribe(self, pcm, lang):
+    def _load(self):
+        from faster_whisper import WhisperModel
+        if self.device != "cpu" and cuda_usable() and whisper_installed(GPU_MODEL):
+            try:
+                self._m = WhisperModel(str(whisper_dir(GPU_MODEL)), device="cuda", compute_type="int8_float16")
+                self.device = "cuda"
+                return
+            except Exception:  # noqa: BLE001
+                pass
+        self._m = WhisperModel(str(whisper_dir(WHISPER_MODEL)), device="cpu", compute_type="int8",
+                               cpu_threads=max(1, min(4, (os.cpu_count() or 2) // 2)))
+        self.device = "cpu"
+
+    def _run(self, x, lang, names):
+        segs, _info = self._m.transcribe(x, language={"zh": "zh"}.get(lang, lang),
+                                         beam_size=1 if self.device == "cuda" else CPU_BEAM,
+                                         without_timestamps=True,
+                                         condition_on_previous_text=False,
+                                         initial_prompt=whisper_prompt(lang, names))
+        return " ".join(s.text for s in segs).strip()
+
+    def transcribe(self, pcm, lang, names=()):
         try:
             import numpy as np
             if self._m is None:
-                from faster_whisper import WhisperModel
-                self._m = WhisperModel(str(whisper_dir()), device="cpu", compute_type="int8",
-                                       cpu_threads=max(1, min(4, (os.cpu_count() or 2) // 2)))
+                self._load()
             x = np.frombuffer(pcm, np.int16).astype(np.float32) / 32768.0
-            segs, _info = self._m.transcribe(x, language={"zh": "zh"}.get(lang, lang),
-                                             beam_size=1, without_timestamps=True,
-                                             condition_on_previous_text=False,
-                                             initial_prompt=WHISPER_HINT.get(lang))
-            return " ".join(s.text for s in segs).strip()
+            try:
+                return self._run(x, lang, names)
+            except Exception:  # noqa: BLE001
+                if self.device != "cuda":
+                    raise
+                self._m, self.device = None, "cpu"      # la GPU falló: seguir en CPU
+                self._load()
+                return self._run(x, lang, names)
         except Exception:  # noqa: BLE001
             return ""
 
     def release(self):
         self._m = None
+        if self.device == "cuda":
+            self.device = None
 
 
 # ── micrófono ───────────────────────────────────────────────────────────────
@@ -614,6 +784,7 @@ class Listener:
         with self._lock:
             self._table = table
             self._vocab_names = vocab
+            self._names = [n for n in names.values() if n]
         return table
 
     # -- control
@@ -852,7 +1023,7 @@ class Listener:
         # Vosk marca el final de la frase; si hay Whisper, él la transcribe
         # (mucho más preciso con voz real) y Vosk queda de respaldo
         if text.strip() and self.whisper is not None:
-            better = self.whisper.transcribe(b"".join(audio), self.lang)
+            better = self.whisper.transcribe(b"".join(audio), self.lang, getattr(self, "_names", ()))
             if better:
                 self._emit("on_debug", "whisper", repr(better), "| vosk", repr(text))
                 text = better

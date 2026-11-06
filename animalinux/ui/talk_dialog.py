@@ -129,7 +129,7 @@ class TalkWindow(Gtk.Window):
         vrow.append(self._vdl_bar)
         box.append(vrow)
         self._wh_lbl = self._label(box, dim=True)
-        self._wh_btn = Gtk.Button(label=tr("✨ Entender mejor tu voz (Whisper, 145 MB)"))
+        self._wh_btn = Gtk.Button(label=tr("✨ Entender mejor tu voz (Whisper, 460 MB)"))
         self._wh_btn.set_halign(Gtk.Align.START)
         self._wh_btn.connect("clicked", self._download_whisper)
         box.append(self._wh_btn)
@@ -432,9 +432,13 @@ class TalkWindow(Gtk.Window):
         # Whisper (transcripción precisa, opcional)
         ready_voice = bool(st.get("vosk") and st.get("mic"))
         has_pkg, has_model = st.get("whisper_pkg"), st.get("whisper")
-        self._wh_btn.set_visible(bool(ready_voice and has_pkg and not has_model))
+        can_pip = voice.can_install_whisper()
+        self._wh_btn.set_visible(bool(ready_voice and not (has_pkg and has_model) and (has_pkg or can_pip)
+                                      and not getattr(b, "whisper_busy", False)))
         self._wh_sw.get_parent().set_visible(bool(ready_voice and has_model))
-        if ready_voice and not has_pkg and sys.platform != "win32":
+        if getattr(b, "whisper_busy", False):
+            self._wh_lbl.set_text(tr("Descargando Whisper…"))
+        elif ready_voice and not has_pkg and not can_pip and sys.platform != "win32":
             self._wh_lbl.set_text(tr("Para entender mejor tu voz instala Whisper: {cmd}",
                                      cmd="paru -S python-faster-whisper"))
         elif not self._wh_lbl.get_text().startswith(tr("Descargando Whisper…")):

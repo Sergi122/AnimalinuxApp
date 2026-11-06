@@ -97,6 +97,21 @@ def main():
 
     menu.append(Gtk.SeparatorMenuItem())
 
+    # escucha «oye <nombre>»: ocupa el micrófono todo el rato, así que se
+    # puede prender/apagar desde aquí sin abrir la configuración
+    def _listening():
+        try:
+            from ... import settings
+            return bool(settings.get("talk_enabled", False) and settings.get("talk_wake", False))
+        except Exception:  # noqa: BLE001
+            return False
+    item_listen = Gtk.CheckMenuItem(label=tr("👂  Escuchar «oye <nombre>» (micrófono)"))
+    item_listen.set_active(_listening())
+    hid = item_listen.connect("toggled", lambda w: _run("--talk-listen", "on" if w.get_active() else "off"))
+    menu.append(item_listen)
+
+    menu.append(Gtk.SeparatorMenuItem())
+
     item_quit = Gtk.MenuItem(label=tr("⏻  Salir de AnimaLinux"))
     item_quit.connect("activate", lambda _w: (_run("--quit"), Gtk.main_quit()))
     menu.append(item_quit)
@@ -112,6 +127,12 @@ def main():
         if os.getppid() != parent:
             Gtk.main_quit()
             return False
+        # si se cambió desde la ventana de Hablar, la casilla lo refleja
+        now = _listening()
+        if item_listen.get_active() != now:
+            item_listen.handler_block(hid)
+            item_listen.set_active(now)
+            item_listen.handler_unblock(hid)
         return True
     GLib.timeout_add_seconds(3, _parent_alive)
     Gtk.main()

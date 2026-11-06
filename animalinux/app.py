@@ -11,6 +11,7 @@ Modos (argumentos):
   --quit                : cierra todo
   --talk                : hablar con la mascota (escucha una frase)
   --talk-type           : escribirle a la mascota
+  --talk-listen [on|off]: prender/apagar la escucha «oye <nombre>» (libera el micrófono)
 """
 import gi
 
@@ -193,6 +194,9 @@ class AnimaApp(Gtk.Application):
                 self.talk.ask()
             if "--talk-type" in args:
                 self.talk.open_type()
+            listen = val("--talk-listen", "toggle")
+            if listen:
+                self.talk.set_listening({"on": True, "off": False}.get(listen))
 
     def show_match_menu(self, sport=None):
         from .ui.match_dialog import MatchWindow

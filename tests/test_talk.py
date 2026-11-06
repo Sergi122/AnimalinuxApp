@@ -659,3 +659,95 @@ def test_new_personas_fall_back_in_other_languages():
     assert r in phrases.load("en")["replies"]["sarcastic"]["hungry"]
     assert phrases.examples("en", "gamer") == []
     assert "slang" in personas.system_prompt("X", "gamer", "en")
+
+
+# ── Whisper de fábrica (05-nov-2026) ───────────────────────────────────────
+def test_whisper_prompt_adds_pet_names():
+    p = voice.whisper_prompt("es", ["Conejo", "Pollito", "Conejo", " ", "Claudio"])
+    assert p.startswith(voice.WHISPER_HINT["es"])
+    assert p.endswith("Conejo, Pollito, Claudio.")
+    assert voice.whisper_prompt("xx", []) is None
+    assert voice.whisper_prompt("xx", ["Panda"]) == "Panda."
+
+
+def test_whisper_cpu_model_is_accurate_one():
+    # base acertaba 83 %; small con beam 5, 96 % (ver comentario en voice.py)
+    assert voice.WHISPER_MODEL == "small" and voice.CPU_BEAM >= 5
+    assert voice.GPU_MODEL == "large-v3-turbo"
+
+
+def test_whisper_falls_back_to_cpu_when_gpu_fails(monkeypatch):
+    calls = []
+
+    class FakeModel:
+        def __init__(self, path, device, **kw):
+            self.device = device
+            calls.append(device)
+
+        def transcribe(self, x, **kw):
+            if self.device == "cuda":
+                raise RuntimeError("Library libcublas.so.12 is not found")
+            assert kw["beam_size"] == voice.CPU_BEAM
+            assert "Conejo" in kw["initial_prompt"]
+
+            class S:
+                text = " Oye Conejo"
+            return [S()], None
+
+    import types
+    fake = types.SimpleNamespace(WhisperModel=FakeModel)
+    monkeypatch.setitem(__import__("sys").modules, "faster_whisper", fake)
+    monkeypatch.setattr(voice, "cuda_usable", lambda: True)
+    monkeypatch.setattr(voice, "whisper_installed", lambda model=None: True)
+    w = voice.Whisper()
+    out = w.transcribe(b"\0\0" * 1600, "es", ["Conejo"])
+    assert out == "Oye Conejo"
+    assert calls == ["cuda", "cpu"] and w.device == "cpu"
+
+
+def test_no_gpu_without_nvidia(monkeypatch):
+    monkeypatch.setattr(voice, "_cuda_ok", None)
+    monkeypatch.setattr(voice, "nvidia_present", lambda: False)
+    assert voice.cuda_usable() is False
+    assert voice.whisper_model() == voice.WHISPER_MODEL
+
+
+def test_install_whisper_pkg_uses_user_pip(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(voice, "whisper_available", lambda: bool(seen))
+    monkeypatch.setattr(voice, "can_install_whisper", lambda: True)
+
+    def run(cmd, **kw):
+        seen["cmd"] = cmd
+
+        class R:
+            returncode = 0
+            stderr = stdout = ""
+        return R()
+    monkeypatch.setattr(voice.subprocess, "run", run)
+    voice.install_whisper_pkg()
+    assert seen["cmd"][1:5] == ["-m", "pip", "install", "--user"]
+    assert "faster-whisper" in seen["cmd"]
+
+
+def test_brain_start_applies_after_status(monkeypatch):
+    from animalinux.talk import brain as brain_mod
+    b = brain_mod.TalkBrain.__new__(brain_mod.TalkBrain)
+    got = {}
+    b._set_mic_button = lambda on: got.setdefault("btn", on)
+    b.refresh_status = lambda done=None: got.setdefault("done", done)
+    b.apply = lambda: None
+    b.start()
+    assert got["done"] == b.apply      # apply corre cuando ya se sabe si hay micrófono
+
+
+def test_set_listening_toggles_and_enables(monkeypatch):
+    from animalinux.talk import brain as brain_mod
+    store = {"talk_enabled": False, "talk_wake": False}
+    monkeypatch.setattr(brain_mod.settings, "get", lambda k, d=None: store.get(k, d))
+    monkeypatch.setattr(brain_mod.settings, "set_val", lambda k, v: store.__setitem__(k, v))
+    b = brain_mod.TalkBrain.__new__(brain_mod.TalkBrain)
+    b.apply = lambda: None
+    assert b.set_listening() is True and store == {"talk_enabled": True, "talk_wake": True}
+    assert b.set_listening() is False and store["talk_wake"] is False
+    assert b.set_listening(True) is True

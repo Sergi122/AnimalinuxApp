@@ -29,6 +29,7 @@ optdepends=(
     'libwnck3: andar por bordes de ventana y pausa en pantalla completa (backend X11: GNOME/KDE/Xfce/MATE/Cinnamon)'
     'ollama: hablar con la mascota usando IA local'
     'python-vosk: hablar con la mascota por voz («ey <nombre>» y micrófono)'
+    'python-faster-whisper: entender bien tu voz (si falta, la app lo instala sola con pip)'
     'pipewire: leer el micrófono con pw-record (o pulseaudio/alsa-utils)'
 )
 makedepends=(
