@@ -11,6 +11,7 @@ from gi.repository import Gio, GLib, Gtk  # noqa: E402
 
 from .. import stickers  # noqa: E402
 from ..i18n import tr  # noqa: E402
+from . import guide_widgets as gw  # noqa: E402
 
 
 class StickerDialog(Gtk.Window):
@@ -19,6 +20,7 @@ class StickerDialog(Gtk.Window):
         super().__init__(title=tr("Exportar como sticker"))
         self.set_transient_for(parent)
         self.set_modal(True)
+        gw.close_header(self)
         self.set_default_size(420, 10)
         self._name, self._fps, self._load = name, fps, frames_loader
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)

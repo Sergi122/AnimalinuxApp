@@ -48,6 +48,25 @@ def find_binary():
     return None
 
 
+def gpu_backend_missing():
+    """¿Hay tarjeta NVIDIA pero el Ollama instalado no trae CUDA? (en Arch el
+    paquete `ollama` es solo CPU; hace falta `ollama-cuda`). Devuelve el
+    comando para arreglarlo, o "" si no hace falta / no se sabe."""
+    if sys.platform == "win32" or not os.path.exists("/proc/driver/nvidia/version"):
+        return ""
+    for d in ("/usr/lib/ollama", "/usr/local/lib/ollama"):
+        p = Path(d)
+        if p.is_dir():
+            try:
+                if any("cuda" in f.name.lower() for f in p.rglob("*")):
+                    return ""
+            except OSError:
+                return ""
+            return ("sudo pacman -S ollama-cuda" if d == "/usr/lib/ollama"
+                    else "curl -fsSL https://ollama.com/install.sh | sh")
+    return ""
+
+
 def _open(path, body=None, timeout=5.0):
     data = None if body is None else json.dumps(body).encode()
     req = urllib.request.Request(BASE + path, data=data,
@@ -262,6 +281,19 @@ def warmup(model):
         return False
     try:
         with _open("/api/generate", {"model": model, "keep_alive": KEEP_ALIVE}, timeout=120) as r:
+            r.read(1 << 16)
+        return True
+    except (OSError, urllib.error.URLError):
+        return False
+
+
+def unload(model):
+    """Saca el modelo de la memoria ya (keep_alive 0), sin esperar los
+    minutos de KEEP_ALIVE. Solo si el servidor ya está corriendo."""
+    if model not in hw.MODELS or not is_running():
+        return False
+    try:
+        with _open("/api/generate", {"model": model, "keep_alive": 0}, timeout=10) as r:
             r.read(1 << 16)
         return True
     except (OSError, urllib.error.URLError):

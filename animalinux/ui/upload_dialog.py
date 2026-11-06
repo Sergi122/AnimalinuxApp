@@ -20,6 +20,7 @@ class UploadWindow(Gtk.Window):
         if parent is not None:
             self.set_transient_for(parent)
         self.set_modal(True)
+        gw.close_header(self)
         self.set_default_size(440, 10)
         self.app, self.aid = app, aid
         anim = app.library.animations.get(aid, {})

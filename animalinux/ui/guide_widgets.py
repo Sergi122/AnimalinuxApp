@@ -92,3 +92,16 @@ def item_row(badge_widget, name, desc=None, tag_text=None, tag_kind="optional",
         pill.set_valign(Gtk.Align.CENTER)
         row.append(pill)
     return row
+
+
+def close_header(win):
+    """Barra de título propia con la X de cerrar.
+
+    Sin esto, en Hyprland (y otros que dicen «yo dibujo los bordes» pero no
+    lo hacen) GTK 4 quita su barra y la ventana queda sin forma de cerrarse
+    con el ratón."""
+    hb = Gtk.HeaderBar()
+    hb.set_show_title_buttons(True)
+    hb.set_decoration_layout(":close")
+    win.set_titlebar(hb)
+    return hb

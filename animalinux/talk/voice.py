@@ -573,13 +573,21 @@ def whisper_prompt(lang, names=()):
     return hint or None
 
 
-class Whisper:
-    """Carga perezosa: solo ocupa memoria la primera vez que transcribe. Con
-    NVIDIA usa la GPU; si la GPU falla, sigue con el modelo de CPU."""
+WHISPER_IDLE_S = 120             # sin transcribir este rato → se suelta de la memoria
 
-    def __init__(self):
+
+class Whisper:
+    """Carga perezosa: solo ocupa memoria (RAM o la de la tarjeta) cuando
+    transcribe, y si pasan WHISPER_IDLE_S segundos sin usarlo se suelta solo.
+    Volver a cargarlo tarda ~1-2 s la primera frase después. Con NVIDIA usa
+    la GPU; si la GPU falla, sigue con el modelo de CPU."""
+
+    def __init__(self, idle_s=None):
         self._m = None
         self.device = None
+        self.idle_s = WHISPER_IDLE_S if idle_s is None else idle_s
+        self._lock = threading.Lock()
+        self._timer = None
 
     def _load(self):
         from faster_whisper import WhisperModel
@@ -602,27 +610,64 @@ class Whisper:
                                          initial_prompt=whisper_prompt(lang, names))
         return " ".join(s.text for s in segs).strip()
 
-    def transcribe(self, pcm, lang, names=()):
-        try:
-            import numpy as np
-            if self._m is None:
-                self._load()
-            x = np.frombuffer(pcm, np.int16).astype(np.float32) / 32768.0
-            try:
-                return self._run(x, lang, names)
-            except Exception:  # noqa: BLE001
-                if self.device != "cuda":
-                    raise
-                self._m, self.device = None, "cpu"      # la GPU falló: seguir en CPU
-                self._load()
-                return self._run(x, lang, names)
-        except Exception:  # noqa: BLE001
-            return ""
+    def loaded(self):
+        return self._m is not None
 
-    def release(self):
+    def transcribe(self, pcm, lang, names=()):
+        with self._lock:
+            self._cancel_timer()
+            try:
+                import numpy as np
+                if self._m is None:
+                    self._load()
+                x = np.frombuffer(pcm, np.int16).astype(np.float32) / 32768.0
+                try:
+                    return self._run(x, lang, names)
+                except Exception:  # noqa: BLE001
+                    if self.device != "cuda":
+                        raise
+                    self._m, self.device = None, "cpu"      # la GPU falló: seguir en CPU
+                    self._load()
+                    return self._run(x, lang, names)
+            except Exception:  # noqa: BLE001
+                return ""
+            finally:
+                self._arm_timer()
+
+    def _cancel_timer(self):
+        if self._timer is not None:
+            self._timer.cancel()
+            self._timer = None
+
+    def _arm_timer(self):
+        if self._m is not None and self.idle_s > 0:
+            self._timer = threading.Timer(self.idle_s, self._idle)
+            self._timer.daemon = True
+            self._timer.start()
+
+    def _idle(self):
+        # si justo está transcribiendo, no se toca (el lock lo dice)
+        if self._lock.acquire(blocking=False):
+            try:
+                self._timer = None
+                self._free()
+            finally:
+                self._lock.release()
+
+    def _free(self):
+        if self._m is None:
+            return
         self._m = None
         if self.device == "cuda":
             self.device = None
+        import gc
+        gc.collect()
+        _trim_heap()
+
+    def release(self):
+        with self._lock:
+            self._cancel_timer()
+            self._free()
 
 
 # ── micrófono ───────────────────────────────────────────────────────────────
@@ -806,6 +851,8 @@ class Listener:
                 and self._model is not None:
             self._model = None
             _trim_heap()
+        if (t is None or not t.is_alive()) and not self._want_wake and self.whisper is not None:
+            self.whisper.release()         # Whisper también (hasta 1,6 GB en la tarjeta)
 
     def shutdown(self):
         self._want_wake = False

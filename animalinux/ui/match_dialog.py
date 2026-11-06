@@ -32,6 +32,7 @@ class MatchWindow(Gtk.Window):
         if parent is not None:
             self.set_transient_for(parent)
         self.app = app
+        gw.close_header(self)
         self.set_default_size(680, 660)
         prov = Gtk.CssProvider()
         if hasattr(prov, "load_from_string"):

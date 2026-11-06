@@ -48,6 +48,7 @@ class TalkWindow(Gtk.Window):
             self.set_transient_for(parent)
         self.app = app
         self.brain = app.talk
+        gw.close_header(self)
         self.set_default_size(540, 720)
         sc = Gtk.ScrolledWindow()
         sc.set_vexpand(True)
@@ -398,6 +399,9 @@ class TalkWindow(Gtk.Window):
             cmd = ("https://ollama.com/download" if sys.platform == "win32"
                    else "sudo pacman -S ollama   ·   https://ollama.com/download")
             self._install_lbl.set_text(tr("Para usar la IA, instálalo: {cmd}", cmd=cmd))
+        elif st and st.get("ollama_gpu_cmd"):
+            self._install_lbl.set_text(tr("⚡ Ollama no usa tu tarjeta NVIDIA (va con el procesador, más lento). Para activarla: {cmd}",
+                                          cmd=st["ollama_gpu_cmd"]))
         else:
             self._install_lbl.set_text("")
         self._dl_btn.set_visible(bool(st.get("ollama")) and not b.model_installed()

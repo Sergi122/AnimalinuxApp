@@ -98,6 +98,12 @@ class TalkBrain:
         elif self.listener is not None:
             self.listener.stop_wake()
             self.listener.release()
+        if not on and not getattr(self, "_unloaded", False):
+            # charla apagada: la IA sale de la memoria ya, no en 4 min
+            self._unloaded = True
+            threading.Thread(target=llm.unload, args=(self.model(),), daemon=True).start()
+        elif on:
+            self._unloaded = False
         self._notify()
 
     def set_listening(self, on=None):
@@ -145,6 +151,7 @@ class TalkBrain:
                 st["saver"] = hw.power_saver()
                 st["ollama"] = bool(llm.find_binary())
                 st["server"] = llm.is_running() if st["ollama"] else False
+                st["ollama_gpu_cmd"] = llm.gpu_backend_missing() if st["ollama"] else ""
                 st["models"] = llm.installed_models() if st["server"] else []
                 st["vosk"] = voice.vosk_available()
                 st["mic"] = voice.mic_available()

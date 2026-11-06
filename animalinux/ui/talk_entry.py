@@ -8,6 +8,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk  # noqa: E402
 
 from ..i18n import tr  # noqa: E402
+from . import guide_widgets as gw  # noqa: E402
 
 MAX_LEN = 300
 
@@ -17,6 +18,7 @@ class TalkEntryWindow(Gtk.Window):
         super().__init__(title=tr("Hablar con tu mascota"))
         self.brain = brain
         self.aid = None
+        gw.close_header(self)
         self.set_default_size(380, -1)
         self.set_resizable(False)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)

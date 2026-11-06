@@ -751,3 +751,24 @@ def test_set_listening_toggles_and_enables(monkeypatch):
     assert b.set_listening() is True and store == {"talk_enabled": True, "talk_wake": True}
     assert b.set_listening() is False and store["talk_wake"] is False
     assert b.set_listening(True) is True
+
+
+def test_whisper_se_suelta_solo_tras_inactividad(monkeypatch):
+    """Whisper no debe quedarse ocupando RAM/VRAM si no se usa."""
+    import time as _t
+    from animalinux.talk import voice
+    w = voice.Whisper(idle_s=0.2)
+
+    def fake_load():
+        w._m, w.device = object(), "cuda"
+    monkeypatch.setattr(w, "_load", fake_load)
+    monkeypatch.setattr(w, "_run", lambda x, lang, names: "hola")
+    assert w.transcribe(b"\0\0" * 160, "es") == "hola"
+    assert w.loaded()
+    _t.sleep(0.5)
+    assert not w.loaded() and w.device is None
+    # vuelve a cargarse al hablar otra vez, y release() lo suelta al momento
+    assert w.transcribe(b"\0\0" * 160, "es") == "hola"
+    assert w.loaded()
+    w.release()
+    assert not w.loaded()

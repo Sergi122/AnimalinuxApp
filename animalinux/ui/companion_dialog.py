@@ -20,6 +20,7 @@ class CompanionWindow(Gtk.Window):
         if parent is not None:
             self.set_transient_for(parent)
         self.app = app
+        gw.close_header(self)
         self.set_default_size(520, 680)
         sc = Gtk.ScrolledWindow()
         sc.set_vexpand(True)
@@ -93,6 +94,13 @@ class CompanionWindow(Gtk.Window):
         talk.add_css_class("pill")
         talk.set_halign(Gtk.Align.START)
         talk.connect("clicked", lambda _b: self._open_talk())
+        if getattr(self.app, "talk", None) is not None:
+            self._talk_sw = {}
+            self._talk_switch("talk_enabled", tr("🗣 Hablar con las mascotas"),
+                              tr("Apagado: no escuchan, no usan el micrófono y la IA no ocupa memoria."))
+            self._talk_switch("talk_wake", tr("👂 Escuchar «oye <nombre>» (micrófono)"),
+                              tr("Apágalo para liberar el micrófono; el botón del micrófono sigue funcionando."))
+            self._sync_talk()
         box.append(talk)
 
         # ── Pomodoro ─────────────────────────────────────────────────────
@@ -195,6 +203,49 @@ class CompanionWindow(Gtk.Window):
         self._box.append(row)
         return sw
 
+    def _talk_switch(self, key, title, hint):
+        """Interruptor que va directo a la charla (brain), no a companion."""
+        from ..talk import brain as brain_mod
+        row = Gtk.Box(spacing=10)
+        col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        col.set_hexpand(True)
+        lbl = Gtk.Label(label=title, xalign=0)
+        lbl.set_wrap(True)
+        col.append(lbl)
+        h = self._dim(hint)
+        h.set_wrap(True)
+        col.append(h)
+        row.append(col)
+        sw = Gtk.Switch(valign=Gtk.Align.CENTER)
+        sw.set_active(bool(brain_mod.cfg(key)))
+        sw.connect("notify::active", lambda s, _p: self._set_talk(key, s.get_active()))
+        row.append(sw)
+        self._box.append(row)
+        self._talk_sw[key] = sw
+        return sw
+
+    def _set_talk(self, key, value):
+        from ..talk import brain as brain_mod
+        brain = getattr(self.app, "talk", None)
+        if brain is None or bool(brain_mod.cfg(key)) == bool(value):
+            return
+        if key == "talk_wake":
+            brain.set_listening(value)          # prenderla también activa la charla
+        else:
+            settings.set_val(key, bool(value))
+            brain.apply()
+        self._sync_talk()
+
+    def _sync_talk(self):
+        from ..talk import brain as brain_mod
+        for key, sw in getattr(self, "_talk_sw", {}).items():
+            v = bool(brain_mod.cfg(key))
+            if sw.get_active() != v:
+                sw.set_active(v)
+        sw = getattr(self, "_talk_sw", {}).get("talk_wake")
+        if sw is not None:
+            sw.get_parent().set_sensitive(bool(brain_mod.cfg("talk_enabled")))
+
     def _spin(self, key, lo, hi, step=1):
         sp = Gtk.SpinButton(adjustment=Gtk.Adjustment(
             value=int(comp_mod.cfg(key) or 0), lower=lo, upper=hi,
@@ -236,6 +287,7 @@ class CompanionWindow(Gtk.Window):
             "Hacen falta dos mascotas despiertas en modo Vida (y para las escondidas, una ventana que llegue hasta el suelo)."))
 
     def _refresh(self):
+        self._sync_talk()
         c = self._comp()
         if c is None:
             return True
