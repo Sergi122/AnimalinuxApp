@@ -203,6 +203,7 @@ class ControlWindow(Gtk.ApplicationWindow):
                         self._show_companion, label=tr("Compañía")))
         hb.append(ghost("trophy", tr("Deportes: fútbol, vóley, básquet, ping-pong y tenis contra tus mascotas"),
                         lambda: self.app.show_match_menu(), label=tr("Deportes")))
+        hb.append(self._build_talk_toggle())
         hb.append(ghost("help", t("help_tip"), lambda: self._show_tour(force=True)))
         hb.append(ghost("settings", t("settings_title"), self._show_settings_dialog))
         cl = ghost("close", tr("Cerrar esta ventana (las mascotas siguen activas)"), self.close)
@@ -1572,6 +1573,56 @@ class ControlWindow(Gtk.ApplicationWindow):
         btn_row.append(ok)
         box.append(btn_row)
         dlg.present()
+
+    # ── Botón «Hablar» (prende/apaga la charla con las mascotas) ────────────
+    def _build_talk_toggle(self):
+        """Un clic apaga el modo hablar (micrófono, «oye <nombre>», IA fuera de
+        la memoria); otro clic lo vuelve a prender con lo que tenías."""
+        b = Gtk.ToggleButton()
+        box = Gtk.Box(spacing=6)
+        box.append(Gtk.Label(label="🗣"))
+        self._talk_lbl = Gtk.Label()
+        box.append(self._talk_lbl)
+        b.set_child(box)
+        b.add_css_class("ghost"); b.add_css_class("pill"); b.add_css_class("talk-toggle")
+        self._talk_btn = b
+        self._talk_sync()
+        b.connect("toggled", self._on_talk_toggled)
+        brain = getattr(self.app, "talk", None)
+        if brain is not None:
+            cb = lambda: GLib.idle_add(lambda: (self._talk_sync(), False)[1])
+            brain.on_status(cb)
+            self.connect("destroy", lambda *_: brain.off_status(cb))
+        return b
+
+    def _talk_on(self):
+        from ..talk import brain as brain_mod
+        return bool(brain_mod.cfg("talk_enabled"))
+
+    def _talk_sync(self):
+        b = getattr(self, "_talk_btn", None)
+        if b is None:
+            return
+        on = self._talk_on()
+        self._talk_lbl.set_label(tr("Hablar: sí") if on else tr("Hablar: no"))
+        b.set_tooltip_text(tr("Modo hablar con las mascotas encendido · clic para apagarlo")
+                           if on else
+                           tr("Modo hablar con las mascotas apagado · clic para encenderlo"))
+        if b.get_active() != on:
+            self._talk_syncing = True
+            b.set_active(on)
+            self._talk_syncing = False
+
+    def _on_talk_toggled(self, b):
+        if getattr(self, "_talk_syncing", False):
+            return
+        on = b.get_active()
+        brain = getattr(self.app, "talk", None)
+        from .. import settings
+        settings.set_val("talk_enabled", on)
+        if brain is not None:
+            brain.apply()
+        self._talk_sync()
 
     def _show_companion(self):
         from .companion_dialog import CompanionWindow

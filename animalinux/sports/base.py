@@ -14,7 +14,7 @@ from pathlib import Path
 import cairo
 from gi.repository import GLib
 
-from ..i18n import tr
+from ..i18n import tr, N_
 from ..overlay.clock import Clock
 
 TICK_MS = 33
@@ -471,7 +471,9 @@ class Match:
         return self.minutes * 60 - (time.monotonic() - self.t0)
 
     def point(self, who, label, pause=1.6):
+        before = self._lead()
         won = self.award(who)
+        self._react(who, before, self._lead())
         self.say(label, pause, (1, .85, .3) if who == "you" else (1, .45, .5))
         for p in self.rivals:
             (p.celebrate if who == "pets" else p.sulk)()
@@ -483,6 +485,122 @@ class Match:
 
     def points_for(self, who):
         return 1
+
+    # ── lo que dicen las mascotas cuando hay punto ────────────────────────
+    CHEER = (N_("¡Así se hace!"), N_("¡Genial!"), N_("¡Toma!"), N_("¡Bien hecho, equipo!"),
+             N_("¡Qué jugada!"), N_("¡Eso es!"), N_("¡De lujo!"), N_("¡Chócala!"),
+             N_("¡Ni lo viste venir!"), N_("¡Otra más!"), N_("¡Pan comido!"),
+             N_("¡Somos un equipazo!"))
+    ROUT = (N_("¡Paliza!"), N_("¡Esto ya es nuestro!"), N_("¡Se nota quién manda!"),
+            N_("¡Ríndete ya!"), N_("¡Qué fácil!"), N_("¡Nadie nos para!"))
+    COMEBACK = (N_("¡Sí, sí, sí!"), N_("¡Remontada!"), N_("¡Vamos, que se puede!"),
+                N_("¡Aún estamos vivos!"), N_("¡Seguimos en pie!"), N_("¡No nos rendimos!"),
+                N_("¡Uno menos!"), N_("¡Ya casi los alcanzamos!"), N_("¡Arriba, arriba!"),
+                N_("¡Esto no se acaba!"))
+    TIED = (N_("¡Empatamos!"), N_("¡Sí, sí! ¡Empate!"), N_("¡Todo igual otra vez!"),
+            N_("¡Empezamos de nuevo!"), N_("¡Ahora sí, a ganar!"))
+    TURNED = (N_("¡Le dimos la vuelta!"), N_("¡Sí, sí, sí! ¡Remontamos!"),
+              N_("¡Ahora vamos ganando!"), N_("¡Qué remontada!"), N_("¡Nunca dudé!"))
+    BOO = (N_("¡Qué malo!"), N_("¡Abusivo!"), N_("¡Eso no vale!"), N_("¡Nooo!"),
+           N_("¡Tramposo!"), N_("¡Qué suerte tienes!"), N_("¡Fue sin querer!"),
+           N_("¡No estaba lista!"), N_("¡Árbitro, eso es falta!"), N_("¡Ay, qué rabia!"),
+           N_("¡Pura suerte!"), N_("¡Me distraje!"), N_("¡Injusto!"), N_("¡Grrr!"))
+    CAUGHT = (N_("¡Nos están remontando!"), N_("¡Ay, no, nos alcanzan!"),
+              N_("¡Despierten, equipo!"), N_("¡Concentración!"), N_("¡Se nos escapa!"),
+              N_("¡Cuidado, que vienen!"), N_("¡No se confíen!"), N_("¡Que no nos alcancen!"))
+    CRUSHED = (N_("¡Ya basta!"), N_("¡Ten piedad!"), N_("¡Esto es una paliza!"),
+               N_("¡Me rindo… no, mentira!"), N_("¡Déjanos meter una!"))
+    SPORT_CHEER = ()          # frases propias de cada deporte (gol, canasta…)
+    RECENT = 5                # no repetir ninguna de las últimas N
+
+    def _lead(self):
+        """Ventaja tuya (+) o de las mascotas (−). En tenis cuentan los sets
+        y, dentro del set, los juegos."""
+        d = self.score["you"] - self.score["pets"]
+        games = getattr(self, "games", None)
+        if isinstance(games, dict):
+            d = d * 100 + games.get("you", 0) - games.get("pets", 0)
+        return d
+
+    @classmethod
+    def reaction_pool(cls, team, scorer, before, after):
+        """Frases posibles para una mascota del equipo `team` ("you" = tu
+        ayudante) cuando `scorer` hace punto. before/after = tu ventaja."""
+        sign = 1 if team == "you" else -1
+        b, a = before * sign, after * sign          # ventaja de SU equipo
+        if scorer == team:
+            if b < 0 < a:
+                return cls.TURNED
+            if b < 0 and a == 0:
+                return cls.TIED
+            if b < 0:
+                return cls.COMEBACK
+            if a >= 3:
+                return cls.ROUT + cls.CHEER + cls.SPORT_CHEER
+            return cls.CHEER + cls.SPORT_CHEER
+        if b > 0 and a >= 0:
+            return cls.CAUGHT
+        if a <= -3:
+            return cls.CRUSHED + cls.BOO
+        return cls.BOO
+
+    def reaction(self, team, scorer, before, after, rnd=random):
+        """Una frase de la lista que toca, sin repetir las últimas que se dijeron."""
+        pool = self.reaction_pool(team, scorer, before, after)
+        recent = self.__dict__.setdefault("_recent_lines", [])
+        fresh = [x for x in pool if x not in recent] or list(pool)
+        line = rnd.choice(fresh)
+        recent.append(line)
+        del recent[:-self.RECENT]
+        return tr(line)
+
+    def _react(self, who, before, after):
+        if self.over:
+            return
+        talkers = []
+        if self.rivals:
+            talkers.append(random.choice(self.rivals))
+        if self.helper:
+            talkers.append(self.helper)
+        now = time.monotonic()
+        self.bubbles = [bb for bb in getattr(self, "bubbles", []) if bb[0] not in talkers]
+        for i, p in enumerate(talkers):
+            text = self.reaction(p.team, who, before, after)
+            self.bubbles.append((p, text, now + 2.2 + 0.15 * i))
+
+    def _draw_bubbles(self, cr):
+        now = time.monotonic()
+        self.bubbles = [bb for bb in getattr(self, "bubbles", []) if bb[2] > now]
+        s = self.S
+        for p, text, until in self.bubbles:
+            alpha = min(1.0, (until - now) / 0.35)
+            px = 22 * s
+            cr.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+            cr.set_font_size(px)
+            ext = cr.text_extents(text)
+            pad = 12 * s
+            bw, bh = ext.x_advance + 2 * pad, px + 2 * pad
+            tail = 12 * s
+            cx = min(max(p.cx, bw / 2 + 6), self.W - bw / 2 - 6)
+            by = max(self._top() + 90 * s, p.y - bh - tail - 4 * s)
+            bx = cx - bw / 2
+            self._round_rect(cr, bx, by, bw, bh, bh / 2.4)
+            tx = min(max(p.cx, bx + bh / 2), bx + bw - bh / 2)
+            cr.move_to(tx - tail * 0.7, by + bh - 1)
+            cr.line_to(tx, by + bh + tail)
+            cr.line_to(tx + tail * 0.7, by + bh - 1)
+            cr.close_path()
+            light = p.team == "pets"
+            cr.set_source_rgba(1, 1, 1, 0.95 * alpha) if light else \
+                cr.set_source_rgba(0.85, 0.93, 1, 0.95 * alpha)
+            cr.fill_preserve()
+            cr.set_source_rgba(0.1, 0.08, 0.16, 0.55 * alpha)
+            cr.set_line_width(max(1.5, 2 * s))
+            cr.stroke()
+            cr.move_to(cx - ext.x_advance / 2, by + pad + px * 0.8)
+            cr.set_source_rgba(0.1, 0.08, 0.16, alpha)
+            cr.show_text(text)
+            cr.new_path()
 
     def award(self, who):
         """Suma el punto; True si con él se gana el partido (los deportes con
@@ -605,6 +723,7 @@ class Match:
         self.draw_extra(cr)
         self._draw_board(cr)
         self._draw_exit(cr)
+        self._draw_bubbles(cr)
         now = time.monotonic()
         for i, (text, until, color, x, y, size) in enumerate(self.msgs):
             alpha = min(1.0, (until - now) / 0.4)

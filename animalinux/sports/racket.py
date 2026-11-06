@@ -27,6 +27,7 @@ DT = TICK_MS / 1000.0
 
 
 class RacketMatch(Match):
+    SPORT_CHEER = (N_("¡Qué golpe!"), N_("¡Punto nuestro!"), N_("¡Ni la viste pasar!"))
     REACH_ABOVE_LIMIT = False
     FOOT = 18                # zona de golpe del saque (el resto lo golpea la lámina)
     TILT_MAX = 75.0          # inclinación máxima de la paleta (grados)

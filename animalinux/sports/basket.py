@@ -44,6 +44,7 @@ LEVELS = {
 
 
 class Basket(Match):
+    SPORT_CHEER = (N_("¡Adentro!"), N_("¡Limpiecita!"), N_("¡Ni tocó el aro!"))
     SPORT = "basket"
     BALL = "basket"
     HOWTO = N_("Mantén pulsado para agarrar el balón (3 s, sin correr) y suelta con un tirón para tirar al aro de la derecha")

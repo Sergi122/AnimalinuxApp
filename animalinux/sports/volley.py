@@ -51,6 +51,7 @@ PUSH_BOUNCE = 1.5       # cuánto rebota el balón al tocarlo con el mouse
 
 
 class Volley(Match):
+    SPORT_CHEER = (N_("¡Punto nuestro!"), N_("¡Al suelo!"), N_("¡Imposible de sacar!"))
     SPORT = "volley"
     BALL = "volley"
     HOWTO = N_("Empuja el balón a su campo · tu saque debe pasar la red sin tocar el fondo")

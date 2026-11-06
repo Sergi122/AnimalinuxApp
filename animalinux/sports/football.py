@@ -19,6 +19,7 @@ MAX_BALL = 46.0          # px/tick (escalado por S)
 
 
 class Football(Match):
+    SPORT_CHEER = (N_("¡Golazo!"), N_("¡Al fondo de la red!"), N_("¡Qué golazo!"))
     SPORT = "football"
     BALL = "soccer"
     HOWTO = N_("Empuja el balón con el mouse hacia el arco de la derecha")

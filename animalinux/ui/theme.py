@@ -1068,6 +1068,11 @@ window.ctl {{
   border-radius: 999px;
   padding: 6px 16px;
 }}
+.talk-toggle:checked {{
+  background-color: alpha({ACCENT}, 0.18);
+  border-color: alpha({ACCENT}, 0.45);
+  color: {TEXT};
+}}
 .seg {{
   background-color: rgba(255,255,255,0.05);
   border-radius: 14px;
