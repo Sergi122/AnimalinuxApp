@@ -511,6 +511,57 @@ class Match:
     CRUSHED = (N_("¡Ya basta!"), N_("¡Ten piedad!"), N_("¡Esto es una paliza!"),
                N_("¡Me rindo… no, mentira!"), N_("¡Déjanos meter una!"))
     SPORT_CHEER = ()          # frases propias de cada deporte (gol, canasta…)
+
+    # frases que solo tienen sentido con compañeros («equipo», «nos»…)
+    TEAM_ONLY = frozenset((
+        N_("¡Bien hecho, equipo!"), N_("¡Chócala!"), N_("¡Somos un equipazo!"),
+        N_("¡Esto ya es nuestro!"), N_("¡Nadie nos para!"),
+        N_("¡Aún estamos vivos!"), N_("¡Seguimos en pie!"), N_("¡No nos rendimos!"),
+        N_("¡Ya casi los alcanzamos!"), N_("¡Empatamos!"),
+        N_("¡Le dimos la vuelta!"), N_("¡Sí, sí, sí! ¡Remontamos!"), N_("¡Ahora vamos ganando!"),
+        N_("¡Nos están remontando!"), N_("¡Ay, no, nos alcanzan!"), N_("¡Despierten, equipo!"),
+        N_("¡Se nos escapa!"), N_("¡No se confíen!"), N_("¡Que no nos alcancen!"),
+        N_("¡Déjanos meter una!")))
+    # la mascota juega SOLA: habla de sí misma
+    SOLO = {
+        "CHEER": (N_("¡Esa fue mía!"), N_("¡Mírame, mírame!"), N_("¡Ni me despeiné!"),
+                  N_("¡Soy imparable!")),
+        "ROUT": (N_("¡Nadie me para!"), N_("¡Esto ya es mío!")),
+        "COMEBACK": (N_("¡Todavía puedo!"), N_("¡No me rindo!"), N_("¡Aún sigo aquí!")),
+        "TIED": (N_("¡Te alcancé!"), N_("¡Empaté!")),
+        "TURNED": (N_("¡Ahora voy ganando!"), N_("¡Le di la vuelta!")),
+        "CAUGHT": (N_("¡Me estás alcanzando!"), N_("¡Se me escapa!"), N_("¡No me alcances!")),
+        "CRUSHED": (N_("¡Déjame meter una!"), N_("¡Déjame respirar!")),
+    }
+    # con compañeros: ánimo a UNO de ellos, por su nombre (o «compa» si eres tú)
+    PRAISE = (N_("¡Buena, {name}!"), N_("¡Bien, {name}!"), N_("¡Qué crack, {name}!"),
+              N_("¡Gran jugada, {name}!"), N_("¡Eso, {name}, así!"))
+    CHEER_UP = (N_("¡Ánimo, {name}!"), N_("¡Tranqui, {name}, la próxima es nuestra!"),
+                N_("¡Vamos, {name}, tú puedes!"), N_("¡No pasa nada, {name}!"),
+                N_("¡Arriba, {name}!"))
+    # ganando por MUCHO: ya se burlan
+    EASY = (N_("Ya, jajaja, muy fácil"), N_("¡Jaja, que venga otro rival!"),
+            N_("¿Eso es todo?"), N_("¡Tráiganme a alguien más fuerte!"),
+            N_("Jaja, ¿quién sigue?"), N_("¡Ni sudé!"), N_("Bostezo… qué fácil"),
+            N_("¿Seguro que estás jugando?"), N_("¡Juego con los ojos cerrados!"),
+            N_("¿Quieres que te dé ventaja?"), N_("¡Esto es un paseo!"),
+            N_("¡Vuelve cuando practiques!"), N_("Jaja, ¿y el ratón para qué?"),
+            N_("¡Qué aburrido, ya gané!"), N_("¡Ni calentando estaba!"),
+            N_("¡Toma nota de cómo se juega!"), N_("¿Pido una pizza mientras?"))
+    # al TERMINAR el partido: el que gana se burla, el que pierde se queja
+    WIN_TAUNT = (N_("¡Ganamos! ¡Que venga otro!"), N_("¡Campeones, jaja!"),
+                 N_("¡Fácil, fácil!"), N_("¡A casa, a casa!"), N_("¡Otra vez será!"),
+                 N_("¡Gracias por participar!"), N_("¡Revancha cuando quieras… perderás igual!"),
+                 N_("¡Y eso que no me esforcé!"), N_("¡Inclínate ante los campeones!"),
+                 N_("¡Pídeme clases!"))
+    WIN_TAUNT_SOLO = (N_("¡Gané! ¡Que venga otro!"), N_("¡Nadie me gana, jaja!"),
+                      N_("¡Fácil, fácil!"), N_("¡A casa, a casa!"), N_("¡Otra vez será!"),
+                      N_("¡Gracias por participar!"), N_("¡Y eso que no me esforcé!"),
+                      N_("¡Pídeme clases!"), N_("¡Imbatible!"))
+    LOSE_SULK = (N_("¡Exijo revancha!"), N_("¡Hubo trampa!"), N_("¡La próxima no tienes tanta suerte!"),
+                 N_("Bah, no tenía ganas de jugar"), N_("¡El balón estaba raro!"),
+                 N_("¡Me dejé ganar!"), N_("¡Otra, otra!"), N_("Snif…"))
+    EASY_LEAD = 4             # ventaja desde la que ya se burlan
     RECENT = 5                # no repetir ninguna de las últimas N
 
     def _lead(self):
@@ -523,35 +574,67 @@ class Match:
         return d
 
     @classmethod
-    def reaction_pool(cls, team, scorer, before, after):
+    def reaction_pool(cls, team, scorer, before, after, solo=False):
         """Frases posibles para una mascota del equipo `team` ("you" = tu
-        ayudante) cuando `scorer` hace punto. before/after = tu ventaja."""
+        ayudante) cuando `scorer` hace punto. before/after = tu ventaja.
+        solo=True: la mascota no tiene compañeros (habla en singular); con
+        compañeros entran también los ánimos con nombre ({name})."""
         sign = 1 if team == "you" else -1
         b, a = before * sign, after * sign          # ventaja de SU equipo
+
+        def mix(*kinds, team_extra=()):
+            out = []
+            for k in kinds:
+                out += getattr(cls, k)
+                if solo:
+                    out += cls.SOLO.get(k, ())
+            if solo:
+                out = [x for x in out if x not in cls.TEAM_ONLY]
+            else:
+                out += team_extra
+            return tuple(dict.fromkeys(out))
+
         if scorer == team:
             if b < 0 < a:
-                return cls.TURNED
+                return mix("TURNED", team_extra=cls.PRAISE)
             if b < 0 and a == 0:
-                return cls.TIED
+                return mix("TIED", team_extra=cls.PRAISE)
             if b < 0:
-                return cls.COMEBACK
+                return mix("COMEBACK", team_extra=cls.PRAISE)
+            if a >= cls.EASY_LEAD:
+                return tuple(dict.fromkeys(cls.EASY + mix("ROUT")))
             if a >= 3:
-                return cls.ROUT + cls.CHEER + cls.SPORT_CHEER
-            return cls.CHEER + cls.SPORT_CHEER
+                return mix("ROUT", "CHEER", "SPORT_CHEER", team_extra=cls.PRAISE)
+            return mix("CHEER", "SPORT_CHEER", team_extra=cls.PRAISE)
         if b > 0 and a >= 0:
-            return cls.CAUGHT
+            return mix("CAUGHT", team_extra=cls.CHEER_UP)
         if a <= -3:
-            return cls.CRUSHED + cls.BOO
-        return cls.BOO
+            return mix("CRUSHED", "BOO", team_extra=cls.CHEER_UP)
+        return mix("BOO", team_extra=cls.CHEER_UP)
 
-    def reaction(self, team, scorer, before, after, rnd=random):
-        """Una frase de la lista que toca, sin repetir las últimas que se dijeron."""
-        pool = self.reaction_pool(team, scorer, before, after)
+    def _mates(self, p):
+        """Compañeros de equipo de la mascota p (otras mascotas)."""
+        if p.team == "you":
+            return []
+        return [q for q in self.rivals if q is not p]
+
+    @staticmethod
+    def _pet_name(p):
+        anim = getattr(p.win, "anim", None)
+        name = anim.get("name") if isinstance(anim, dict) else None
+        return (name or "").strip()
+
+    def reaction(self, team, scorer, before, after, rnd=random, solo=False, name=""):
+        """Una frase de la lista que toca, sin repetir las últimas que se
+        dijeron. `name` = el compañero a quien animar."""
+        pool = self.reaction_pool(team, scorer, before, after, solo=solo)
         recent = self.__dict__.setdefault("_recent_lines", [])
         fresh = [x for x in pool if x not in recent] or list(pool)
         line = rnd.choice(fresh)
         recent.append(line)
         del recent[:-self.RECENT]
+        if "{name}" in line:
+            return tr(line, name=name or tr("compa"))
         return tr(line)
 
     def _react(self, who, before, after):
@@ -565,8 +648,35 @@ class Match:
         now = time.monotonic()
         self.bubbles = [bb for bb in getattr(self, "bubbles", []) if bb[0] not in talkers]
         for i, p in enumerate(talkers):
-            text = self.reaction(p.team, who, before, after)
+            mates = self._mates(p)
+            # el ayudante juega contigo: nunca está solo; su compañero eres tú
+            solo = p.team == "pets" and not mates
+            names = [n for n in map(self._pet_name, mates) if n]
+            text = self.reaction(p.team, who, before, after, solo=solo,
+                                 name=random.choice(names) if names else "")
             self.bubbles.append((p, text, now + 2.2 + 0.15 * i))
+
+    def final_line(self, team, result, rnd=random, solo=False):
+        """Lo que dice al acabar una mascota del equipo `team` ("you" = tu
+        ayudante). result = "win"/"lose"/"draw" desde TU lado."""
+        if result == "draw":
+            return None
+        won = (result == "win") == (team == "you")
+        if won:
+            pool = self.WIN_TAUNT_SOLO if solo else self.WIN_TAUNT
+        else:
+            pool = self.LOSE_SULK
+        return tr(rnd.choice(pool))
+
+    def _final_bubbles(self):
+        now = time.monotonic()
+        talkers = list(self.rivals[:2]) + ([self.helper] if self.helper else [])
+        self.bubbles = []
+        for i, p in enumerate(talkers):
+            solo = p.team == "pets" and len(self.rivals) == 1
+            text = self.final_line(p.team, self.result, solo=solo)
+            if text:
+                self.bubbles.append((p, text, now + 3.0 + 0.2 * i))
 
     def _draw_bubbles(self, cr):
         now = time.monotonic()
@@ -620,6 +730,7 @@ class Match:
                     "lose": tr("Ganaron las mascotas {b} – {a}", a=y, b=p),
                     "draw": tr("Empate {a} – {b}", a=y, b=p)}[self.result]
             self.say(text, 3.5, (1, 1, 1), size=1.4)
+            self._final_bubbles()
             for pl in self.rivals:
                 (pl.celebrate if self.result == "lose" else pl.sulk)(90)
             if self.pitch is not None:

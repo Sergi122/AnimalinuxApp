@@ -32,9 +32,10 @@ class RacketMatch(Match):
     FOOT = 18                # zona de golpe del saque (el resto lo golpea la lámina)
     TILT_MAX = 75.0          # inclinación máxima de la paleta (grados)
     TILT_STEP = 10.0         # grados por paso de la rueda del mouse
-    PADDLE_E = 0.3           # rebote de la pelota en la cara de la paleta
-    SWING_K = 0.5            # cuánto de la velocidad del mouse pasa a la pelota
-    LIFT = 0.3               # elevación al golpear (como al cepillar la pelota)
+    PADDLE_E = 0.75          # rebote en la cara (velocidad relativa a la paleta)
+    GRIP = 0.5               # cuánto frena la goma el roce de lado
+    SWING_K = 0.5            # velocidad de la paleta respecto a la del mouse
+    LIFT = 0.08              # pequeña elevación al cepillar la pelota
     YOU_CAP = 0.75           # tope de tu golpe (fracción de MAX_BALL)
     PUSH_K = 0.9             # cuánto sale la pelota respecto a la velocidad del mouse
     VOLLEY_OK = False        # ¿se puede pegar antes del bote? (tenis sí, salvo el saque)
@@ -560,16 +561,22 @@ class RacketMatch(Match):
             side = 1.0 if (b.x - px) * nx + (b.y - py) * ny >= 0 else -1.0
         fx, fy = nx * side, ny * side
         b.x, b.y = px + fx * reach, py + fy * reach
-        # rebote en la cara: la pelota devuelve parte de su velocidad y suma
-        # la del golpe (solo la componente hacia donde mira la cara)
-        vin = b.vx * fx + b.vy * fy
+        # rebote físico en la cara: se mira la velocidad de la pelota RESPECTO
+        # a la paleta (que se mueve con el mouse), se refleja en la cara (lo
+        # que va contra ella rebota con PADDLE_E; lo que va de lado lo frena
+        # la goma con GRIP) y después se suma otra vez la velocidad de la
+        # paleta. Así el ángulo de salida es el del espejo cuando la paleta
+        # está quieta, y nunca sale hacia atrás si la empujas hacia adelante.
+        pvx, pvy = self.mvx * self.SWING_K, self.mvy * self.SWING_K
+        rvx, rvy = b.vx - pvx, b.vy - pvy
+        vin = rvx * fx + rvy * fy
         swing = max(0.0, self.mvx * fx + self.mvy * fy)
-        if vin >= 0 and swing <= 0:
+        if vin >= 0:
             return False                                # se alejan: no hay golpe
-        out = max(0.0, -vin) * self.PADDLE_E + swing * self.SWING_K
-        tx_, ty_ = b.vx - vin * fx, b.vy - vin * fy     # lo que no va contra la cara
-        b.vx = tx_ * 0.5 + fx * out
-        b.vy = ty_ * 0.5 + fy * out - swing * self.LIFT
+        tvx, tvy = rvx - vin * fx, rvy - vin * fy       # lo que va de lado
+        keep = 1.0 - self.GRIP
+        b.vx = pvx + tvx * keep - vin * self.PADDLE_E * fx
+        b.vy = pvy + tvy * keep - vin * self.PADDLE_E * fy - swing * self.LIFT
         cap = self.MAX_BALL * self.S * self.YOU_CAP
         sp = math.hypot(b.vx, b.vy)
         if sp > cap:
