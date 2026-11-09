@@ -528,6 +528,8 @@ TR.update({
 "Tramado Bayer": ("Bayer dithering", "Pontilhado Bayer", "Tramage de Bayer", "Bayer-Rasterung", "ベイヤーディザ", "Bayer 抖动"),
 "Traslación X": ("Translation X", "Translação X", "Translation X", "Verschiebung X", "移動 X", "平移 X"),
 "Traslación Y": ("Translation Y", "Translação Y", "Translation Y", "Verschiebung Y", "移動 Y", "平移 Y"),
+"No es un Shimeji: no encontré shime1.png.": ("Not a Shimeji: shime1.png not found.", "Não é um Shimeji: não encontrei shime1.png.", "Ce n'est pas un Shimeji : shime1.png introuvable.", "Kein Shimeji: shime1.png nicht gefunden.", "Shimejiではありません:shime1.png が見つかりません。", "不是 Shimeji:找不到 shime1.png。"),
+"Pack Shimeji: se importaron {n} mascotas ({nombres}).": ("Shimeji pack: {n} pets imported ({nombres}).", "Pacote Shimeji: {n} mascotes importados ({nombres}).", "Pack Shimeji : {n} mascottes importées ({nombres}).", "Shimeji-Paket: {n} Haustiere importiert ({nombres}).", "Shimejiパック:{n} 体のマスコットをインポートしました({nombres})。", "Shimeji 包:已导入 {n} 个宠物({nombres})。"),
 "Una animación necesita 2+ cuadros para moverse.": ("An animation needs 2+ frames to move.", "Uma animação precisa de 2+ quadros para se mover.", "Une animation a besoin de 2+ images pour bouger.", "Eine Animation braucht mindestens 2 Frames, um sich zu bewegen.", "アニメーションが動くには2フレーム以上必要です。", "动画至少需要 2 帧才能动起来。"),
 "Una sonrisa o los ojos cerrados ayudan a que se vea amistoso.": ("A smile or closed eyes help it look friendly.", "Um sorriso ou olhos fechados ajudam a parecer amigável.", "Un sourire ou des yeux fermés aident à paraître amical.", "Ein Lächeln oder geschlossene Augen lassen es freundlich wirken.", "笑顔や閉じた目で、親しみやすい印象になります。", "微笑或闭眼会让它显得友好。"),
 "Unir capas": ("Merge layers", "Unir camadas", "Fusionner les calques", "Ebenen zusammenführen", "レイヤーを結合", "合并图层"),

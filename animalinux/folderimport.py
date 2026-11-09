@@ -97,6 +97,14 @@ def import_folder(library, folder, fps=8, name=None):
     reporta para que el usuario edite.
     """
     folder = Path(folder)
+    from . import shimeji
+    if shimeji.is_shimeji(folder):
+        pets = shimeji.import_shimeji(library, folder, fps=fps, name=name)
+        problemas = {}
+        if len(pets) > 1:
+            problemas["_general"] = [tr("Pack Shimeji: se importaron {n} mascotas ({nombres}).",
+                                        n=len(pets), nombres=", ".join(n for _, n in pets))]
+        return pets[0][0], problemas
     poses = scan_folder(folder)
     if not poses:
         raise RuntimeError(tr("La carpeta no tiene imágenes ni subcarpetas válidas."))
