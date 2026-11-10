@@ -12,6 +12,8 @@ configurar nada.
 
 🌐 **Descarga y comparte animaciones en la comunidad:** [animalinux-community.web.app](https://animalinux-community.web.app)
 
+💜 **Apoya el proyecto:** [GitHub Sponsors](https://github.com/sponsors/Sergi122) (tarjeta o PayPal, desde $1 USD) · [más opciones](https://animalinux.web.app/donaciones)
+
 ---
 
 ## Características
