@@ -1078,7 +1078,7 @@ window.ctl {{
   border-radius: 14px;
   padding: 3px;
 }}
-.seg togglebutton {{
+.seg button.toggle {{
   background-color: transparent;
   background-image: none;
   border: none;
@@ -1087,21 +1087,36 @@ window.ctl {{
   color: {TEXT2};
   transition: background-color 200ms ease, color 200ms ease;
 }}
-.seg togglebutton label {{
+.seg button.toggle label {{
   color: {TEXT2};
   font-weight: 600;
 }}
-.seg togglebutton:hover {{
+.seg button.toggle:hover {{
   background-color: rgba(255,255,255,0.07);
   box-shadow: none;
 }}
-.seg togglebutton:checked {{
+.seg button.toggle:checked {{
   background-image: linear-gradient(to right, rgba({G1_RGB},0.28), rgba({A_RGB},0.34));
   color: #ffffff;
   box-shadow: inset 0 0 0 1px rgba({A_RGB},0.45);
 }}
-.seg togglebutton:checked label {{
+.seg button.toggle:checked label {{
   color: #ffffff;
+}}
+/* «¿Qué tipo de mascota?»: la opción elegida tiene que verse SIN dudas
+   (antes casi no se distinguía y los usuarios preguntaban si quedaba marcada) */
+/* (en GTK4 el nodo CSS de un ToggleButton es «button.toggle», no «togglebutton») */
+.type-seg button.toggle {{
+  padding: 8px 18px;
+}}
+.type-seg button.toggle:checked {{
+  background-color: {ACCENT};
+  background-image: linear-gradient(to right, {G1}, {ACCENT});
+  box-shadow: 0 0 0 2px {ACCENT2};
+}}
+.type-seg button.toggle:checked label {{
+  color: {ON_ACCENT};
+  font-weight: 800;
 }}
 .upd-banner {{
   background-image: linear-gradient(to right, rgba({G1_RGB},0.18), rgba({A_RGB},0.20));

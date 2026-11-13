@@ -443,14 +443,28 @@ class ControlWindow(Gtk.ApplicationWindow):
 
         seg = Gtk.Box(spacing=2, halign=Gtk.Align.CENTER)
         seg.add_css_class("seg")
-        b_life = Gtk.ToggleButton(label=t("tab_vida"))
-        b_gif = Gtk.ToggleButton(label=t("tab_normal"))
+        seg.add_css_class("type-seg")
+        b_life = Gtk.ToggleButton()
+        b_gif = Gtk.ToggleButton()
         b_gif.set_group(b_life)
+        hint = Gtk.Label(wrap=True, justify=Gtk.Justification.CENTER, max_width_chars=60)
+        hint.add_css_class("dim-label")
+        hint.set_halign(Gtk.Align.CENTER)
+
+        def _sync(*_a):
+            # la elegida lleva ✓ y abajo se explica qué significa
+            on = b_life.get_active()
+            state["life"] = on
+            b_life.set_label(("✓ " if on else "") + t("tab_vida"))
+            b_gif.set_label(("" if on else "✓ ") + t("tab_normal"))
+            hint.set_text(tr("Camina, duerme, salta y reacciona sola por tu escritorio (varias poses).") if on
+                          else tr("Una sola animación que se repite en su sitio, como un GIF."))
         (b_life if life else b_gif).set_active(True)
-        b_life.connect("toggled", lambda b: b.get_active() and state.update(life=True))
-        b_gif.connect("toggled", lambda b: b.get_active() and state.update(life=False))
+        b_life.connect("toggled", _sync)
+        _sync()
         seg.append(b_life); seg.append(b_gif)
         box.append(seg)
+        box.append(hint)
 
         row = Gtk.Box(spacing=12, homogeneous=True)
         row.set_margin_top(6)
