@@ -204,6 +204,8 @@ class ControlWindow(Gtk.ApplicationWindow):
         hb.append(ghost("trophy", tr("Deportes: fútbol, vóley, básquet, ping-pong y tenis contra tus mascotas"),
                         lambda: self.app.show_match_menu(), label=tr("Deportes")))
         hb.append(self._build_talk_toggle())
+        hb.append(ghost("import", tr("Complementos: descarga e instala con un clic lo que necesitan la IA, la voz y los vídeos"),
+                        lambda: self.app.show_components(), label=tr("Complementos")))
         hb.append(ghost("help", t("help_tip"), lambda: self._show_tour(force=True)))
         hb.append(ghost("settings", t("settings_title"), self._show_settings_dialog))
         cl = ghost("close", tr("Cerrar esta ventana (las mascotas siguen activas)"), self.close)
@@ -246,15 +248,19 @@ class ControlWindow(Gtk.ApplicationWindow):
         comb = Gtk.Button(label="🌐  " + tr("Animaciones de la comunidad"))
         comb.add_css_class("pill")
         comb.set_tooltip_text(tr("Descarga packs de la comunidad y sube los tuyos"))
-        comb.connect("clicked", lambda _: open_url("https://animalinux-community.web.app/"))
+        comb.connect("clicked", lambda _: self.app.show_catalog())
         bar.append(comb)
         disc = Gtk.Button(label="💬  " + tr("Únete al Discord"))
         disc.add_css_class("pill")
         disc.set_tooltip_text(tr("Entra al servidor de Discord de la comunidad: novedades, ayuda y tus mascotas"))
         disc.connect("clicked", lambda _: open_url(DISCORD))
         bar.append(disc)
-        imp = Gtk.MenuButton(label=t("ctl_import") + " ▾")
+        # «Importar» abre el catálogo de la comunidad; importar desde archivos
+        # está en su menú «📁 Desde mi PC» (el mismo popover de antes).
+        imp = Gtk.Button(label="⬇  " + t("ctl_import"))
         imp.add_css_class("pill")
+        imp.set_tooltip_text(tr("Mascotas de la comunidad: un clic y quedan en tu librería"))
+        imp.connect("clicked", lambda _: self.app.show_catalog())
         pop = Gtk.Popover()
         pop.set_has_arrow(False)
         pv = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
@@ -281,7 +287,7 @@ class ControlWindow(Gtk.ApplicationWindow):
         self.method_combo.set_margin_bottom(4)
         pv.append(self.method_combo)
         pop.set_child(pv)
-        imp.set_popover(pop)
+        self.import_popover = pop
         bar.append(imp)
 
         new = Gtk.Button(label="＋  " + t("ctl_new"))

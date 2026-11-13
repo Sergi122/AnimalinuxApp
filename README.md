@@ -63,9 +63,9 @@ chmod +x install.sh
 sudo pacman -S python python-gobject gtk4 python-pillow python-numpy \
                gtk4-layer-shell libayatana-appindicator
 
-# Opcionales
-sudo pacman -S mpv ffmpeg                          # audio y exportar MP4
-pip install --user --break-system-packages rembg onnxruntime  # recorte IA
+# Para las funciones (con el paquete de AUR vienen solas; si falta algo,
+# el botón «Complementos» de la app lo instala con un clic)
+sudo pacman -S mpv ffmpeg python-onnxruntime-cpu   # audio, MP4 y recorte IA
 sudo pacman -S ollama python-vosk                  # hablar con la mascota (IA + voz)
 ```
 
@@ -438,7 +438,7 @@ git push
 |---|---|
 | `animalinux: command not found` | Añade `export PATH="$HOME/.local/bin:$PATH"` al `.bashrc` |
 | No se ve la mascota / sale con marco | Falta precargar `gtk4-layer-shell`. La app se relanza sola; verifica que el paquete esté instalado |
-| El recorte se comió partes del personaje | Usa el método **IA** (requiere rembg + onnxruntime) |
+| El recorte se comió partes del personaje | Usa el método **IA** (el modelo se descarga solo la primera vez) |
 | `Gdk-WARNING Cannot get portal` | Normal en Hyprland sin xdg-desktop-portal — no afecta nada |
 | La app no arranca (exit code 144) | Otra instancia ya corre — ejecuta `animalinux --quit` primero |
 | Los tutoriales no aparecen | Borra `~/.config/animalinux/settings.json` para reiniciarlos |

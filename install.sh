@@ -122,10 +122,10 @@ FLOOR_OFFSET="${FLOOR_OFFSET:-0}"
 echo "   -> ${FLOOR_OFFSET}px libres abajo (barra de tareas u otro panel)"
 python3 -c "from animalinux import settings; settings.set_val('floor_offset_px', $FLOOR_OFFSET)"
 
-echo ">> Instalando recorte de fondo con IA (rembg). Es la descarga más pesada..."
-pip install --user --break-system-packages rembg onnxruntime || {
-    echo "!! No se pudo instalar rembg. La app funciona igual, pero para"
-    echo "   recorte con IA reinténtalo: pip install --user --break-system-packages rembg onnxruntime"
+echo ">> Instalando el motor del recorte de fondo con IA (onnxruntime)..."
+pip install --user --break-system-packages onnxruntime || {
+    echo "!! No se pudo instalar onnxruntime. No pasa nada: la app lo instala"
+    echo "   sola la primera vez que uses el recorte con IA (o en «Complementos»)."
 }
 
 
@@ -166,7 +166,7 @@ case ":$PATH:" in
         ;;
 esac
 echo ""
-echo "   (Opcional) recorte de fondo con IA, como AnimaEngine:"
-echo "   pip install --user --break-system-packages rembg onnxruntime"
+echo "   Lo que falte (IA para hablar, voz, Whisper…) se instala con un clic"
+echo "   desde el botón «Complementos» de la app."
 echo ""
 echo "   Si 'animalinux' no se encuentra, añade ~/.local/bin al PATH."

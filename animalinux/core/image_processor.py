@@ -6,8 +6,9 @@ Saca todos los frames como RGBA y, opcionalmente, les quita el fondo dejando
 solo la mascota. Luego guarda cada frame como PNG con transparencia.
 
 Quitar el fondo:
-  - "ai":     rembg. Por defecto el modelo 'isnet-anime', entrenado para
-              personajes anime -> recorte mucho más limpio para tus mascotas.
+  - "ai":     modelo 'isnet-anime' con onnxruntime (core/cutout.py, sin
+              rembg), entrenado para personajes anime -> recorte mucho más
+              limpio para tus mascotas. Motor y modelo se preparan solos.
   - "chroma": quita un fondo plano usando las esquinas (rápido, sin IA).
   - "none":   no toca nada (animaciones que ya vienen transparentes).
 
@@ -151,9 +152,13 @@ def _video_duration_seconds(path):
 def _load_video(path):
     """Extrae frames de un video usando ffmpeg (debe estar instalado)."""
     if not shutil.which("ffmpeg"):
-        raise RuntimeError(
-            tr("ffmpeg no está instalado. Instálalo con: {hint}", hint=_install_ffmpeg_hint())
-        )
+        from . import components         # se instala solo (Linux: pkexec)
+        try:
+            components.install("ffmpeg")
+        except components.ComponentError as e:
+            raise RuntimeError(
+                tr("ffmpeg no está instalado. Instálalo con: {hint}", hint=_install_ffmpeg_hint())
+                + f"\n({e})") from e
     if not _video_container_ok(path):
         raise RuntimeError(tr("Ese archivo no es un vídeo válido."))
     duration = _video_duration_seconds(path)
@@ -207,14 +212,7 @@ def remove_background(frames, method="ai", chroma_tolerance=40,
     if method == "none":
         return frames
     if method == "ai":
-        try:
-            return _remove_bg_ai(frames, model=model, progress=progress)
-        except ImportError:
-            raise RuntimeError(tr(
-                "Para el recorte con IA necesitas rembg. Instálalo con:\n"
-                "  pip install --user --break-system-packages rembg onnxruntime\n"
-                "O elige el método «Color de fondo» (solo para fondos planos)."
-            ))
+        return _remove_bg_ai(frames, model=model, progress=progress)
     if method == "chroma":
         out = []
         n = len(frames)
@@ -227,15 +225,12 @@ def remove_background(frames, method="ai", chroma_tolerance=40,
 
 
 def _remove_bg_ai(frames, model="isnet-anime", progress=None):
-    from rembg import remove, new_session  # import perezoso (dep opcional)
-    try:
-        session = new_session(model)       # 'isnet-anime' para personajes
-    except Exception:                      # noqa: BLE001
-        session = new_session("u2net")     # respaldo si no baja el modelo anime
+    from . import cutout                   # import perezoso: numpy/onnxruntime
+    session = cutout.ensure_ready(progress)
     out = []
     n = len(frames)
     for i, f in enumerate(frames):
-        out.append(remove(f, session=session).convert("RGBA"))
+        out.append(cutout.remove(f, session).convert("RGBA"))
         if progress:
             progress(tr("Recortando con IA"), (i + 1) / n)
     return out

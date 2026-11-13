@@ -32,7 +32,7 @@ ID_BALL, ID_YARN, ID_CLEAR, ID_POMO, ID_DND, ID_PLAY = 10, 11, 12, 13, 14, 15
 ID_FOOT, ID_VOLLEY, ID_BASKET, ID_PINGPONG, ID_TENNIS = 16, 17, 18, 19, 20
 ID_TALK, ID_TALK_TYPE = 21, 22
 # órdenes que otra instancia puede enviar por WM_COPYDATA (nada más se ejecuta)
-_ALLOWED_ARGS = {"--show", "--quit", "--daemon", "--update",
+_ALLOWED_ARGS = {"--show", "--quit", "--daemon", "--update", "--selftest",
                  "--toy", "--pomodoro", "--dnd", "--play",
                  "ball", "yarn", "clear", "toggle", "on", "off", "tag", "hide",
                  "--sport", "football", "volley", "basket", "pingpong", "tennis",

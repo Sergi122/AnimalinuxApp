@@ -45,6 +45,11 @@ def find_binary():
         cand = Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Ollama" / "ollama.exe"
         if cand.is_file():
             return str(cand)
+        return None
+    from ..core.components import user_ollama_dir     # instalado por la app sin root
+    cand = user_ollama_dir() / "bin" / "ollama"
+    if cand.is_file() and os.access(cand, os.X_OK):
+        return str(cand)
     return None
 
 

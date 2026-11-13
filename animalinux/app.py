@@ -12,6 +12,7 @@ Modos (argumentos):
   --talk                : hablar con la mascota (escucha una frase)
   --talk-type           : escribirle a la mascota
   --talk-listen [on|off]: prender/apagar la escucha «oye <nombre>» (libera el micrófono)
+  --selftest            : comprueba IA, voz, ffmpeg, mpv y catálogo (informe en selftest.txt)
 """
 import gi
 
@@ -59,8 +60,11 @@ class AnimaApp(Gtk.Application):
         if "--update" in args:
             self.update_now()
         self._companion_args(args)
-        if "--show" in args:
+        if "--show" in args or "--selftest" in args:
             self.show_control()
+            if "--selftest" in args:
+                from . import selftest
+                selftest.run(self)
         elif not args:
             # Steam-like: solo bandeja; abre control solo si es la primera vez
             if not self.library.animations:
@@ -197,6 +201,14 @@ class AnimaApp(Gtk.Application):
             listen = val("--talk-listen", "toggle")
             if listen:
                 self.talk.set_listening({"on": True, "off": False}.get(listen))
+
+    def show_catalog(self):
+        from .ui.catalog_dialog import CatalogWindow
+        CatalogWindow(self, parent=self.control).present()
+
+    def show_components(self, focus=None):
+        from .ui.components_dialog import ComponentsWindow
+        ComponentsWindow(self, parent=self.control, focus=focus).present()
 
     def show_match_menu(self, sport=None):
         from .ui.match_dialog import MatchWindow

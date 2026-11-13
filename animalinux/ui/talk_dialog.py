@@ -86,6 +86,12 @@ class TalkWindow(Gtk.Window):
         box.append(gw.section_title(tr("🧠 IA local (Ollama)")))
         self._ollama_lbl = self._label(box)
         self._install_lbl = self._label(box, dim=True, selectable=True)
+        self._ol_btn = Gtk.Button(label=tr("⬇ Instalar Ollama (un clic)"))
+        self._ol_btn.add_css_class("suggested-action")
+        self._ol_btn.set_halign(Gtk.Align.START)
+        self._ol_btn.connect("clicked", lambda _b: self.app.show_components(focus="ollama"))
+        self._ol_btn.set_visible(False)
+        box.append(self._ol_btn)
         mrow = Gtk.Box(spacing=8)
         self._models = list(hw.MODELS)
         names = [tr("{modelo} · {gb} GB", modelo=hw.MODELS[m]["label"], gb=hw.MODELS[m]["disk"])
@@ -119,6 +125,12 @@ class TalkWindow(Gtk.Window):
         # ── voz ──────────────────────────────────────────────────────────
         box.append(gw.section_title(tr("🎤 Voz")))
         self._voice_lbl = self._label(box)
+        self._vo_btn = Gtk.Button(label=tr("⬇ Instalar reconocimiento de voz (un clic)"))
+        self._vo_btn.add_css_class("suggested-action")
+        self._vo_btn.set_halign(Gtk.Align.START)
+        self._vo_btn.connect("clicked", lambda _b: self.app.show_components(focus="vosk"))
+        self._vo_btn.set_visible(False)
+        box.append(self._vo_btn)
         vrow = Gtk.Box(spacing=8)
         self._vdl_btn = Gtk.Button(label="")
         self._vdl_btn.connect("clicked", self._download_voice)
@@ -395,10 +407,9 @@ class TalkWindow(Gtk.Window):
             self._ollama_lbl.set_text(tr("⬇ Falta descargar el modelo."))
         else:
             self._ollama_lbl.set_text(tr("✅ Ollama instalado (se arranca solo cuando hace falta)."))
+        self._ol_btn.set_visible(bool(st) and not st.get("ollama"))
         if st and not st.get("ollama"):
-            cmd = ("https://ollama.com/download" if sys.platform == "win32"
-                   else "sudo pacman -S ollama   ·   https://ollama.com/download")
-            self._install_lbl.set_text(tr("Para usar la IA, instálalo: {cmd}", cmd=cmd))
+            self._install_lbl.set_text(tr("Para usar la IA hace falta Ollama: se descarga e instala solo."))
         elif st and st.get("ollama_gpu_cmd"):
             self._install_lbl.set_text(tr("⚡ Ollama no usa tu tarjeta NVIDIA (va con el procesador, más lento). Para activarla: {cmd}",
                                           cmd=st["ollama_gpu_cmd"]))
@@ -412,14 +423,16 @@ class TalkWindow(Gtk.Window):
         mb = voice.MODELS.get(lang, voice.MODELS["es"])[2]
         if not st:
             self._voice_lbl.set_text("")
+        self._vo_btn.set_visible(bool(st) and not getattr(sys, "frozen", False)
+                                 and not (st.get("vosk") and st.get("mic")))
+        if not st:
+            pass
         elif not st.get("vosk") and getattr(sys, "frozen", False):
-            # AnimaWin empaquetado: un pip install no llega dentro de la app
-            self._voice_lbl.set_text(tr("En esta versión todavía no viene la voz: puedes escribirle (clic derecho en el micrófono)."))
+            # AnimaWin: Vosk viene dentro; si falta, la instalación está rota
+            self._voice_lbl.set_text(tr("❌ Falta el reconocimiento de voz. Reinstala la app."))
             self._vdl_btn.set_visible(False)
         elif not st.get("vosk"):
-            self._voice_lbl.set_text(tr("❌ Falta el reconocimiento de voz (Vosk). Instálalo: {cmd}",
-                                        cmd="sudo pacman -S python-vosk" if sys.platform != "win32"
-                                        else "pip install vosk sounddevice"))
+            self._voice_lbl.set_text(tr("❌ Falta el reconocimiento de voz: se descarga e instala solo."))
             self._vdl_btn.set_visible(False)
         elif not st.get("mic"):
             self._voice_lbl.set_text(tr("❌ No encuentro cómo leer el micrófono (pw-record, parecord o arecord)."))

@@ -9,6 +9,7 @@ archivo (rutas, PNG reales, tamaños) y recién entonces la marca verificada.
 Se usa la clave pública (anon) de la web: no da ningún permiso especial.
 """
 import io
+import re
 import json
 import tempfile
 import time
@@ -100,3 +101,64 @@ def upload(kind, data, mime, preview, meta, author="", description="", tags=()):
     _req("POST", "/rest/v1/packs", json.dumps(row).encode(),
          {"Content-Type": "application/json", "Prefer": "return=minimal"})
     return file_path
+
+
+# ── catálogo: ver y bajar mascotas desde la app ─────────────────────────────
+_SAFE_PATH = re.compile(r"^[A-Za-z0-9_-]{1,64}/[A-Za-z0-9_.-]{1,80}$")
+KINDS = {"alpack": "alpack", "gif": "gif"}
+
+
+def public_url(bucket, path):
+    if not path or not _SAFE_PATH.match(path) or ".." in path:
+        raise UploadError("ruta inválida")
+    return f"{SUPABASE_URL}/storage/v1/object/public/{bucket}/{path}"
+
+
+def list_packs(order="downloads", limit=200):
+    """Mascotas verificadas de la galería (lo mismo que muestra la web)."""
+    col = {"downloads": "downloads.desc", "votes": "votes.desc",
+           "new": "created_at.desc"}.get(order, "downloads.desc")
+    q = ("/rest/v1/packs?select=id,name,author,description,fps,poses,kind,file_path,"
+         f"preview_path,file_size,downloads,votes,created_at&verified=eq.true&order={col}"
+         f"&limit={int(limit)}")
+    _st, body = _req("GET", q, timeout=20)
+    rows = json.loads(body.decode("utf-8"))
+    return [r for r in rows if isinstance(r, dict) and r.get("kind") in KINDS
+            and _SAFE_PATH.match(r.get("file_path") or "")]
+
+
+def fetch(url, max_bytes, timeout=60):
+    if not url.startswith(SUPABASE_URL + "/storage/v1/object/public/"):
+        raise UploadError("url no permitida")
+    req = urllib.request.Request(url, headers={"User-Agent": "AnimaLinux"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            data = r.read(max_bytes + 1)
+    except urllib.error.URLError as e:
+        raise UploadError(str(getattr(e, "reason", e))) from None
+    if len(data) > max_bytes:
+        raise UploadError(f"> {max_bytes // (1024 * 1024)} MB")
+    return data
+
+
+def preview_bytes(pack):
+    if not pack.get("preview_path") and pack.get("kind") == "gif":
+        return fetch(public_url("packs", pack["file_path"]), 8 * 1024 * 1024)
+    if not pack.get("preview_path"):
+        return None
+    return fetch(public_url("previews", pack["preview_path"]), 2 * 1024 * 1024)
+
+
+def download_pack(pack, dest_dir):
+    """Baja el archivo de la mascota a dest_dir y suma una descarga. Devuelve la ruta."""
+    kind = KINDS[pack["kind"]]
+    data = fetch(public_url("packs", pack["file_path"]), MAX_MB * 1024 * 1024)
+    out = Path(dest_dir) / f"comunidad-{uuid.uuid4().hex[:8]}.{kind}"
+    out.write_bytes(data)
+    try:   # contador de la web (por RPC: RLS no deja un UPDATE directo)
+        _req("POST", "/rest/v1/rpc/increment_pack_downloads",
+             json.dumps({"pack_id": pack["id"]}).encode(),
+             {"Content-Type": "application/json"}, timeout=10)
+    except UploadError:
+        pass
+    return out
